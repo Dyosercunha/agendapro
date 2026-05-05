@@ -1,18 +1,22 @@
+// @ts-nocheck
 import React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import "./styles.css";
 
-const supabaseUrl = "https://opcuaxkndslmejhuauyq.supabase.co";
-const supabaseAnonKey = "sb_publishable_BdyBW7dYCg5qf4bBkRFdHQ_doLtqCsy";
+const supabaseUrl =
+  import.meta.env.VITE_SUPABASE_URL || "https://opcuaxkndslmejhuauyq.supabase.co";
+const supabaseAnonKey =
+  import.meta.env.VITE_SUPABASE_ANON_KEY || "sb_publishable_BdyBW7dYCg5qf4bBkRFdHQ_doLtqCsy";
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const fallbackProfessionalName = "Profissional disponível";
 
 const initialBusiness = {
-  name: "Barbearia do João",
-  logo: "B",
+  name: "AgendaPro",
+  logo: "A",
   logoImage: "",
-  slug: "barbearia-do-joao",
-  ownerEmail: "admin@barbeariadojoao.com",
+  slug: "agenda-pro",
+  ownerEmail: "dyoser@app.com",
   plan: "professional",
   monthlyStatus: "active",
   nextBillingDate: "2026-06-04",
@@ -24,6 +28,9 @@ const initialBusiness = {
   pixEnabled: true,
   pixKey: "51996238323",
   pixDiscount: 10,
+  promotionTitle: "Promoção online",
+  promotionDescription: "Desconto especial para agendamentos feitos pelo app.",
+  promotionDiscount: 10,
   automaticConfirmationEnabled: true,
   successTitle: "Agendamento confirmado!",
   successMessage: "Seu horário já está reservado.",
@@ -33,15 +40,8 @@ const initialBusiness = {
 const initialAccessAccounts = [
   {
     id: "access-1",
-    email: "admin@barbeariadojoao.com",
-    role: "Dono",
-    active: true,
-    fixed: true,
-  },
-  {
-    id: "access-2",
     email: "dyoser@app.com",
-    role: "Plataforma",
+    role: "Dono",
     active: true,
     fixed: true,
   },
@@ -57,9 +57,6 @@ const initialServices = [
 
 const initialProfessionals = [
   { name: "Primeiro disponível", active: true, fixed: true },
-  { name: "João", active: true, fixed: false },
-  { name: "Pedro", active: true, fixed: false },
-  { name: "Carlos", active: true, fixed: false },
 ];
 
 const weekDays = [
@@ -99,48 +96,16 @@ const initialSchedule = {
   ],
 };
 
-const initialAppointments = [
-  {
-    id: "demo-1",
-    clientName: "Cliente reservado",
-    whatsapp: "51988887777",
-    professional: "João",
-    date: getDateAfterDays(0),
-    time: "09:00",
-    duration: 50,
-    services: "Corte de cabelo + Barba",
-    total: 60,
-    payment: "local",
-    paid: false,
-    rescheduleRequested: false,
-  },
-  {
-    id: "demo-2",
-    clientName: "Cliente reservado",
-    whatsapp: "51977776666",
-    professional: "Pedro",
-    date: getDateAfterDays(0),
-    time: "10:30",
-    duration: 30,
-    services: "Corte de cabelo",
-    total: 35,
-    payment: "pix",
-    paid: true,
-    rescheduleRequested: false,
-  },
-];
+const initialAppointments = [];
 
-const clientHistory = {
-  "51999999999": {
-    name: "Dyoser",
-    lastServices: [0, 1],
-    lastProfessional: "João",
-  },
-};
+const initialWaitlist = [];
+
+const clientHistory = {};
 
 const adminTabs = [
   { id: "dashboard", label: "Painel" },
   { id: "agenda", label: "Agenda" },
+  { id: "customers", label: "Clientes" },
   { id: "services", label: "Serviços" },
   { id: "payments", label: "Pagamentos" },
   { id: "appearance", label: "Aparência" },
@@ -306,10 +271,22 @@ function makeSlug(value) {
 }
 
 function money(value) {
-  return value.toLocaleString("pt-BR", {
+  return roundCurrency(value).toLocaleString("pt-BR", {
     style: "currency",
     currency: "BRL",
   });
+}
+
+function roundCurrency(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return 0;
+  return Math.round((number + Number.EPSILON) * 100) / 100;
+}
+
+function clampPercentage(value, max = 80) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return 0;
+  return Math.min(Math.max(number, 0), max);
 }
 
 function hexToRgba(hex, opacity) {
@@ -321,7 +298,7 @@ function hexToRgba(hex, opacity) {
   return `rgba(${red}, ${green}, ${blue}, ${opacity})`;
 }
 
-const storagePrefix = "agendaBarbeariaV1";
+const storagePrefix = "agendaProV2";
 
 const storageKeys = {
   business: "business",
@@ -331,6 +308,7 @@ const storageKeys = {
   professionals: "professionals",
   schedule: "schedule",
   appointments: "appointments",
+  waitlist: "waitlist",
 };
 
 function storageKey(key) {
@@ -409,7 +387,7 @@ function initialViewModeFromUrl() {
   if (typeof window === "undefined") return "client";
 
   const parts = window.location.pathname.split("/").filter(Boolean);
-  return parts.includes("painel") ? "adminLogin" : "client";
+  return parts.includes("painel") ? "barberGate" : "client";
 }
 
 function isUuid(value) {
@@ -436,6 +414,9 @@ function mapBusinessFromCloud(row, account) {
     pixEnabled: Boolean(row.pix_enabled),
     pixKey: row.pix_key || "",
     pixDiscount: Number(row.pix_discount || 0),
+    promotionTitle: row.promotion_title || initialBusiness.promotionTitle,
+    promotionDescription: row.promotion_description || initialBusiness.promotionDescription,
+    promotionDiscount: Number(row.promotion_discount || initialBusiness.promotionDiscount),
     automaticConfirmationEnabled: Boolean(row.automatic_confirmation_enabled),
     successTitle: row.success_title || initialBusiness.successTitle,
     successMessage: row.success_message || initialBusiness.successMessage,
@@ -476,6 +457,18 @@ function mapFeatureFlagsFromCloud(rows) {
   });
 
   return flags;
+}
+
+function mapWaitlistFromCloud(rows) {
+  return (rows || []).map((item) => ({
+    id: item.id,
+    clientName: item.client_name,
+    whatsapp: item.whatsapp,
+    date: item.preferred_date,
+    services: item.service_text,
+    status: item.status || "waiting",
+    createdAt: item.created_at,
+  }));
 }
 
 function mapScheduleFromCloud(workingRows, breakRows, dayOffRows, blockRows, professionalRows, slotInterval) {
@@ -528,6 +521,9 @@ export default function App() {
   const [adminEmail, setAdminEmail] = useState("");
   const [adminAccessCode, setAdminAccessCode] = useState("");
   const [adminLoginError, setAdminLoginError] = useState("");
+  const [barberGateWhatsapp, setBarberGateWhatsapp] = useState("");
+  const [barberGateName, setBarberGateName] = useState("");
+  const [barberGateError, setBarberGateError] = useState("");
   const [screen, setScreen] = useState("home");
   const [business, setBusiness] = useState(() =>
     readSavedData(storageKeys.business, initialBusiness)
@@ -550,6 +546,9 @@ export default function App() {
   const [appointments, setAppointments] = useState(() =>
     readSavedData(storageKeys.appointments, initialAppointments)
   );
+  const [waitlist, setWaitlist] = useState(() =>
+    readSavedData(storageKeys.waitlist, initialWaitlist)
+  );
   const [whatsapp, setWhatsapp] = useState("");
   const [clientName, setClientName] = useState("");
   const [selectedServices, setSelectedServices] = useState([]);
@@ -566,6 +565,7 @@ export default function App() {
   const [cloudStatus, setCloudStatus] = useState("Conectando ao Supabase...");
   const [cloudSaving, setCloudSaving] = useState("");
   const [cloudHistory, setCloudHistory] = useState(null);
+  const [waitlistSent, setWaitlistSent] = useState(false);
 
   const today = getDateAfterDays(0);
   const cleanWhatsapp = whatsapp.replace(/\D/g, "");
@@ -579,6 +579,43 @@ export default function App() {
   const autoConfirmationFeatureEnabled =
     featureFlags.auto_confirmation?.released && featureFlags.auto_confirmation?.enabled;
   const pixAvailable = business.pixEnabled && pixFeatureEnabled;
+  const waitlistAvailable = featureFlags.waitlist?.released && featureFlags.waitlist?.enabled;
+
+  function isAdminEmailAllowed(email) {
+    const normalizedEmail = String(email || "").trim().toLowerCase();
+
+    return (
+      normalizedEmail === business.ownerEmail?.trim().toLowerCase() ||
+      accessAccounts.some(
+        (account) => account.active && account.email.trim().toLowerCase() === normalizedEmail
+      )
+    );
+  }
+
+  function enterAdminWithEmail(email) {
+    setAdminEmail(email || "");
+    setAdminLoggedIn(true);
+    setAdminLoginError("");
+    setBarberGateError("");
+    setAdminTab("dashboard");
+    setViewMode("admin");
+    window.scrollTo(0, 0);
+  }
+
+  function handleAuthSession(session) {
+    const email = session?.user?.email || "";
+
+    if (!email) return;
+
+    if (isAdminEmailAllowed(email)) {
+      enterAdminWithEmail(email);
+      return;
+    }
+
+    setAdminLoggedIn(false);
+    setAdminLoginError("Este email Google não está liberado para acessar este painel.");
+    setViewMode("adminLogin");
+  }
 
   function markDataSaved() {
     setDataSavedAt(
@@ -625,8 +662,34 @@ export default function App() {
   }, [appointments]);
 
   useEffect(() => {
+    saveData(storageKeys.waitlist, waitlist);
+    markDataSaved();
+  }, [waitlist]);
+
+  useEffect(() => {
     loadCloudData();
   }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (active && data?.session) {
+        handleAuthSession(data.session);
+      }
+    });
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        handleAuthSession(session);
+      }
+    });
+
+    return () => {
+      active = false;
+      authListener?.subscription?.unsubscribe();
+    };
+  }, [business.ownerEmail, accessAccounts]);
 
   useEffect(() => {
     if (cleanWhatsapp.length < 8 || !business.slug) {
@@ -684,7 +747,18 @@ export default function App() {
 
   const totalDuration = chosenServices.reduce((sum, service) => sum + service.duration, 0);
   const totalPrice = chosenServices.reduce((sum, service) => sum + service.price, 0);
-  const pixPrice = totalPrice * (1 - business.pixDiscount / 100);
+  const promotionAvailable = featureFlags.promotions?.released && featureFlags.promotions?.enabled;
+  const promotionDiscount = promotionAvailable ? clampPercentage(business.promotionDiscount) : 0;
+  const promotionValue = roundCurrency(
+    Math.min(totalPrice, (totalPrice * promotionDiscount) / 100)
+  );
+  const promotionalTotal = roundCurrency(Math.max(totalPrice - promotionValue, 0));
+  const pixDiscount = pixAvailable ? clampPercentage(business.pixDiscount) : 0;
+  const pixDiscountValue = roundCurrency(
+    Math.min(promotionalTotal, (promotionalTotal * pixDiscount) / 100)
+  );
+  const pixPrice = roundCurrency(Math.max(promotionalTotal - pixDiscountValue, 0));
+  const selectedPaymentTotal = payment === "pix" && pixAvailable ? pixPrice : promotionalTotal;
   const servicesText = chosenServices.map((service) => service.name).join(" + ");
 
   const dateCount = range === "today" ? 1 : range === "week" ? 7 : 60;
@@ -712,6 +786,124 @@ export default function App() {
     .filter((item) => item.date >= today)
     .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`))
     .slice(0, 5);
+
+  const customerProfiles = useMemo(() => {
+    const profiles = {};
+
+    appointments.forEach((appointment) => {
+      const phone = String(appointment.whatsapp || "").replace(/\D/g, "");
+      if (!phone) return;
+
+      if (!profiles[phone]) {
+        profiles[phone] = {
+          whatsapp: phone,
+          whatsappLink: phone.startsWith("55") ? phone : `55${phone}`,
+          name: appointment.clientName || "Cliente",
+          visits: 0,
+          revenue: 0,
+          lastDate: appointment.date,
+          lastTime: appointment.time,
+          lastServices: appointment.services,
+          pendingPayment: 0,
+        };
+      }
+
+      profiles[phone].name = appointment.clientName || profiles[phone].name;
+      profiles[phone].visits += 1;
+      profiles[phone].revenue += Number(appointment.total || 0);
+
+      if (!appointment.paid) {
+        profiles[phone].pendingPayment += 1;
+      }
+
+      const currentLast = `${profiles[phone].lastDate} ${profiles[phone].lastTime || "00:00"}`;
+      const appointmentDate = `${appointment.date} ${appointment.time || "00:00"}`;
+
+      if (appointmentDate >= currentLast) {
+        profiles[phone].lastDate = appointment.date;
+        profiles[phone].lastTime = appointment.time;
+        profiles[phone].lastServices = appointment.services;
+      }
+    });
+
+    return Object.values(profiles).sort((a, b) => {
+      if (b.visits !== a.visits) return b.visits - a.visits;
+      return b.revenue - a.revenue;
+    });
+  }, [appointments]);
+
+  const returningCustomers = customerProfiles.filter((customer) => customer.visits > 1);
+  const topCustomer = customerProfiles[0];
+  const loyaltyFeatureEnabled = featureFlags.loyalty?.released && featureFlags.loyalty?.enabled;
+
+  const setupItems = [
+    {
+      label: "Identidade",
+      description: "Nome, logo e cores",
+      done: Boolean(business.name && (business.logo || business.logoImage)),
+      tab: "appearance",
+    },
+    {
+      label: "Endereço",
+      description: "Local para o cliente",
+      done: Boolean(business.address),
+      tab: "appearance",
+    },
+    {
+      label: "Serviços",
+      description: "Preços e tempos",
+      done: activeServices.length > 0,
+      tab: "services",
+    },
+    {
+      label: "Profissionais",
+      description: "Equipe ativa",
+      done: professionals.some((item) => item.active && !item.fixed),
+      tab: "services",
+    },
+    {
+      label: "Agenda",
+      description: "Funcionamento real",
+      done: Object.values(schedule.workingHours).some((item) => item.enabled),
+      tab: "agenda",
+    },
+    {
+      label: "Pagamentos",
+      description: "PIX e promoções",
+      done: !pixAvailable || Boolean(business.pixKey),
+      tab: "payments",
+    },
+    {
+      label: "Acessos",
+      description: "Contas autorizadas",
+      done: accessAccounts.some((account) => account.active),
+      tab: "account",
+    },
+  ];
+
+  const completedSetupItems = setupItems.filter((item) => item.done).length;
+  const setupProgress = Math.round((completedSetupItems / setupItems.length) * 100);
+
+  const featureStatusCards = platformFeatures.map((feature) => {
+    const state = featureFlags[feature.key] || { enabled: false, released: false };
+    const shortcut = featureShortcut(feature.key);
+    const statusLabel = state.released
+      ? state.enabled
+        ? "Ativo"
+        : "Liberado"
+      : "Bloqueado";
+
+    return {
+      ...feature,
+      state,
+      shortcut,
+      statusLabel,
+    };
+  });
+
+  const activeFeatureCount = featureStatusCards.filter(
+    (feature) => feature.state.released && feature.state.enabled
+  ).length;
 
   const nextTodaySlot = buildSlotsForDate(today).find((slot) => slot.available);
   const agendaStatus = isDayOff(today)
@@ -749,6 +941,7 @@ export default function App() {
         appointmentsResult,
         adminsResult,
         featureFlagsResult,
+        waitlistResult,
       ] = await Promise.all([
         supabase
           .from("barbershop_accounts")
@@ -770,16 +963,18 @@ export default function App() {
         supabase.from("schedule_breaks").select("*").eq("barbershop_id", businessData.id),
         supabase.from("days_off").select("*").eq("barbershop_id", businessData.id),
         supabase.from("schedule_blocks").select("*").eq("barbershop_id", businessData.id),
-        supabase
-          .from("appointments")
-          .select("*")
-          .eq("barbershop_id", businessData.id)
-          .order("appointment_date", { ascending: true })
-          .order("appointment_time", { ascending: true }),
+        supabase.rpc("get_admin_appointments", {
+          target_slug: businessData.slug,
+        }),
         supabase.rpc("get_barbershop_accesses", {
           target_slug: businessData.slug,
         }),
         supabase.from("feature_flags").select("*").eq("barbershop_id", businessData.id),
+        supabase
+          .from("waitlist")
+          .select("*")
+          .eq("barbershop_id", businessData.id)
+          .order("created_at", { ascending: false }),
       ]);
 
       const cloudProfessionals = (professionalsResult.data || []).map((item) => ({
@@ -794,6 +989,7 @@ export default function App() {
         mapAccessAccountsFromCloud(adminsResult.data || [], accountResult.data?.owner_email)
       );
       setFeatureFlags(mapFeatureFlagsFromCloud(featureFlagsResult.data || []));
+      setWaitlist(mapWaitlistFromCloud(waitlistResult.data || []));
 
       if (servicesResult.data?.length) {
         setServices(
@@ -854,9 +1050,11 @@ export default function App() {
   }
 
   function realProfessionals() {
-    return professionals
+    const activeProfessionals = professionals
       .filter((item) => !item.fixed && item.name.trim() !== "" && item.active)
       .map((item) => item.name);
+
+    return activeProfessionals.length ? activeProfessionals : [fallbackProfessionalName];
   }
 
   function getWorkingDay(dateText) {
@@ -1057,8 +1255,8 @@ export default function App() {
       professional === "Primeiro disponível" ? freshSlot.professional : professional;
 
     const id = makeId("ag");
-    const finalPayment = payment === "pix" ? "pix" : "local";
-    const finalTotal = payment === "pix" ? pixPrice : totalPrice;
+    const finalPayment = payment === "pix" && pixAvailable ? "pix" : "local";
+    const finalTotal = selectedPaymentTotal;
 
     const appointmentData = {
       id,
@@ -1183,7 +1381,14 @@ export default function App() {
         setCloudSlug(business.slug || makeSlug(business.name));
       }
 
-      return result;
+      if (result.error) return result;
+
+      return supabase.rpc("save_promotion_settings", {
+        target_slug: business.slug || makeSlug(business.name),
+        promotion_title_input: business.promotionTitle || "",
+        promotion_description_input: business.promotionDescription || "",
+        promotion_discount_input: Number(business.promotionDiscount || 0),
+      });
     });
   }
 
@@ -1300,6 +1505,80 @@ export default function App() {
     setCloudStatus("Agendamento atualizado no Supabase");
   }
 
+  async function joinWaitlist() {
+    if (!waitlistAvailable) {
+      alert("Lista de espera ainda não está disponível para esta barbearia.");
+      return;
+    }
+
+    if (cleanWhatsapp.length < 8 || clientName.trim() === "" || selectedServices.length === 0) {
+      alert("Informe WhatsApp, nome e serviço para entrar na lista de espera.");
+      return;
+    }
+
+    const waitlistData = {
+      id: makeId("wait"),
+      clientName,
+      whatsapp,
+      date: selectedDate,
+      services: servicesText,
+      status: "waiting",
+      createdAt: new Date().toISOString(),
+    };
+
+    setWaitlist((current) => [waitlistData].concat(current));
+    setWaitlistSent(true);
+    setCloudStatus("Pedido adicionado à lista de espera localmente.");
+
+    const { data, error } = await supabase.rpc("join_waitlist", {
+      target_slug: cloudSlug || business.slug,
+      client_name_input: clientName,
+      whatsapp_input: whatsapp,
+      preferred_date_input: selectedDate,
+      service_text_input: servicesText,
+    });
+
+    if (error) {
+      console.error(error);
+      setCloudStatus("Lista de espera salva localmente. Falhou ao enviar para o Supabase.");
+      return;
+    }
+
+    if (data) {
+      setWaitlist((current) =>
+        current.map((item) =>
+          item.id === waitlistData.id ? { ...item, id: String(data) } : item
+        )
+      );
+    }
+
+    setCloudStatus("Cliente adicionado à lista de espera no Supabase.");
+  }
+
+  async function updateWaitlistStatus(id, status) {
+    setWaitlist((current) =>
+      status === "removed"
+        ? current.filter((item) => item.id !== id)
+        : current.map((item) => (item.id === id ? { ...item, status } : item))
+    );
+
+    if (!isUuid(id)) return;
+
+    const { error } = await supabase.rpc("update_waitlist_status", {
+      target_slug: cloudSlug || business.slug,
+      waitlist_id_input: id,
+      status_input: status,
+    });
+
+    if (error) {
+      console.error(error);
+      setCloudStatus("Lista de espera atualizada localmente. Falhou ao enviar para o Supabase.");
+      return;
+    }
+
+    setCloudStatus("Lista de espera atualizada no Supabase.");
+  }
+
   function copyText(text) {
     navigator.clipboard?.writeText(text);
     alert("Copiado: " + text);
@@ -1381,6 +1660,56 @@ export default function App() {
     }));
   }
 
+  function isFutureOnlyFeature(featureKey) {
+    return (
+      featureKey === "google_login" ||
+      featureKey === "instagram_booking" ||
+      featureKey === "unique_link"
+    );
+  }
+
+  function setFeatureRelease(featureKey, released) {
+    setFeatureFlags((current) => ({
+      ...current,
+      [featureKey]: {
+        enabled: released ? !isFutureOnlyFeature(featureKey) : false,
+        released,
+      },
+    }));
+  }
+
+  function featureShortcut(featureKey) {
+    if (featureKey === "pix") {
+      return { label: "Configurar pagamentos", tab: "payments", disabled: false };
+    }
+
+    if (featureKey === "auto_confirmation") {
+      return { label: "Editar mensagem final", tab: "appearance", disabled: false };
+    }
+
+    if (featureKey === "promotions") {
+      return { label: "Configurar promoção", tab: "payments", disabled: false };
+    }
+
+    if (featureKey === "waitlist") {
+      return { label: "Ver lista de espera", tab: "agenda", disabled: false };
+    }
+
+    if (featureKey === "loyalty") {
+      return { label: "Ver clientes", tab: "customers", disabled: false };
+    }
+
+    if (featureKey === "google_login") {
+      return { label: "Login em preparação", tab: "", disabled: true };
+    }
+
+    if (featureKey === "instagram_booking") {
+      return { label: "Instagram em preparação", tab: "", disabled: true };
+    }
+
+    return { label: "Em breve", tab: "", disabled: true };
+  }
+
   function startNewSchedule() {
     setScreen("home");
     setSelectedServices([]);
@@ -1388,6 +1717,7 @@ export default function App() {
     setPayment("");
     setConfirmedId("");
     setConfirmationSent(false);
+    setWaitlistSent(false);
     window.scrollTo(0, 0);
   }
 
@@ -1582,17 +1912,70 @@ export default function App() {
 
   function openAdminArea() {
     setScreen("home");
-    setViewMode(adminLoggedIn ? "admin" : "adminLogin");
+    setBarberGateError("");
+    setViewMode(adminLoggedIn ? "admin" : "barberGate");
     window.scrollTo(0, 0);
+  }
+
+  function normalizeAccessText(value) {
+    return makeSlug(String(value || ""));
+  }
+
+  function phoneMatchesBusiness(typedPhone) {
+    const typed = String(typedPhone || "").replace(/\D/g, "");
+    const registered = String(business.whatsapp || "").replace(/\D/g, "");
+
+    if (typed.length < 8 || registered.length < 8) return false;
+
+    return (
+      typed === registered ||
+      `55${typed}` === registered ||
+      typed.slice(-11) === registered.slice(-11)
+    );
+  }
+
+  function nameMatchesBusiness(typedName) {
+    const typed = normalizeAccessText(typedName);
+    const businessName = normalizeAccessText(business.name);
+    const businessSlug = normalizeAccessText(business.slug);
+
+    return typed.length >= 3 && (typed === businessName || typed === businessSlug);
+  }
+
+  function verifyBarberIdentity() {
+    if (!phoneMatchesBusiness(barberGateWhatsapp) || !nameMatchesBusiness(barberGateName)) {
+      setBarberGateError("WhatsApp ou nome da barbearia não confere com o cadastro.");
+      return;
+    }
+
+    setBarberGateError("");
+    setAdminLoginError("");
+    setViewMode("adminLogin");
+    window.scrollTo(0, 0);
+  }
+
+  async function loginWithGoogle() {
+    setAdminLoginError("");
+
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: adminPanelLink,
+        },
+      });
+
+      if (error) {
+        setAdminLoginError("Login Google ainda não configurado no Supabase.");
+      }
+    } catch {
+      setAdminLoginError("Login Google ainda não configurado no Supabase.");
+    }
   }
 
   function loginAdmin() {
     const normalizedEmail = adminEmail.trim().toLowerCase();
-    const emailAllowed =
-      normalizedEmail === business.ownerEmail?.trim().toLowerCase() ||
-      accessAccounts.some(
-        (account) => account.active && account.email.trim().toLowerCase() === normalizedEmail
-      );
+    const emailAllowed = isAdminEmailAllowed(normalizedEmail);
     const codeAllowed = adminAccessCode.trim() === "123456";
 
     if (!emailAllowed || !codeAllowed) {
@@ -1600,14 +1983,11 @@ export default function App() {
       return;
     }
 
-    setAdminLoggedIn(true);
-    setAdminLoginError("");
-    setAdminTab("dashboard");
-    setViewMode("admin");
-    window.scrollTo(0, 0);
+    enterAdminWithEmail(normalizedEmail);
   }
 
   function logoutAdmin() {
+    supabase.auth.signOut();
     setAdminLoggedIn(false);
     setAdminAccessCode("");
     setViewMode("client");
@@ -1630,9 +2010,11 @@ export default function App() {
     setProfessionals(initialProfessionals);
     setSchedule(initialSchedule);
     setAppointments(initialAppointments);
+    setWaitlist(initialWaitlist);
     setSelectedServices([]);
     setSelectedTime("");
     setPayment("");
+    setWaitlistSent(false);
     setAdminTab("dashboard");
     setScreen("home");
     markDataSaved();
@@ -1691,6 +2073,60 @@ export default function App() {
     setAdminTab("agenda");
   }
 
+  if (viewMode === "barberGate") {
+    return (
+      <main className="app">
+        <section className="hero">
+          <div className="brand">
+            <div className={business.logoImage ? "logo logoWithImage" : "logo"}>
+              {business.logoImage ? <img src={business.logoImage} alt="Logo" /> : business.logo}
+            </div>
+            <div>
+              <p className="muted">Área da barbearia</p>
+              <h1>Confirmar acesso</h1>
+            </div>
+          </div>
+          <button className="logoutButton" onClick={() => setViewMode("client")}>
+            Voltar
+          </button>
+        </section>
+
+        <section className="card loginCard">
+          <div className="loginBadge">Primeira verificação</div>
+          <h2>Acesso do estabelecimento</h2>
+          <p className="hint">
+            Informe o WhatsApp cadastrado e o nome da barbearia para liberar a tela de login.
+          </p>
+
+          <label>WhatsApp da barbearia</label>
+          <input
+            inputMode="numeric"
+            placeholder="(51) 99999-9999"
+            value={barberGateWhatsapp}
+            onChange={(event) => setBarberGateWhatsapp(formatPhone(event.target.value))}
+          />
+
+          <label>Nome da barbearia</label>
+          <input
+            placeholder={business.name}
+            value={barberGateName}
+            onChange={(event) => setBarberGateName(event.target.value)}
+          />
+
+          {barberGateError && <p className="loginError">{barberGateError}</p>}
+
+          <button className="green" onClick={verifyBarberIdentity}>
+            Continuar para login
+          </button>
+
+          <p className="adminNote">
+            Essa etapa evita que clientes acessem o painel apenas por encontrar o link.
+          </p>
+        </section>
+      </main>
+    );
+  }
+
   if (viewMode === "adminLogin") {
     return (
       <main className="app">
@@ -1743,9 +2179,13 @@ export default function App() {
             Entrar no painel
           </button>
 
+          <button className="googleButton" onClick={loginWithGoogle}>
+            Entrar com Google
+          </button>
+
           <p className="adminNote">
-            Demo: use admin@barbeariadojoao.com com código 123456. No app real, isso será
-            substituído por autenticação segura no backend.
+            Demo: use dyoser@app.com com código 123456. O Google precisa estar
+            ativado no Supabase Auth para funcionar em produção.
           </p>
         </section>
       </main>
@@ -1823,6 +2263,16 @@ export default function App() {
                 <strong>{money(todayRevenue)}</strong>
                 <small>faturamento</small>
               </div>
+              <div>
+                <span>Clientes</span>
+                <strong>{customerProfiles.length}</strong>
+                <small>{returningCustomers.length} recorrentes</small>
+              </div>
+              <div>
+                <span>Espera</span>
+                <strong>{waitlist.filter((item) => item.status !== "contacted").length}</strong>
+                <small>pedidos</small>
+              </div>
             </section>
 
             <section className="card">
@@ -1833,6 +2283,7 @@ export default function App() {
 
               <div className="commandGrid">
                 <button onClick={() => setAdminTab("agenda")}>Ver agenda</button>
+                <button onClick={() => setAdminTab("customers")}>Ver clientes</button>
                 <button onClick={blockNextAvailableTime}>Bloquear próximo horário</button>
                 <button onClick={closeToday}>Fechar hoje</button>
                 <button onClick={openToday}>Liberar hoje</button>
@@ -1873,15 +2324,75 @@ export default function App() {
               </div>
             </section>
 
+            <section className="card setupCard">
+              <div className="sectionTitle">
+                <h2>Checklist do app</h2>
+                <span>{completedSetupItems}/{setupItems.length} pronto</span>
+              </div>
+
+              <div className="setupProgress">
+                <span style={{ width: `${setupProgress}%` }} />
+              </div>
+
+              <div className="setupList">
+                {setupItems.map((item) => (
+                  <button
+                    className={item.done ? "setupItem setupDone" : "setupItem"}
+                    key={item.label}
+                    onClick={() => setAdminTab(item.tab)}
+                  >
+                    <span>{item.done ? "OK" : "Pendente"}</span>
+                    <strong>{item.label}</strong>
+                    <small>{item.description}</small>
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            <section className="card resourceCard">
+              <div className="sectionTitle">
+                <h2>Recursos do app</h2>
+                <span>{activeFeatureCount} ativos</span>
+              </div>
+
+              <div className="resourceGrid">
+                {featureStatusCards.map((feature) => (
+                  <button
+                    className={[
+                      "resourceItem",
+                      feature.state.released ? "resourceReleased" : "resourceLocked",
+                      feature.state.enabled ? "resourceEnabled" : "",
+                    ].join(" ")}
+                    key={feature.key}
+                    onClick={() => {
+                      if (feature.state.released && !feature.shortcut.disabled && feature.shortcut.tab) {
+                        setAdminTab(feature.shortcut.tab);
+                      } else {
+                        setAdminTab("improvements");
+                      }
+                    }}
+                  >
+                    <span>{feature.statusLabel}</span>
+                    <strong>{feature.title}</strong>
+                    <small>
+                      {feature.state.released && !feature.shortcut.disabled
+                        ? feature.shortcut.label
+                        : "Gerenciar em Melhorias"}
+                    </small>
+                  </button>
+                ))}
+              </div>
+            </section>
+
             <section className="card storageCard">
               <div className="sectionTitle">
-                <h2>Dados do app</h2>
-                <span>Salvo no navegador</span>
+                <h2>Sincronização</h2>
+                <span>Local + Supabase</span>
               </div>
 
               <p className="hint">
-                As configurações do painel ficam guardadas neste dispositivo até conectarmos
-                um banco de dados real.
+                O app mantém uma cópia local para abrir rápido e salva as configurações
+                principais no Supabase quando você usa os botões de salvar.
               </p>
 
               <div className="storageGrid">
@@ -1940,6 +2451,79 @@ export default function App() {
             </section>
           </>
         )}
+
+        <section className={adminTab === "customers" ? "card customerCard" : "hiddenPanel"}>
+          <div className="sectionTitle">
+            <h2>Clientes</h2>
+            <span>Histórico e recorrência</span>
+          </div>
+
+          <div className="customerSummary">
+            <div>
+              <span>Total</span>
+              <strong>{customerProfiles.length}</strong>
+              <small>clientes com histórico</small>
+            </div>
+            <div>
+              <span>Recorrentes</span>
+              <strong>{returningCustomers.length}</strong>
+              <small>mais de uma visita</small>
+            </div>
+            <div>
+              <span>Melhor cliente</span>
+              <strong>{topCustomer?.name || "Sem dados"}</strong>
+              <small>{topCustomer ? `${topCustomer.visits} visitas` : "aguardando agenda"}</small>
+            </div>
+          </div>
+
+          <div className={loyaltyFeatureEnabled ? "loyaltyNotice activeLoyalty" : "loyaltyNotice"}>
+            <strong>{loyaltyFeatureEnabled ? "Fidelidade ativa" : "Fidelidade bloqueada"}</strong>
+            <p>
+              {loyaltyFeatureEnabled
+                ? "Use o histórico para oferecer vantagens aos clientes recorrentes."
+                : "Libere Fidelidade em Melhorias para transformar visitas em recompensas."}
+            </p>
+            {!loyaltyFeatureEnabled && (
+              <button onClick={() => setAdminTab("improvements")}>
+                Liberar fidelidade
+              </button>
+            )}
+          </div>
+
+          {customerProfiles.length === 0 && (
+            <p className="hint">Os clientes aparecem aqui depois dos primeiros agendamentos.</p>
+          )}
+
+          <div className="customerList">
+            {customerProfiles.map((customer) => (
+              <div className="customerItem" key={customer.whatsapp}>
+                <div className="customerAvatar">{customer.name.slice(0, 1).toUpperCase()}</div>
+                <div>
+                  <strong>{customer.name}</strong>
+                  <p>WhatsApp: {customer.whatsapp}</p>
+                  <p>Último atendimento: {formatDate(customer.lastDate)} às {customer.lastTime}</p>
+                  <p>{customer.lastServices}</p>
+                  <div className="customerBadges">
+                    <span>{customer.visits} visitas</span>
+                    <span>{money(customer.revenue)}</span>
+                    {customer.pendingPayment > 0 && <span>Pagamento pendente</span>}
+                    {loyaltyFeatureEnabled && customer.visits >= 5 && <span>Prêmio sugerido</span>}
+                  </div>
+                </div>
+                <a
+                  className="whatsappAction"
+                  href={`https://wa.me/${customer.whatsappLink}?text=${encodeURIComponent(
+                    `Olá, ${customer.name}! Aqui é da ${business.name}.`
+                  )}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  WhatsApp
+                </a>
+              </div>
+            ))}
+          </div>
+        </section>
 
         <section className={adminTab === "agenda" ? "card" : "hiddenPanel"}>
           <div className="sectionTitle">
@@ -2196,8 +2780,12 @@ export default function App() {
           <label>Desconto antecipado (%)</label>
           <input
             type="number"
+            min="0"
+            max="80"
             value={business.pixDiscount}
-            onChange={(event) => setBusiness({ ...business, pixDiscount: Number(event.target.value) })}
+            onChange={(event) =>
+              setBusiness({ ...business, pixDiscount: clampPercentage(event.target.value) })
+            }
           />
 
           <h2>Opcionais</h2>
@@ -2205,6 +2793,44 @@ export default function App() {
             Promoções, lista de espera e fidelidade ficam bloqueados até serem liberados
             na aba Melhorias.
           </p>
+
+          <div className={featureFlags.promotions?.released ? "promoConfig" : "promoConfig lockedPromo"}>
+            <div className="sectionTitle">
+              <h2>Promoções inteligentes</h2>
+              <span>{promotionAvailable ? "Ativa" : "Inativa"}</span>
+            </div>
+            <p className="hint">
+              Libere em Melhorias, configure o desconto aqui e salve no Supabase.
+            </p>
+
+            <label>Nome da promoção</label>
+            <input
+              disabled={!featureFlags.promotions?.released}
+              value={business.promotionTitle || ""}
+              onChange={(event) => setBusiness({ ...business, promotionTitle: event.target.value })}
+            />
+
+            <label>Descrição da promoção</label>
+            <input
+              disabled={!featureFlags.promotions?.released}
+              value={business.promotionDescription || ""}
+              onChange={(event) =>
+                setBusiness({ ...business, promotionDescription: event.target.value })
+              }
+            />
+
+            <label>Desconto da promoção (%)</label>
+            <input
+              disabled={!featureFlags.promotions?.released}
+              type="number"
+              min="0"
+              max="80"
+              value={business.promotionDiscount || 0}
+              onChange={(event) =>
+                setBusiness({ ...business, promotionDiscount: clampPercentage(event.target.value) })
+              }
+            />
+          </div>
 
           <button className="green" onClick={saveBusinessToCloud}>
             {cloudSaving === "business" ? "Salvando pagamentos..." : "Salvar pagamentos no Supabase"}
@@ -2223,49 +2849,69 @@ export default function App() {
           </p>
 
           <div className="featureGrid">
-            {platformFeatures.map((feature) => (
-              <div
-                className={
-                  featureFlags[feature.key]?.released
-                    ? "featureCard availableFeature"
-                    : "featureCard lockedFeature"
-                }
-                key={feature.key}
-              >
+            {platformFeatures.map((feature) => {
+              const featureState = featureFlags[feature.key] || {
+                enabled: false,
+                released: false,
+              };
+              const shortcut = featureShortcut(feature.key);
+
+              return (
+                <div
+                  className={[
+                    "featureCard",
+                    featureState.released ? "availableFeature" : "lockedFeature",
+                    featureState.released && featureState.enabled ? "activeFeature" : "",
+                  ].join(" ")}
+                  key={feature.key}
+                >
                 <div className="featureHeader">
                   <strong>{feature.title}</strong>
-                  <span>{featureFlags[feature.key]?.released ? "Liberado" : "Bloqueado"}</span>
+                  <span>
+                    {featureState.released
+                      ? featureState.enabled
+                        ? "Ativo"
+                        : "Liberado"
+                      : "Bloqueado"}
+                  </span>
                 </div>
                 <p>{feature.description}</p>
 
+                <div className="featureDestination">
+                  <span>
+                    {isFutureOnlyFeature(feature.key)
+                      ? "Em preparação"
+                      : featureState.released
+                      ? featureState.enabled
+                        ? shortcut.label
+                        : "Liberado, aguardando ativação"
+                      : "Aguardando liberação"}
+                  </span>
+                </div>
+
                 <div className="featureActions">
                   <button
-                    onClick={() =>
-                      updateFeatureFlag(
-                        feature.key,
-                        "released",
-                        !featureFlags[feature.key]?.released
-                      )
-                    }
+                    onClick={() => setFeatureRelease(feature.key, !featureState.released)}
                   >
-                    {featureFlags[feature.key]?.released ? "Bloquear recurso" : "Liberar recurso"}
+                    {featureState.released ? "Bloquear recurso" : "Liberar recurso"}
                   </button>
 
                   <button
                     disabled={
-                      !featureFlags[feature.key]?.released ||
+                      !featureState.released ||
                       feature.key === "pix" ||
-                      feature.key === "auto_confirmation"
+                      feature.key === "auto_confirmation" ||
+                      isFutureOnlyFeature(feature.key)
                     }
                     onClick={() =>
-                      updateFeatureFlag(feature.key, "enabled", !featureFlags[feature.key]?.enabled)
+                      updateFeatureFlag(feature.key, "enabled", !featureState.enabled)
                     }
                   >
-                    {featureFlags[feature.key]?.enabled ? "Desativar na barbearia" : "Ativar na barbearia"}
+                    {featureState.enabled ? "Desativar na barbearia" : "Ativar na barbearia"}
                   </button>
                 </div>
 
-                {feature.key === "pix" && featureFlags.pix?.released && (
+                {feature.key === "pix" && featureState.released && (
                   <button
                     onClick={() => {
                       setBusiness({ ...business, pixEnabled: !business.pixEnabled });
@@ -2277,7 +2923,7 @@ export default function App() {
                 )}
 
                 {feature.key === "auto_confirmation" &&
-                  featureFlags.auto_confirmation?.released && (
+                  featureState.released && (
                     <button
                       onClick={() => {
                         setBusiness({
@@ -2296,8 +2942,23 @@ export default function App() {
                         : "Ativar confirmação"}
                     </button>
                   )}
-              </div>
-            ))}
+
+                  {featureState.released && (
+                    <button
+                      className="featureShortcut"
+                      disabled={shortcut.disabled}
+                      onClick={() => {
+                        if (!shortcut.disabled && shortcut.tab) {
+                          setAdminTab(shortcut.tab);
+                        }
+                      }}
+                    >
+                      {shortcut.label}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           <button className="green" onClick={saveFeatureFlagsToCloud}>
@@ -2331,7 +2992,7 @@ export default function App() {
           <input
             value={business.slug || ""}
             onChange={(event) => updateBusinessSlug(event.target.value)}
-            placeholder="barbearia-do-joao"
+            placeholder="agenda-pro"
           />
 
           <label>Link para divulgar</label>
@@ -2527,7 +3188,7 @@ export default function App() {
             onChange={(event) => setBusiness({ ...business, mapsUrl: event.target.value })}
           />
 
-          <label>Titulo da tela final</label>
+          <label>Título da tela final</label>
           <input value={business.successTitle} onChange={(event) => setBusiness({ ...business, successTitle: event.target.value })} />
 
           <label>Mensagem principal</label>
@@ -2574,6 +3235,56 @@ export default function App() {
                 </button>
                 <button className="dangerAction" onClick={() => cancelAppointment(appointment.id)}>
                   Cancelar
+                </button>
+              </div>
+            </div>
+          ))}
+        </section>
+
+        <section className={adminTab === "agenda" || adminTab === "dashboard" ? "card" : "hiddenPanel"}>
+          <div className="sectionTitle">
+            <h2>Lista de espera</h2>
+            <span>{waitlist.length} pedidos</span>
+          </div>
+
+          {!waitlistAvailable && (
+            <p className="hint">Libere e ative a lista de espera na aba Melhorias.</p>
+          )}
+
+          {waitlist.length === 0 && <p className="hint">Nenhum cliente aguardando encaixe.</p>}
+
+          {waitlist.map((item) => (
+            <div className="adminItem waitlistItem" key={item.id}>
+              <strong>
+                {item.clientName} - {formatDate(item.date)}
+              </strong>
+              <p>{item.services}</p>
+              <p>WhatsApp: {item.whatsapp}</p>
+              <p>Status: {item.status === "contacted" ? "Contatado" : "Aguardando contato"}</p>
+
+              <div className="appointmentActions">
+                <button
+                  onClick={() =>
+                    updateWaitlistStatus(
+                      item.id,
+                      item.status === "contacted" ? "waiting" : "contacted"
+                    )
+                  }
+                >
+                  {item.status === "contacted" ? "Marcar como aguardando" : "Marcar como contatado"}
+                </button>
+                <a
+                  className="whatsappAction"
+                  href={`https://wa.me/${business.whatsapp}?text=${encodeURIComponent(
+                    `Cliente na lista de espera: ${item.clientName} | WhatsApp: ${item.whatsapp} | Data: ${formatDate(item.date)} | Serviço: ${item.services}`
+                  )}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Enviar para WhatsApp
+                </a>
+                <button className="dangerAction" onClick={() => updateWaitlistStatus(item.id, "removed")}>
+                  Remover
                 </button>
               </div>
             </div>
@@ -2660,9 +3371,24 @@ export default function App() {
           {chosenServices.map((service) => (
             <p key={service.name}>{service.name}</p>
           ))}
-          <p>
-            <strong>Total:</strong> {money(totalPrice)}
-          </p>
+          <div className="priceBreakdown">
+            <div className="summaryLine">
+              <span>Subtotal</span>
+              <strong>{money(totalPrice)}</strong>
+            </div>
+
+            {promotionAvailable && promotionValue > 0 && (
+              <div className="summaryLine promoLine">
+                <span>{business.promotionTitle || "Promoção"}</span>
+                <strong>-{money(promotionValue)}</strong>
+              </div>
+            )}
+
+            <div className="summaryLine finalPriceLine">
+              <span>{promotionValue > 0 ? "Total com desconto online" : "Total"}</span>
+              <strong>{money(promotionalTotal)}</strong>
+            </div>
+          </div>
         </section>
 
         <section className="card paymentCard">
@@ -2675,7 +3401,12 @@ export default function App() {
             >
               <span>
                 <strong>PIX antecipado</strong>
-                <small>Com desconto - {money(pixPrice)}</small>
+                <small>Total no PIX: {money(pixPrice)}</small>
+                {pixDiscountValue > 0 && (
+                  <small>
+                    Desconto PIX: -{money(pixDiscountValue)} ({pixDiscount}%)
+                  </small>
+                )}
               </span>
               <span className="serviceCheck">{payment === "pix" ? "✓" : "+"}</span>
             </button>
@@ -2687,7 +3418,11 @@ export default function App() {
           >
             <span>
               <strong>Pagar no local</strong>
-              <small>Finalize agora e pague no atendimento</small>
+              <small>
+                {promotionAvailable && promotionValue > 0
+                  ? `Total no atendimento: ${money(promotionalTotal)}`
+                  : `Total no atendimento: ${money(totalPrice)}`}
+              </small>
             </span>
             <span className="serviceCheck">{payment === "local" ? "✓" : "+"}</span>
           </button>
@@ -2707,9 +3442,15 @@ export default function App() {
         </section>
 
         <section className="checkoutActions">
+          {payment === "pix" && pixDiscountValue > 0 && (
+            <div className="summaryLine pixLine">
+              <span>Desconto PIX</span>
+              <strong>-{money(pixDiscountValue)}</strong>
+            </div>
+          )}
           <div className="summaryLine">
-            <span>Total</span>
-            <strong>{payment === "pix" ? money(pixPrice) : money(totalPrice)}</strong>
+            <span>Total a pagar</span>
+            <strong>{money(selectedPaymentTotal)}</strong>
           </div>
           <button className="confirmButton" onClick={finishSchedule}>
             Confirmar agendamento
@@ -2763,9 +3504,6 @@ export default function App() {
             Falar com barbeiro
           </a>
 
-          <button className="outline" onClick={openAdminArea}>
-            Área do barbeiro
-          </button>
         </section>
       </main>
     );
@@ -2784,9 +3522,14 @@ export default function App() {
           </div>
         </div>
 
-        <a className="miniWhatsapp" href={`https://wa.me/${business.whatsapp}`} target="_blank" rel="noreferrer">
-          WhatsApp
-        </a>
+        <div className="clientHeaderActions">
+          <a className="miniWhatsapp" href={`https://wa.me/${business.whatsapp}`} target="_blank" rel="noreferrer">
+            WhatsApp
+          </a>
+          <button className="ownerLoginButton" onClick={openAdminArea}>
+            Entrar
+          </button>
+        </div>
       </header>
 
       <section className="heroPanel">
@@ -2795,9 +3538,6 @@ export default function App() {
           <strong>Escolha seu atendimento</strong>
         </div>
         <p>Informe seus dados, escolha os serviços e receba uma sugestão de horário ideal.</p>
-        <button className="adminButton" onClick={openAdminArea}>
-          Área do barbeiro
-        </button>
       </section>
 
       <section className="addressCard">
@@ -2887,6 +3627,17 @@ export default function App() {
           </button>
         ))}
       </section>
+
+      {promotionAvailable && promotionValue > 0 && (
+        <section className="promoBanner">
+          <div>
+            <span>{business.promotionTitle || "Promoção ativa"}</span>
+            <strong>Você economiza {money(promotionValue)}</strong>
+            <small>{business.promotionDescription}</small>
+          </div>
+          <b>{promotionDiscount}%</b>
+        </section>
+      )}
 
       {selectedServices.length > 0 && (
         <section className="recommendBox bestTimePanel">
@@ -2992,6 +3743,11 @@ export default function App() {
           <div className="emptySchedule">
             <strong>Fechado nesta data</strong>
             <p>Escolha outro dia ou ajuste a agenda no painel.</p>
+            {waitlistAvailable && selectedServices.length > 0 && (
+              <button className="black" onClick={joinWaitlist}>
+                {waitlistSent ? "Você já está na lista de espera" : "Entrar na lista de espera"}
+              </button>
+            )}
           </div>
         ) : (
           <div className="timeGrid">
@@ -3013,6 +3769,16 @@ export default function App() {
             ))}
           </div>
         )}
+
+        {slots.length > 0 && !slots.some((slot) => slot.available) && waitlistAvailable && (
+          <div className="waitlistBox">
+            <strong>Nenhum horário livre neste dia</strong>
+            <p>Entre na lista de espera e a barbearia pode te chamar quando abrir um encaixe.</p>
+            <button className="black" onClick={joinWaitlist}>
+              {waitlistSent ? "Você já está na lista de espera" : "Entrar na lista de espera"}
+            </button>
+          </div>
+        )}
       </section>
 
       <section className="bottomBar">
@@ -3025,9 +3791,15 @@ export default function App() {
           <span>Tempo</span>
           <strong>{totalDuration} min</strong>
         </div>
+        {promotionAvailable && promotionValue > 0 && (
+          <div className="summaryLine promoLine">
+            <span>Promoção</span>
+            <strong>-{money(promotionValue)}</strong>
+          </div>
+        )}
         <div className="summaryLine">
           <span>Total</span>
-          <strong className="bottomTotal">{money(totalPrice)}</strong>
+          <strong className="bottomTotal">{money(promotionalTotal)}</strong>
         </div>
         <button className={canContinue ? "green" : "green disabled"} onClick={goCheckout}>
           Continuar →

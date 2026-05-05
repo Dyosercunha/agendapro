@@ -56,6 +56,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 12px;
   box-shadow: var(--shadow-card);
 }
@@ -63,8 +64,17 @@ body {
 .brand {
   display: flex;
   align-items: center;
+  flex: 1 1 220px;
   gap: 12px;
   min-width: 0;
+}
+
+.brand > div:last-child {
+  min-width: 0;
+}
+
+.brand h1 {
+  overflow-wrap: anywhere;
 }
 
 .logo {
@@ -155,6 +165,37 @@ h3 {
   flex: 0 0 auto;
 }
 
+.clientHeaderActions {
+  align-items: center;
+  display: grid;
+  flex: 1 1 100%;
+  gap: 8px;
+  grid-template-columns: 1fr 1fr;
+  width: 100%;
+}
+
+.clientHeaderActions .miniWhatsapp,
+.clientHeaderActions .ownerLoginButton {
+  text-align: center;
+  width: 100%;
+}
+
+.ownerLoginButton {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 900;
+  padding: 9px 12px;
+  white-space: nowrap;
+}
+
+.ownerLoginButton:hover {
+  border-color: rgba(34, 197, 94, 0.32);
+  color: var(--text);
+}
+
 .logoutButton {
   background: rgba(239, 68, 68, 0.12);
   border: 1px solid rgba(239, 68, 68, 0.24);
@@ -192,6 +233,18 @@ h3 {
   font-weight: 800;
   margin: 0 0 12px;
   padding: 11px 12px;
+}
+
+.googleButton {
+  background: #f9fafb;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  color: #111827;
+  font-size: 15px;
+  font-weight: 900;
+  margin-top: 10px;
+  padding: 15px;
+  width: 100%;
 }
 
 .heroPanel {
@@ -332,6 +385,11 @@ input:disabled {
   opacity: 0.65;
 }
 
+input[type="time"],
+input[type="date"] {
+  color-scheme: dark;
+}
+
 input[type="time"]::-webkit-calendar-picker-indicator,
 input[type="date"]::-webkit-calendar-picker-indicator {
   cursor: pointer;
@@ -353,6 +411,14 @@ button {
 
 button:active {
   transform: scale(0.97);
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--success);
+  outline-offset: 3px;
 }
 
 button:disabled {
@@ -427,7 +493,8 @@ button:disabled {
 .knownClient,
 .pixBox,
 .adminItem,
-.emptySchedule {
+.emptySchedule,
+.waitlistBox {
   background: var(--surface);
   border: 1px solid var(--border-soft);
   border-radius: 20px;
@@ -439,9 +506,22 @@ button:disabled {
 .pixBox p,
 .summaryCard p,
 .adminItem p,
-.emptySchedule p {
+.emptySchedule p,
+.waitlistBox p {
   color: var(--text-secondary);
   margin-bottom: 9px;
+}
+
+.waitlistBox {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), var(--surface));
+  border-color: rgba(245, 158, 11, 0.26);
+  margin-top: 12px;
+}
+
+.waitlistBox strong,
+.emptySchedule strong {
+  display: block;
+  margin-bottom: 5px;
 }
 
 .knownClient button {
@@ -453,6 +533,85 @@ button:disabled {
   width: 100%;
   margin-top: 10px;
   box-shadow: 0 12px 30px rgba(34, 197, 94, 0.22);
+}
+
+.promoBanner {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.18), rgba(16, 20, 24, 0.94));
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 24px;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.24);
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  margin: -2px 0 14px;
+  padding: 16px;
+}
+
+.promoBanner span,
+.promoBanner small {
+  color: var(--text-secondary);
+  display: block;
+}
+
+.promoBanner span {
+  color: var(--success);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.promoBanner strong {
+  display: block;
+  font-size: 19px;
+  margin: 3px 0;
+}
+
+.promoBanner b {
+  align-self: center;
+  background: var(--primary);
+  border-radius: 999px;
+  color: #052e16;
+  flex: 0 0 auto;
+  font-size: 15px;
+  padding: 9px 11px;
+}
+
+.promoConfig {
+  background: linear-gradient(180deg, rgba(34, 197, 94, 0.08), rgba(16, 20, 24, 0.92));
+  border: 1px solid rgba(34, 197, 94, 0.22);
+  border-radius: 24px;
+  margin: 16px 0;
+  padding: 16px;
+}
+
+.lockedPromo {
+  background: rgba(16, 20, 24, 0.72);
+  border-color: var(--border-soft);
+}
+
+.priceBreakdown {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 20px;
+  margin-top: 14px;
+  padding: 14px;
+}
+
+.promoLine span,
+.promoLine strong,
+.pixLine span,
+.pixLine strong {
+  color: var(--success);
+}
+
+.finalPriceLine {
+  border-top: 1px solid var(--border-soft);
+  margin-top: 8px;
+  padding-top: 12px;
+}
+
+.finalPriceLine strong {
+  color: var(--success);
+  font-size: 22px;
 }
 
 .sectionTitle {
@@ -491,6 +650,15 @@ button:disabled {
   gap: 12px;
 }
 
+.paymentOption > span:first-child {
+  min-width: 0;
+}
+
+.paymentOption strong,
+.paymentOption small {
+  overflow-wrap: anywhere;
+}
+
 .service small,
 .paymentOption small {
   display: block;
@@ -517,6 +685,7 @@ button:disabled {
   border-color: var(--primary) !important;
   background: var(--primary-soft) !important;
   color: var(--text) !important;
+  box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.12), var(--shadow-glow);
 }
 
 .selected .serviceCheck {
@@ -813,6 +982,13 @@ button:disabled {
   box-shadow: 0 12px 30px rgba(34, 197, 94, 0.25);
 }
 
+.green.disabled,
+.confirmButton:disabled {
+  background: rgba(20, 83, 45, 0.72);
+  color: var(--text-disabled);
+  box-shadow: none;
+}
+
 .green:hover,
 .confirmButton:hover {
   background: linear-gradient(135deg, var(--primary-hover), var(--primary));
@@ -891,6 +1067,12 @@ button:disabled {
   background: transparent;
   border: 1px solid var(--border);
   color: var(--text);
+}
+
+.outline:hover,
+.ownerLoginButton:hover,
+.adminButton:hover {
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .dangerButton {
@@ -975,7 +1157,7 @@ button:disabled {
   border: 1px solid var(--border-soft);
   border-radius: 20px;
   display: grid;
-  grid-template-columns: 54px 1fr 92px 92px;
+  grid-template-columns: 54px minmax(116px, 1fr) minmax(108px, 0.75fr) minmax(108px, 0.75fr);
   gap: 8px;
   align-items: center;
   padding: 10px;
@@ -1007,8 +1189,10 @@ button:disabled {
 
 .dayRow input {
   margin-bottom: 0;
-  padding: 12px 8px;
-  font-size: 13px;
+  min-height: 48px;
+  padding: 12px 10px;
+  font-size: 14px;
+  text-align: center;
 }
 
 .timePair {
@@ -1200,6 +1384,105 @@ button:disabled {
   border-color: rgba(74, 222, 128, 0.22);
 }
 
+.setupCard {
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.12), transparent 36%),
+    linear-gradient(180deg, var(--card), var(--surface));
+}
+
+.setupProgress {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+  height: 10px;
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+
+.setupProgress span {
+  background: linear-gradient(135deg, var(--primary), var(--success));
+  border-radius: inherit;
+  display: block;
+  height: 100%;
+}
+
+.setupList,
+.resourceGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+}
+
+.setupItem,
+.resourceItem {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  color: var(--text);
+  min-height: 96px;
+  padding: 12px;
+  text-align: left;
+}
+
+.setupItem span,
+.resourceItem span {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  color: var(--text-muted);
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 900;
+  margin-bottom: 8px;
+  padding: 5px 8px;
+}
+
+.setupItem strong,
+.resourceItem strong {
+  color: var(--text);
+  display: block;
+  font-size: 14px;
+  line-height: 1.15;
+}
+
+.setupItem small,
+.resourceItem small {
+  color: var(--text-muted);
+  display: block;
+  font-size: 12px;
+  line-height: 1.25;
+  margin-top: 5px;
+}
+
+.setupDone {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: rgba(34, 197, 94, 0.26);
+}
+
+.setupDone span,
+.resourceEnabled span {
+  background: var(--primary-soft);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: var(--success);
+}
+
+.resourceCard {
+  background:
+    radial-gradient(circle at top left, rgba(245, 158, 11, 0.1), transparent 34%),
+    linear-gradient(180deg, var(--card), var(--surface));
+}
+
+.resourceReleased {
+  border-color: rgba(34, 197, 94, 0.24);
+}
+
+.resourceEnabled {
+  background: linear-gradient(160deg, rgba(34, 197, 94, 0.1), var(--surface));
+}
+
+.resourceLocked {
+  opacity: 0.78;
+}
+
 .compactAppointment {
   margin-bottom: 10px;
 }
@@ -1219,6 +1502,21 @@ button:disabled {
   font-size: 13px;
   font-weight: 900;
   padding: 11px 12px;
+  width: 100%;
+}
+
+.appointmentActions .whatsappAction,
+.customerItem .whatsappAction {
+  background: rgba(37, 211, 102, 0.12);
+  border: 1px solid rgba(37, 211, 102, 0.25);
+  border-radius: 999px;
+  color: #25d366;
+  display: block;
+  font-size: 13px;
+  font-weight: 900;
+  padding: 11px 12px;
+  text-align: center;
+  text-decoration: none;
   width: 100%;
 }
 
@@ -1280,6 +1578,135 @@ button:disabled {
   gap: 10px;
 }
 
+.customerCard {
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.12), transparent 36%),
+    linear-gradient(180deg, var(--card), var(--surface));
+}
+
+.customerSummary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
+  margin-bottom: 14px;
+}
+
+.customerSummary div {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-soft);
+  border-radius: 18px;
+  padding: 12px;
+}
+
+.customerSummary span,
+.customerSummary small {
+  color: var(--text-muted);
+  display: block;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.customerSummary strong {
+  color: var(--text);
+  display: block;
+  font-size: 20px;
+  line-height: 1.1;
+  margin: 5px 0;
+  overflow-wrap: anywhere;
+}
+
+.loyaltyNotice {
+  background: rgba(82, 88, 102, 0.14);
+  border: 1px solid var(--border-soft);
+  border-radius: 22px;
+  margin-bottom: 14px;
+  padding: 14px;
+}
+
+.activeLoyalty {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.14), rgba(16, 20, 24, 0.92));
+  border-color: rgba(34, 197, 94, 0.26);
+}
+
+.loyaltyNotice strong {
+  color: var(--text);
+  display: block;
+  margin-bottom: 5px;
+}
+
+.loyaltyNotice p {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+.loyaltyNotice button {
+  background: var(--primary-soft);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 999px;
+  color: var(--success);
+  font-size: 13px;
+  font-weight: 900;
+  padding: 11px 12px;
+  width: 100%;
+}
+
+.customerList {
+  display: grid;
+  gap: 10px;
+}
+
+.customerItem {
+  align-items: flex-start;
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 22px;
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 12px;
+  padding: 14px;
+}
+
+.customerAvatar {
+  align-items: center;
+  background: linear-gradient(135deg, var(--primary), var(--success));
+  border-radius: 16px;
+  color: #052e16;
+  display: flex;
+  font-size: 18px;
+  font-weight: 900;
+  height: 44px;
+  justify-content: center;
+  width: 44px;
+}
+
+.customerItem p {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin-bottom: 5px;
+}
+
+.customerBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 9px;
+}
+
+.customerBadges span {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 900;
+  padding: 6px 8px;
+}
+
+.customerItem .whatsappAction {
+  grid-column: 1 / -1;
+}
+
 .featureCard {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -1292,6 +1719,27 @@ button:disabled {
   font-size: 13px;
   line-height: 1.45;
   margin-bottom: 12px;
+}
+
+.featureDestination {
+  margin-bottom: 2px;
+}
+
+.featureDestination span {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  color: var(--text-muted);
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 900;
+  padding: 7px 9px;
+}
+
+.activeFeature .featureDestination span {
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.28);
+  color: var(--success);
 }
 
 .featureCard button {
@@ -1320,10 +1768,26 @@ button:disabled {
   border-color: rgba(34, 197, 94, 0.26);
 }
 
+.activeFeature {
+  box-shadow: 0 16px 38px rgba(34, 197, 94, 0.12);
+}
+
 .availableFeature button {
   background: var(--primary-soft);
   border: 1px solid rgba(34, 197, 94, 0.32);
   color: var(--success);
+}
+
+.availableFeature .featureShortcut {
+  background: linear-gradient(135deg, var(--primary), var(--success));
+  border-color: transparent;
+  color: #052e16;
+}
+
+.availableFeature .featureShortcut:disabled {
+  background: rgba(82, 88, 102, 0.18);
+  border: 1px solid var(--border-soft);
+  color: var(--text-disabled);
 }
 
 .lockedFeature {
@@ -1364,6 +1828,12 @@ button:disabled {
   background: var(--primary-soft);
   border-color: rgba(34, 197, 94, 0.3);
   color: var(--success);
+}
+
+.activeFeature .featureHeader span {
+  background: var(--primary);
+  border-color: transparent;
+  color: #052e16;
 }
 
 .accountCard {
@@ -1594,7 +2064,11 @@ button:disabled {
   }
 
   .adminStats {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .adminStats div:first-child {
+    grid-column: 1 / -1;
   }
 
   .adminStats div {
@@ -1607,7 +2081,10 @@ button:disabled {
   }
 
   .commandGrid,
-  .storageGrid {
+  .storageGrid,
+  .customerSummary,
+  .setupList,
+  .resourceGrid {
     grid-template-columns: 1fr;
   }
 
@@ -1623,22 +2100,24 @@ button:disabled {
 
   .dayRow {
     align-items: center;
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 
   .dayRow .dayToggle {
-    flex: 0 0 82px;
+    min-height: 54px;
+    width: 100%;
   }
 
   .dayRow .dayInfo {
-    flex: 1 1 calc(100% - 92px);
+    min-width: 0;
   }
 
   .dayRow input {
-    flex: 1 1 calc(50% - 4px);
-    width: 100%;
+    min-height: 54px;
     min-width: 0;
+    padding: 13px 12px;
+    width: 100%;
   }
 
   .dayInfo {
@@ -1679,6 +2158,17 @@ button:disabled {
     border-radius: 24px;
     padding: 16px;
   }
+
+  .customerItem {
+    grid-template-columns: 40px 1fr;
+    padding: 13px;
+  }
+
+  .customerAvatar {
+    border-radius: 14px;
+    height: 40px;
+    width: 40px;
+  }
 }
 
 @media (max-width: 380px) {
@@ -1690,7 +2180,19 @@ button:disabled {
 
   .miniWhatsapp,
   .whatsappButton,
+  .clientHeaderActions,
   .adminHeaderActions {
+    text-align: center;
+    width: 100%;
+  }
+
+  .clientHeaderActions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .clientHeaderActions .miniWhatsapp,
+  .clientHeaderActions .ownerLoginButton {
     text-align: center;
     width: 100%;
   }
@@ -1700,8 +2202,8 @@ button:disabled {
   }
 
   .dayRow {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
   }
 
   .dayRow input {

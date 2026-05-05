@@ -246,6 +246,16 @@ function formatDateForMessage(dateText) {
   });
 }
 
+function formatDateOnly(dateText) {
+  if (!dateText) return "Sem data cadastrada";
+
+  return toDate(dateText).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
 function dateParts(dateText) {
   const date = toDate(dateText);
   return {
@@ -571,7 +581,7 @@ export default function App() {
   const [dataSavedAt, setDataSavedAt] = useState("");
   const [barbershopId, setBarbershopId] = useState("");
   const [cloudSlug, setCloudSlug] = useState(currentSlugFromUrl());
-  const [cloudStatus, setCloudStatus] = useState("Conectando ao Supabase...");
+  const [cloudStatus, setCloudStatus] = useState("Conectando à nuvem...");
   const [cloudSaving, setCloudSaving] = useState("");
   const [cloudHistory, setCloudHistory] = useState(null);
   const [waitlistSent, setWaitlistSent] = useState(false);
@@ -589,6 +599,16 @@ export default function App() {
     featureFlags.auto_confirmation?.released && featureFlags.auto_confirmation?.enabled;
   const pixAvailable = business.pixEnabled && pixFeatureEnabled;
   const waitlistAvailable = featureFlags.waitlist?.released && featureFlags.waitlist?.enabled;
+  const normalizedAdminEmail = adminEmail.trim().toLowerCase();
+  const normalizedOwnerEmail = (business.ownerEmail || initialBusiness.ownerEmail)
+    .trim()
+    .toLowerCase();
+  const currentAdminAccount = accessAccounts.find(
+    (account) => account.email.trim().toLowerCase() === normalizedAdminEmail
+  );
+  const canManageBilling =
+    normalizedAdminEmail === normalizedOwnerEmail ||
+    currentAdminAccount?.role === "Plataforma";
 
   function isAdminEmailAllowed(email) {
     const normalizedEmail = String(email || "").trim().toLowerCase();
@@ -937,7 +957,7 @@ export default function App() {
         .single();
 
       if (businessError || !businessData) {
-        setCloudStatus("Usando dados locais. Barbearia ainda não encontrada no Supabase.");
+        setCloudStatus("Usando dados locais. Barbearia ainda não encontrada na nuvem.");
         return;
       }
 
@@ -1056,10 +1076,10 @@ export default function App() {
         );
       }
 
-      setCloudStatus("Conectado ao Supabase");
+      setCloudStatus("Conectado à nuvem");
     } catch (error) {
       console.error(error);
-      setCloudStatus("Usando dados locais. Não foi possível conectar ao Supabase.");
+      setCloudStatus("Usando dados locais. Não foi possível conectar à nuvem.");
     }
   }
 
@@ -1320,12 +1340,12 @@ export default function App() {
     });
 
     if (error) {
-      console.error("Erro ao salvar no Supabase:", error);
-      setCloudStatus("Agendamento salvo localmente. Falhou ao enviar para o Supabase.");
+      console.error("Erro ao salvar online:", error);
+      setCloudStatus("Agendamento salvo neste aparelho. Falhou ao enviar para a nuvem.");
       return;
     }
 
-    setCloudStatus("Agendamento salvo no Supabase");
+    setCloudStatus("Agendamento salvo na nuvem");
 
     if (data) {
       setConfirmedId(String(data));
@@ -1339,7 +1359,7 @@ export default function App() {
 
   async function runCloudSave(kind, successMessage, action) {
     setCloudSaving(kind);
-    setCloudStatus("Salvando no Supabase...");
+    setCloudStatus("Salvando online...");
 
     try {
       const { error } = await action();
@@ -1347,10 +1367,10 @@ export default function App() {
       if (error) {
         console.error(error);
         setCloudStatus(
-          "Salvo neste aparelho. Falta atualizar as funções do Supabase para sincronizar online."
+          "Salvo neste aparelho. Falta ativar a sincronização online para enviar à nuvem."
         );
         alert(
-          "Salvei neste aparelho, mas ainda não sincronizou com o Supabase. Execute o SQL mais recente do projeto e tente salvar novamente."
+          "Salvei neste aparelho, mas ainda não sincronizou online. Fale com o suporte para ativar a sincronização e tente salvar novamente."
         );
         return false;
       }
@@ -1360,8 +1380,8 @@ export default function App() {
       return true;
     } catch (error) {
       console.error(error);
-      setCloudStatus("Falha ao salvar no Supabase.");
-      alert("Falha ao salvar no Supabase.");
+      setCloudStatus("Falha ao salvar online.");
+      alert("Falha ao salvar online.");
       return false;
     } finally {
       setCloudSaving("");
@@ -1369,7 +1389,7 @@ export default function App() {
   }
 
   function saveBusinessToCloud() {
-    return runCloudSave("business", "Dados da barbearia salvos no Supabase", async () => {
+    return runCloudSave("business", "Dados da barbearia salvos online", async () => {
       const targetSlug = cloudSlug || business.slug;
       const result = await supabase.rpc("save_business_settings", {
         target_slug: targetSlug,
@@ -1411,7 +1431,7 @@ export default function App() {
   }
 
   function saveAccessAccountsToCloud() {
-    return runCloudSave("access", "Acessos do painel salvos no Supabase", () =>
+    return runCloudSave("access", "Acessos do painel salvos online", () =>
       supabase.rpc("save_barbershop_accesses", {
         target_slug: cloudSlug || business.slug,
         accesses_input: accessAccounts.map((account) => ({
@@ -1430,7 +1450,7 @@ export default function App() {
   }
 
   function saveFeatureFlagsToCloud() {
-    return runCloudSave("features", "Melhorias salvas no Supabase", () =>
+    return runCloudSave("features", "Melhorias salvas online", () =>
       supabase.rpc("save_feature_flags", {
         target_slug: cloudSlug || business.slug,
         features_input: platformFeatures.map((feature) => ({
@@ -1443,7 +1463,7 @@ export default function App() {
   }
 
   function saveServicesToCloud() {
-    return runCloudSave("services", "Serviços salvos no Supabase", () =>
+    return runCloudSave("services", "Serviços salvos online", () =>
       supabase.rpc("save_services", {
         target_slug: cloudSlug || business.slug,
         services_input: services.map((service, index) => ({
@@ -1459,7 +1479,7 @@ export default function App() {
   }
 
   function saveProfessionalsToCloud() {
-    return runCloudSave("professionals", "Profissionais salvos no Supabase", () =>
+    return runCloudSave("professionals", "Profissionais salvos online", () =>
       supabase.rpc("save_professionals", {
         target_slug: cloudSlug || business.slug,
         professionals_input: professionals.map((item) => ({
@@ -1473,7 +1493,7 @@ export default function App() {
   }
 
   function saveScheduleToCloud() {
-    return runCloudSave("schedule", "Agenda salva no Supabase", () =>
+    return runCloudSave("schedule", "Agenda salva online", () =>
       supabase.rpc("save_schedule_settings", {
         target_slug: cloudSlug || business.slug,
         slot_interval_input: Number(schedule.slotInterval || 30),
@@ -1516,11 +1536,11 @@ export default function App() {
 
     if (error) {
       console.error(error);
-      setCloudStatus("Ação salva localmente. Falhou ao atualizar o Supabase.");
+      setCloudStatus("Ação salva neste aparelho. Falhou ao atualizar online.");
       return;
     }
 
-    setCloudStatus("Agendamento atualizado no Supabase");
+    setCloudStatus("Agendamento atualizado online");
   }
 
   async function joinWaitlist() {
@@ -1558,7 +1578,7 @@ export default function App() {
 
     if (error) {
       console.error(error);
-      setCloudStatus("Lista de espera salva localmente. Falhou ao enviar para o Supabase.");
+      setCloudStatus("Lista de espera salva neste aparelho. Falhou ao enviar para a nuvem.");
       return;
     }
 
@@ -1570,7 +1590,7 @@ export default function App() {
       );
     }
 
-    setCloudStatus("Cliente adicionado à lista de espera no Supabase.");
+    setCloudStatus("Cliente adicionado à lista de espera online.");
   }
 
   async function updateWaitlistStatus(id, status) {
@@ -1590,11 +1610,11 @@ export default function App() {
 
     if (error) {
       console.error(error);
-      setCloudStatus("Lista de espera atualizada localmente. Falhou ao enviar para o Supabase.");
+      setCloudStatus("Lista de espera atualizada neste aparelho. Falhou ao enviar para a nuvem.");
       return;
     }
 
-    setCloudStatus("Lista de espera atualizada no Supabase.");
+    setCloudStatus("Lista de espera atualizada online.");
   }
 
   function copyText(text) {
@@ -1984,10 +2004,10 @@ export default function App() {
       });
 
       if (error) {
-        setAdminLoginError("Login Google ainda não configurado no Supabase.");
+        setAdminLoginError("Login Google ainda não configurado na autenticação.");
       }
     } catch {
-      setAdminLoginError("Login Google ainda não configurado no Supabase.");
+      setAdminLoginError("Login Google ainda não configurado na autenticação.");
     }
   }
 
@@ -2203,7 +2223,7 @@ export default function App() {
 
           <p className="adminNote">
             Demo: use dyoser2@gmail.com com código 123456. O Google precisa estar
-            ativado no Supabase Auth para funcionar em produção.
+            ativado na autenticação para funcionar em produção.
           </p>
         </section>
       </main>
@@ -2405,12 +2425,12 @@ export default function App() {
             <section className="card storageCard">
               <div className="sectionTitle">
                 <h2>Sincronização</h2>
-                <span>Local + Supabase</span>
+                <span>Local + online</span>
               </div>
 
               <p className="hint">
                 O app mantém uma cópia local para abrir rápido e salva as configurações
-                principais no Supabase quando você usa os botões de salvar.
+                principais na nuvem quando você usa os botões de salvar.
               </p>
 
               <div className="storageGrid">
@@ -2440,9 +2460,11 @@ export default function App() {
                 </div>
               </div>
 
-              <button className="dangerButton" onClick={resetDemoData}>
-                Restaurar demonstração
-              </button>
+              {canManageBilling && (
+                <button className="dangerButton" onClick={resetDemoData}>
+                  Restaurar demonstração
+                </button>
+              )}
             </section>
 
             <section className="card">
@@ -2561,7 +2583,7 @@ export default function App() {
           />
 
           <button className="green" onClick={saveScheduleToCloud}>
-            {cloudSaving === "schedule" ? "Salvando agenda..." : "Salvar agenda no Supabase"}
+            {cloudSaving === "schedule" ? "Salvando agenda..." : "Salvar agenda"}
           </button>
 
           <div className="weeklyGrid">
@@ -2735,7 +2757,7 @@ export default function App() {
           </button>
 
           <button className="green" onClick={saveServicesToCloud}>
-            {cloudSaving === "services" ? "Salvando serviços..." : "Salvar serviços no Supabase"}
+            {cloudSaving === "services" ? "Salvando serviços..." : "Salvar serviços"}
           </button>
         </section>
 
@@ -2779,7 +2801,7 @@ export default function App() {
           <button className="green" onClick={saveProfessionalsToCloud}>
             {cloudSaving === "professionals"
               ? "Salvando profissionais..."
-              : "Salvar profissionais no Supabase"}
+              : "Salvar profissionais"}
           </button>
         </section>
 
@@ -2822,7 +2844,7 @@ export default function App() {
               <span>{promotionAvailable ? "Ativa" : "Inativa"}</span>
             </div>
             <p className="hint">
-              Libere em Melhorias, configure o desconto aqui e salve no Supabase.
+              Libere em Melhorias, configure o desconto aqui e salve as alterações.
             </p>
 
             <label>Nome da promoção</label>
@@ -2855,7 +2877,7 @@ export default function App() {
           </div>
 
           <button className="green" onClick={saveBusinessToCloud}>
-            {cloudSaving === "business" ? "Salvando pagamentos..." : "Salvar pagamentos no Supabase"}
+            {cloudSaving === "business" ? "Salvando pagamentos..." : "Salvar pagamentos"}
           </button>
         </section>
 
@@ -2866,8 +2888,9 @@ export default function App() {
           </div>
 
           <p className="hint">
-            Recursos novos começam bloqueados e são liberados por atualização ou plano da mensalidade.
-            Plano atual: {currentPlan.name}.
+            {canManageBilling
+              ? `Recursos novos começam bloqueados e são liberados por atualização ou plano da mensalidade. Plano atual: ${currentPlan.name}.`
+              : "Recursos novos começam bloqueados e são liberados pela plataforma quando estiverem disponíveis para esta conta."}
           </p>
 
           <div className="featureGrid">
@@ -2984,14 +3007,14 @@ export default function App() {
           </div>
 
           <button className="green" onClick={saveFeatureFlagsToCloud}>
-            {cloudSaving === "features" ? "Salvando melhorias..." : "Salvar melhorias no Supabase"}
+            {cloudSaving === "features" ? "Salvando melhorias..." : "Salvar melhorias"}
           </button>
         </section>
 
         <section className={adminTab === "account" ? "card accountCard" : "hiddenPanel"}>
           <div className="sectionTitle">
             <h2>Conta</h2>
-            <span>Mensalidade e link</span>
+            <span>{canManageBilling ? "Mensalidade e link" : "Renovação e link"}</span>
           </div>
 
           <div className="accountHero">
@@ -3089,57 +3112,67 @@ export default function App() {
           </div>
 
           <button className="green" onClick={saveAccessAccountsToCloud}>
-            {cloudSaving === "access" ? "Salvando acessos..." : "Salvar acessos no Supabase"}
+            {cloudSaving === "access" ? "Salvando acessos..." : "Salvar acessos"}
           </button>
 
-          <div className="planHeader">
-            <div>
-              <span>Plano atual</span>
-              <strong>{currentPlan.name}</strong>
-            </div>
-            <b>{currentPlan.price}</b>
-          </div>
+          {canManageBilling ? (
+            <>
+              <div className="planHeader">
+                <div>
+                  <span>Plano atual</span>
+                  <strong>{currentPlan.name}</strong>
+                </div>
+                <b>{currentPlan.price}</b>
+              </div>
 
-          <div className="planGrid">
-            {planOptions.map((plan) => (
-              <button
-                key={plan.id}
-                className={business.plan === plan.id ? "planCard activePlan" : "planCard"}
-                onClick={() => setBusiness({ ...business, plan: plan.id })}
+              <div className="planGrid">
+                {planOptions.map((plan) => (
+                  <button
+                    key={plan.id}
+                    className={business.plan === plan.id ? "planCard activePlan" : "planCard"}
+                    onClick={() => setBusiness({ ...business, plan: plan.id })}
+                  >
+                    <span>{plan.name}</span>
+                    <strong>{plan.price}</strong>
+                    <small>{plan.description}</small>
+                  </button>
+                ))}
+              </div>
+
+              <label>Status da mensalidade</label>
+              <select
+                value={business.monthlyStatus || "active"}
+                onChange={(event) => setBusiness({ ...business, monthlyStatus: event.target.value })}
               >
-                <span>{plan.name}</span>
-                <strong>{plan.price}</strong>
-                <small>{plan.description}</small>
+                <option value="active">Ativa</option>
+                <option value="trial">Teste grátis</option>
+                <option value="pending">Pagamento pendente</option>
+                <option value="blocked">Bloqueada</option>
+              </select>
+
+              <label>Próxima cobrança</label>
+              <input
+                type="date"
+                value={business.nextBillingDate || ""}
+                onChange={(event) => setBusiness({ ...business, nextBillingDate: event.target.value })}
+              />
+
+              <p className="adminNote">
+                Esta área administrativa aparece apenas para o dono da conta.
+              </p>
+
+              <button className="green" onClick={saveBusinessToCloud}>
+                {cloudSaving === "business" ? "Salvando conta..." : "Salvar conta"}
               </button>
-            ))}
-          </div>
-
-          <label>Status da mensalidade</label>
-          <select
-            value={business.monthlyStatus || "active"}
-            onChange={(event) => setBusiness({ ...business, monthlyStatus: event.target.value })}
-          >
-            <option value="active">Ativa</option>
-            <option value="trial">Teste grátis</option>
-            <option value="pending">Pagamento pendente</option>
-            <option value="blocked">Bloqueada</option>
-          </select>
-
-          <label>Próxima cobrança</label>
-          <input
-            type="date"
-            value={business.nextBillingDate || ""}
-            onChange={(event) => setBusiness({ ...business, nextBillingDate: event.target.value })}
-          />
-
-          <p className="adminNote">
-            No app real, essa conta será salva no banco de dados e o login vai carregar
-            automaticamente a barbearia certa pelo e-mail cadastrado.
-          </p>
-
-          <button className="green" onClick={saveBusinessToCloud}>
-            {cloudSaving === "business" ? "Salvando conta..." : "Salvar conta no Supabase"}
-          </button>
+            </>
+          ) : (
+            <div className="planHeader renewalOnly">
+              <div>
+                <span>Renovação do acesso</span>
+                <strong>{formatDateOnly(business.nextBillingDate)}</strong>
+              </div>
+            </div>
+          )}
         </section>
 
         <section className={adminTab === "appearance" ? "card" : "hiddenPanel"}>
@@ -3220,7 +3253,7 @@ export default function App() {
           <input value={business.successFooter} onChange={(event) => setBusiness({ ...business, successFooter: event.target.value })} />
 
           <button className="green" onClick={saveBusinessToCloud}>
-            {cloudSaving === "business" ? "Salvando aparência..." : "Salvar aparência no Supabase"}
+            {cloudSaving === "business" ? "Salvando aparência..." : "Salvar aparência"}
           </button>
         </section>
 

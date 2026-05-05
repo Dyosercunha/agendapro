@@ -612,6 +612,11 @@ export default function App() {
       return;
     }
 
+    if (adminLoggedIn || viewMode === "admin") {
+      setAdminLoginError("");
+      return;
+    }
+
     setAdminLoggedIn(false);
     setAdminLoginError("Este email Google não está liberado para acessar este painel.");
     setViewMode("adminLogin");
@@ -689,7 +694,7 @@ export default function App() {
       active = false;
       authListener?.subscription?.unsubscribe();
     };
-  }, [business.ownerEmail, accessAccounts]);
+  }, [business.ownerEmail, accessAccounts, adminLoggedIn, viewMode]);
 
   useEffect(() => {
     if (cleanWhatsapp.length < 8 || !business.slug) {

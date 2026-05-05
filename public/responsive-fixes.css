@@ -1,0 +1,72 @@
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+.app {
+  padding-bottom: calc(120px + env(safe-area-inset-bottom)) !important;
+}
+
+.adminApp,
+.checkoutApp {
+  padding-bottom: calc(48px + env(safe-area-inset-bottom)) !important;
+}
+
+.bottomBar,
+.checkoutActions {
+  margin-bottom: env(safe-area-inset-bottom);
+}
+
+input[type="date"],
+input[type="time"] {
+  min-height: 52px;
+}
+
+@media (min-width: 768px) {
+  .timeGrid {
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (min-width: 900px) {
+  .adminApp {
+    max-width: 1180px !important;
+    padding: 24px !important;
+    padding-bottom: calc(56px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .adminApp .card,
+  .adminApp .hero,
+  .adminApp .heroPanel {
+    max-width: none;
+  }
+
+  .adminStats {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+
+  .adminStats div:first-child {
+    grid-column: auto !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .app {
+    padding: 12px 12px calc(120px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .adminApp {
+    padding-bottom: calc(40px + env(safe-area-inset-bottom)) !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .timeGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}

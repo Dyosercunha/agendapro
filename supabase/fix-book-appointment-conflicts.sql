@@ -1,12 +1,9 @@
--- AgendaPro - correção fixa da agenda real
--- Execute este arquivo no SQL Editor do Supabase usando Run, não Analyze/Explain.
--- Objetivo:
--- 1. impedir dois clientes no mesmo horário
--- 2. respeitar horário de funcionamento
--- 3. respeitar folgas
--- 4. respeitar almoço/pausas
--- 5. respeitar bloqueios manuais
--- 6. fazer "Primeiro disponível" escolher um profissional real
+-- AgendaPro - correção fixa da agenda real (versão mais forte)
+-- Execute no SQL Editor do Supabase usando Run, não Analyze/Explain.
+-- Esta versão bloqueia o horário para a barbearia inteira.
+-- Ou seja: no mesmo dia e horário, só entra um cliente.
+-- Depois, se quiser permitir vários profissionais atendendo ao mesmo tempo,
+-- a regra pode ser ajustada para bloquear por profissional.
 
 create or replace function public.book_appointment(
   target_slug text,
@@ -43,6 +40,11 @@ begin
     raise exception 'Agenda indisponível para este estabelecimento.';
   end if;
 
+  -- Trava transacional: evita duas confirmações simultâneas passando juntas.
+  perform pg_advisory_xact_lock(
+    hashtext(target_barbershop_id::text || '|' || appointment_date_input::text || '|' || appointment_time_input::text)
+  );
+
   select *
   into work_day
   from public.working_hours
@@ -78,6 +80,31 @@ begin
     raise exception 'Este horário cai em uma pausa ou almoço.';
   end if;
 
+  -- Bloqueio forte por barbearia: qualquer agendamento que cruze o mesmo horário bloqueia.
+  if exists (
+    select 1
+    from public.appointments a
+    where a.barbershop_id = target_barbershop_id
+      and a.appointment_date = appointment_date_input
+      and a.status not in ('cancelled', 'canceled', 'cancelado')
+      and appointment_time_input < (a.appointment_time + make_interval(mins => a.duration))::time
+      and appointment_end_time > a.appointment_time
+  ) then
+    raise exception 'Este horário acabou de ser ocupado. Escolha outro horário.';
+  end if;
+
+  if exists (
+    select 1
+    from public.schedule_blocks b
+    where b.barbershop_id = target_barbershop_id
+      and b.date = appointment_date_input
+      and b.professional_id is null
+      and appointment_time_input < b.end_time
+      and appointment_end_time > b.start_time
+  ) then
+    raise exception 'Este horário está bloqueado.';
+  end if;
+
   if professional_name_input is not null
      and professional_name_input <> ''
      and professional_name_input <> 'Primeiro disponível'
@@ -93,6 +120,18 @@ begin
 
     if target_professional_id is null then
       raise exception 'Profissional indisponível.';
+    end if;
+
+    if exists (
+      select 1
+      from public.schedule_blocks b
+      where b.barbershop_id = target_barbershop_id
+        and b.date = appointment_date_input
+        and (b.professional_id is null or b.professional_id = target_professional_id)
+        and appointment_time_input < b.end_time
+        and appointment_end_time > b.start_time
+    ) then
+      raise exception 'Este horário está bloqueado para este profissional.';
     end if;
 
   else
@@ -111,47 +150,23 @@ begin
           and appointment_time_input < b.end_time
           and appointment_end_time > b.start_time
       )
-      and not exists (
-        select 1
-        from public.appointments a
-        where a.barbershop_id = target_barbershop_id
-          and a.professional_id = p.id
-          and a.appointment_date = appointment_date_input
-          and a.status not in ('cancelled', 'canceled', 'cancelado')
-          and appointment_time_input < (a.appointment_time + make_interval(mins => a.duration))::time
-          and appointment_end_time > a.appointment_time
-      )
     order by p.created_at
     limit 1;
+
+    -- Fallback para projetos antigos que ainda só têm o registro fixo "Primeiro disponível".
+    if target_professional_id is null then
+      select p.id
+      into target_professional_id
+      from public.professionals p
+      where p.barbershop_id = target_barbershop_id
+        and p.active = true
+      order by coalesce(p.fixed, false), p.created_at
+      limit 1;
+    end if;
 
     if target_professional_id is null then
       raise exception 'Nenhum profissional disponível neste horário.';
     end if;
-  end if;
-
-  if exists (
-    select 1
-    from public.schedule_blocks
-    where barbershop_id = target_barbershop_id
-      and date = appointment_date_input
-      and (professional_id is null or professional_id = target_professional_id)
-      and appointment_time_input < end_time
-      and appointment_end_time > start_time
-  ) then
-    raise exception 'Este horário está bloqueado.';
-  end if;
-
-  if exists (
-    select 1
-    from public.appointments
-    where barbershop_id = target_barbershop_id
-      and professional_id = target_professional_id
-      and appointment_date = appointment_date_input
-      and status not in ('cancelled', 'canceled', 'cancelado')
-      and appointment_time_input < (appointment_time + make_interval(mins => duration))::time
-      and appointment_end_time > appointment_time
-  ) then
-    raise exception 'Este horário acabou de ser ocupado. Escolha outro horário.';
   end if;
 
   insert into public.clients (
@@ -219,6 +234,8 @@ grant execute on function public.book_appointment(
   text, text, text, text, text, date, time, integer, numeric, text, boolean
 ) to anon, authenticated;
 
--- Teste rápido depois de executar:
--- Tente marcar o mesmo horário duas vezes.
--- A segunda tentativa deve retornar: Este horário acabou de ser ocupado. Escolha outro horário.
+-- Teste depois de executar:
+-- 1. Agende um horário.
+-- 2. Tente agendar outro cliente no mesmo horário ou em horário que cruze a duração.
+-- 3. A segunda tentativa deve retornar:
+-- Este horário acabou de ser ocupado. Escolha outro horário.

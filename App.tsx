@@ -16,7 +16,7 @@ const initialBusiness = {
   logo: "A",
   logoImage: "",
   slug: "agenda-pro",
-  ownerEmail: "dyoser@app.com",
+  ownerEmail: "dyoser2@gmail.com",
   plan: "professional",
   monthlyStatus: "active",
   nextBillingDate: "2026-06-04",
@@ -40,7 +40,7 @@ const initialBusiness = {
 const initialAccessAccounts = [
   {
     id: "access-1",
-    email: "dyoser@app.com",
+    email: "dyoser2@gmail.com",
     role: "Dono",
     active: true,
     fixed: true,
@@ -298,7 +298,7 @@ function hexToRgba(hex, opacity) {
   return `rgba(${red}, ${green}, ${blue}, ${opacity})`;
 }
 
-const storagePrefix = "agendaProV2";
+const storagePrefix = "agendaProV3";
 
 const storageKeys = {
   business: "business",
@@ -2189,7 +2189,7 @@ export default function App() {
           </button>
 
           <p className="adminNote">
-            Demo: use dyoser@app.com com código 123456. O Google precisa estar
+            Demo: use dyoser2@gmail.com com código 123456. O Google precisa estar
             ativado no Supabase Auth para funcionar em produção.
           </p>
         </section>

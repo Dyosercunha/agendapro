@@ -951,7 +951,8 @@ export default function App() {
   const dateCount = range === "today" ? 1 : range === "week" ? 7 : 60;
   const dateOptions = Array.from({ length: dateCount }, (_, index) => getDateAfterDays(index));
 
-  const slots = buildSlotsForDate(selectedDate);
+  const hasChosenService = selectedServices.length > 0;
+  const slots = hasChosenService ? buildSlotsForDate(selectedDate) : [];
   const recommendedTime = slots.find((slot) => slot.available)?.time || "";
   const currentSlot = slots.find((slot) => slot.time === selectedTime);
 
@@ -4177,27 +4178,34 @@ export default function App() {
           })}
         </div>
 
-        <div className="scheduleLegend">
-          <span>
-            <i className="dot greenDot" />
-            Livre
-          </span>
-          <span>
-            <i className="dot grayDot" />
-            Ocupado
-          </span>
-          <span>
-            <i className="dot yellowDot" />
-            Pausa
-          </span>
-        </div>
+        {hasChosenService && (
+          <div className="scheduleLegend">
+            <span>
+              <i className="dot greenDot" />
+              Livre
+            </span>
+            <span>
+              <i className="dot grayDot" />
+              Ocupado
+            </span>
+            <span>
+              <i className="dot yellowDot" />
+              Pausa
+            </span>
+          </div>
+        )}
 
         <div className="sectionTitle compactTitle">
           <h2>Horários</h2>
           <span>{formatDate(selectedDate)}</span>
         </div>
 
-        {slots.length === 0 ? (
+        {!hasChosenService ? (
+          <div className="emptySchedule">
+            <strong>Escolha um serviço para ver os horários.</strong>
+            <p>Os horários são calculados conforme o tempo total do atendimento.</p>
+          </div>
+        ) : slots.length === 0 ? (
           <div className="emptySchedule">
             <strong>Fechado nesta data</strong>
             <p>Escolha outro dia ou ajuste a agenda no painel.</p>
@@ -4247,7 +4255,7 @@ export default function App() {
         </div>
         <div className="summaryLine">
           <span>Tempo</span>
-          <strong>{totalDuration} min</strong>
+          <strong>{hasChosenService ? `${totalDuration} min` : "Selecione"}</strong>
         </div>
         {promotionAvailable && promotionValue > 0 && (
           <div className="summaryLine promoLine">
@@ -4257,10 +4265,10 @@ export default function App() {
         )}
         <div className="summaryLine">
           <span>Total</span>
-          <strong className="bottomTotal">{money(promotionalTotal)}</strong>
+          <strong className="bottomTotal">{hasChosenService ? money(promotionalTotal) : "A definir"}</strong>
         </div>
         <button className={canContinue ? "green" : "green disabled"} onClick={goCheckout}>
-          Continuar →
+          {hasChosenService ? "Continuar →" : "Escolha um serviço"}
         </button>
       </section>
     </main>

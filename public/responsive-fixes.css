@@ -27,33 +27,9 @@ input[type="time"] {
   min-height: 52px;
 }
 
-.app:not(.adminApp) .service small {
-  display: none !important;
-}
-
-.app:not(.adminApp) .timeSlot.available small,
-.app:not(.adminApp) .timeSlot.recommended small {
-  font-size: 0 !important;
-}
-
-.app:not(.adminApp) .timeSlot.available small::after {
-  content: "Disponivel";
-  font-size: 14px;
-}
-
-.app:not(.adminApp) .timeSlot.recommended small::after {
-  content: "Recomendado";
-  font-size: 14px;
-}
-
-.adminApp .featureGrid .featureCard:last-child,
-.adminApp .resourceGrid .resourceItem:last-child {
-  display: none !important;
-}
-
 @media (min-width: 768px) {
   .timeGrid {
-    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   }
 }
 

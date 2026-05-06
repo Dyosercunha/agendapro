@@ -511,6 +511,30 @@ function mapWaitlistFromCloud(rows) {
   }));
 }
 
+function mapAppointmentsFromCloud(appointmentRows, professionalRows) {
+  const professionalById = {};
+
+  (professionalRows || []).forEach((item) => {
+    professionalById[item.id] = item.fixed ? "Primeiro disponível" : item.name;
+  });
+
+  return (appointmentRows || []).map((item) => ({
+    id: item.id,
+    clientName: item.client_name,
+    whatsapp: item.whatsapp,
+    professional: professionalById[item.professional_id] || "Primeiro disponível",
+    date: item.appointment_date,
+    time: shortTime(item.appointment_time),
+    duration: Number(item.duration),
+    services: item.service_text,
+    total: Number(item.total),
+    payment: item.payment_method,
+    paid: Boolean(item.paid),
+    status: item.status || "confirmed",
+    rescheduleRequested: Boolean(item.reschedule_requested),
+  }));
+}
+
 function mapServicesFromCloud(rows) {
   const byName = new Map();
 
@@ -1110,26 +1134,8 @@ export default function App() {
       );
 
       if (appointmentsResult.data?.length) {
-        const professionalById = {};
-        (professionalsResult.data || []).forEach((item) => {
-          professionalById[item.id] = item.fixed ? "Primeiro disponível" : item.name;
-        });
-
         setAppointments(
-          appointmentsResult.data.map((item) => ({
-            id: item.id,
-            clientName: item.client_name,
-            whatsapp: item.whatsapp,
-            professional: professionalById[item.professional_id] || "Primeiro disponível",
-            date: item.appointment_date,
-            time: shortTime(item.appointment_time),
-            duration: Number(item.duration),
-            services: item.service_text,
-            total: Number(item.total),
-            payment: item.payment_method,
-            paid: Boolean(item.paid),
-            rescheduleRequested: Boolean(item.reschedule_requested),
-          }))
+          mapAppointmentsFromCloud(appointmentsResult.data || [], professionalsResult.data || [])
         );
       }
 
@@ -1163,10 +1169,14 @@ export default function App() {
     return rangesOverlap(start, end, timeToMinutes(intervalStart), timeToMinutes(intervalEnd));
   }
 
-  function appointmentConflict(professionalName, dateText, startTime, duration) {
-    return appointments.some((item) => {
+  function appointmentBlocksSlot(item) {
+    return !["cancelled", "canceled", "cancelado"].includes(String(item.status || "").toLowerCase());
+  }
+
+  function appointmentConflict(dateText, startTime, duration, appointmentSource = appointments) {
+    return appointmentSource.some((item) => {
       if (item.date !== dateText) return false;
-      if (item.professional !== professionalName) return false;
+      if (!appointmentBlocksSlot(item)) return false;
 
       const startA = timeToMinutes(startTime);
       const endA = startA + duration;
@@ -1196,20 +1206,26 @@ export default function App() {
     return null;
   }
 
-  function professionalAvailable(professionalName, dateText, startTime, duration) {
+  function professionalAvailable(
+    professionalName,
+    dateText,
+    startTime,
+    duration,
+    appointmentSource = appointments
+  ) {
     if (baseReason(dateText, startTime, duration)) return false;
     if (blockConflict(professionalName, dateText, startTime, duration)) return false;
-    if (appointmentConflict(professionalName, dateText, startTime, duration)) return false;
+    if (appointmentConflict(dateText, startTime, duration, appointmentSource)) return false;
     return true;
   }
 
-  function findAvailableProfessional(dateText, startTime, duration) {
+  function findAvailableProfessional(dateText, startTime, duration, appointmentSource = appointments) {
     return realProfessionals().find((item) =>
-      professionalAvailable(item, dateText, startTime, duration)
+      professionalAvailable(item, dateText, startTime, duration, appointmentSource)
     );
   }
 
-  function buildSlotsForDate(dateText) {
+  function buildSlotsForDate(dateText, appointmentSource = appointments) {
     const workingDay = getWorkingDay(dateText);
     if (!workingDay.enabled || isDayOff(dateText)) return [];
 
@@ -1241,7 +1257,7 @@ export default function App() {
           continue;
         }
 
-        if (appointmentConflict(professional, dateText, time, duration)) {
+        if (appointmentConflict(dateText, time, duration, appointmentSource)) {
           result.push({ time, status: "busy", label: "Ocupado", available: false });
           continue;
         }
@@ -1250,7 +1266,12 @@ export default function App() {
         continue;
       }
 
-      const availableProfessional = findAvailableProfessional(dateText, time, duration);
+      const availableProfessional = findAvailableProfessional(
+        dateText,
+        time,
+        duration,
+        appointmentSource
+      );
 
       result.push({
         time,
@@ -1327,18 +1348,82 @@ export default function App() {
     window.scrollTo(0, 0);
   }
 
+  async function refreshCloudAppointments() {
+    const targetSlug = cloudSlug || business.slug;
+    if (!targetSlug) return null;
+
+    const shopId =
+      barbershopId ||
+      (
+        await supabase
+          .from("barbershops")
+          .select("id")
+          .eq("slug", targetSlug)
+          .maybeSingle()
+      ).data?.id;
+
+    const [appointmentsResult, professionalsResult] = await Promise.all([
+      callCloudFunction("get_admin_appointments", {
+        target_slug: targetSlug,
+      }),
+      shopId
+        ? supabase.from("professionals").select("*").eq("barbershop_id", shopId)
+        : Promise.resolve({ data: [], error: null }),
+    ]);
+
+    if (appointmentsResult.error) {
+      throw appointmentsResult.error;
+    }
+
+    if (professionalsResult.error) {
+      throw professionalsResult.error;
+    }
+
+    const nextAppointments = mapAppointmentsFromCloud(
+      appointmentsResult.data || [],
+      professionalsResult.data || []
+    );
+
+    setAppointments(nextAppointments);
+    setCloudStatus("Agenda atualizada pela nuvem");
+
+    return nextAppointments;
+  }
+
   async function finishSchedule() {
     if (!payment) {
       alert("Escolha a forma de pagamento.");
       return;
     }
 
-    const freshSlot = buildSlotsForDate(selectedDate).find((slot) => slot.time === selectedTime);
+    setCloudSaving("appointment");
+    setCloudStatus("Verificando disponibilidade online...");
+
+    let latestAppointments = appointments;
+
+    try {
+      latestAppointments = (await refreshCloudAppointments()) || appointments;
+    } catch (error) {
+      const detail = cloudErrorText(error);
+      console.error(error);
+      setCloudSaving("");
+      setCloudStatus(`Não foi possível confirmar a disponibilidade: ${detail}`);
+      alert(
+        `Não consegui conferir a agenda online agora.\n\nPara evitar horário duplicado, tente novamente em instantes.\n\nDetalhe: ${detail}`
+      );
+      return;
+    }
+
+    const freshSlot = buildSlotsForDate(selectedDate, latestAppointments).find(
+      (slot) => slot.time === selectedTime
+    );
 
     if (!freshSlot?.available) {
       alert("Esse horário acabou de ficar indisponível. Escolha outro horário.");
       setScreen("home");
       setSelectedTime("");
+      setCloudSaving("");
+      setCloudStatus("Horário indisponível. Escolha outra opção.");
       return;
     }
 
@@ -1361,6 +1446,7 @@ export default function App() {
       total: finalTotal,
       payment: finalPayment,
       paid: finalPayment === "pix",
+      status: "confirmed",
       rescheduleRequested: false,
     };
 
@@ -1369,18 +1455,47 @@ export default function App() {
       ...appointmentData,
     });
 
-    setAppointments((current) => current.concat(appointmentData));
-    setConfirmedId(id);
+    let cloudId = "";
+
+    try {
+      cloudId = await saveAppointmentToCloud(appointmentData, finalProfessional);
+    } catch (error) {
+      const detail = cloudErrorText(error);
+      console.error(error);
+      setCloudSaving("");
+      setCloudStatus(`Horário não reservado: ${detail}`);
+      alert(`Não foi possível confirmar este horário.\n\n${detail}`);
+      return;
+    }
+
+    if (!cloudId) {
+      setCloudSaving("");
+      return;
+    }
+
+    const savedAppointment = { ...appointmentData, id: cloudId };
+
+    setAppointments((current) =>
+      current.some((item) => item.id === savedAppointment.id)
+        ? current
+        : current.concat(savedAppointment)
+    );
+    setConfirmedId(cloudId);
     setProfessional(finalProfessional);
     setConfirmationSent(autoConfirmationFeatureEnabled && business.automaticConfirmationEnabled);
     setScreen("success");
+    setCloudSaving("");
     window.scrollTo(0, 0);
-
-    saveAppointmentToCloud(appointmentData, finalProfessional);
   }
 
   async function saveAppointmentToCloud(appointmentData, finalProfessional) {
-    if (!business.slug) return;
+    if (!business.slug) {
+      alert("Não foi possível identificar a barbearia para salvar online.");
+      setCloudStatus("Barbearia não identificada para salvar online.");
+      return "";
+    }
+
+    setCloudStatus("Reservando horário online...");
 
     const { data, error } = await callCloudFunction("book_appointment", {
       target_slug: business.slug,
@@ -1397,21 +1512,21 @@ export default function App() {
     });
 
     if (error) {
+      const detail = cloudErrorText(error);
       console.error("Erro ao salvar online:", error);
-      setCloudStatus("Agendamento salvo neste aparelho. Falhou ao enviar para a nuvem.");
-      return;
+      setCloudStatus(`Horário não reservado: ${detail}`);
+      alert(`Não foi possível confirmar este horário.\n\n${detail}`);
+      return "";
+    }
+
+    if (!data) {
+      setCloudStatus("A nuvem não retornou o código do agendamento.");
+      alert("Não foi possível confirmar este horário. Tente novamente.");
+      return "";
     }
 
     setCloudStatus("Agendamento salvo na nuvem");
-
-    if (data) {
-      setConfirmedId(String(data));
-      setAppointments((current) =>
-        current.map((item) =>
-          item.id === appointmentData.id ? { ...item, id: String(data) } : item
-        )
-      );
-    }
+    return String(data);
   }
 
   async function runCloudSave(kind, successMessage, action) {
@@ -3612,8 +3727,12 @@ export default function App() {
             <span>Total a pagar</span>
             <strong>{money(selectedPaymentTotal)}</strong>
           </div>
-          <button className="confirmButton" onClick={finishSchedule}>
-            Confirmar agendamento
+          <button
+            className="confirmButton"
+            disabled={cloudSaving === "appointment"}
+            onClick={finishSchedule}
+          >
+            {cloudSaving === "appointment" ? "Reservando horário..." : "Confirmar agendamento"}
           </button>
           <button className="outline" onClick={() => setScreen("home")}>
             Voltar

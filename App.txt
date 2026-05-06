@@ -256,6 +256,27 @@ function formatDateOnly(dateText) {
   });
 }
 
+function cloudErrorText(error) {
+  if (!error) return "Erro desconhecido.";
+
+  if (typeof error === "string") return error;
+
+  const pieces = [
+    error.message,
+    error.details,
+    error.hint,
+    error.code ? `Código: ${error.code}` : "",
+  ].filter(Boolean);
+
+  if (pieces.length > 0) return pieces.join(" | ");
+
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return "Erro desconhecido.";
+  }
+}
+
 function dateParts(dateText) {
   const date = toDate(dateText);
   return {
@@ -488,6 +509,44 @@ function mapWaitlistFromCloud(rows) {
     status: item.status || "waiting",
     createdAt: item.created_at,
   }));
+}
+
+function mapServicesFromCloud(rows) {
+  const byName = new Map();
+
+  (rows || []).forEach((item, index) => {
+    const name = String(item.name || "").trim();
+    const key = makeSlug(name);
+
+    if (!key || key === "teste-codex") return;
+
+    const mapped = {
+      id: item.id,
+      name,
+      duration: Number(item.duration || 30),
+      price: Number(item.price || 0),
+      active: Boolean(item.active),
+      sortOrder: Number(item.sort_order || index + 1),
+      createdAt: item.created_at || "",
+    };
+
+    const current = byName.get(key);
+    const shouldReplace =
+      !current ||
+      (mapped.active && !current.active) ||
+      (mapped.active === current.active && mapped.sortOrder < current.sortOrder) ||
+      (mapped.active === current.active &&
+        mapped.sortOrder === current.sortOrder &&
+        String(mapped.createdAt) > String(current.createdAt));
+
+    if (shouldReplace) {
+      byName.set(key, mapped);
+    }
+  });
+
+  return Array.from(byName.values())
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map(({ sortOrder, createdAt, ...service }) => service);
 }
 
 function mapScheduleFromCloud(workingRows, breakRows, dayOffRows, blockRows, professionalRows, slotInterval) {
@@ -774,6 +833,12 @@ export default function App() {
     .map((service, index) => ({ ...service, originalIndex: index }))
     .filter((service) => service.active);
 
+  const clientProfessionals = professionals.filter(
+    (item) => (item.active || item.fixed) && item.name.trim() !== ""
+  );
+  const showProfessionalChoice =
+    clientProfessionals.length > 1 || clientProfessionals.some((item) => !item.fixed);
+
   const chosenServices = useMemo(
     () => services.filter((_, index) => selectedServices.includes(index)),
     [services, selectedServices]
@@ -1026,15 +1091,7 @@ export default function App() {
       setWaitlist(mapWaitlistFromCloud(waitlistResult.data || []));
 
       if (servicesResult.data?.length) {
-        setServices(
-          servicesResult.data.map((item) => ({
-            id: item.id,
-            name: item.name,
-            duration: Number(item.duration),
-            price: Number(item.price),
-            active: Boolean(item.active),
-          }))
-        );
+        setServices(mapServicesFromCloud(servicesResult.data));
       }
 
       if (cloudProfessionals.length) {
@@ -1325,7 +1382,7 @@ export default function App() {
   async function saveAppointmentToCloud(appointmentData, finalProfessional) {
     if (!business.slug) return;
 
-    const { data, error } = await supabase.rpc("book_appointment", {
+    const { data, error } = await callCloudFunction("book_appointment", {
       target_slug: business.slug,
       client_name_input: appointmentData.clientName,
       whatsapp_input: appointmentData.whatsapp,
@@ -1366,11 +1423,10 @@ export default function App() {
 
       if (error) {
         console.error(error);
-        setCloudStatus(
-          "Salvo neste aparelho. Falta ativar a sincronização online para enviar à nuvem."
-        );
+        const detail = cloudErrorText(error);
+        setCloudStatus(`Salvo neste aparelho. Falha ao sincronizar online: ${detail}`);
         alert(
-          "Salvei neste aparelho, mas ainda não sincronizou online. Fale com o suporte para ativar a sincronização e tente salvar novamente."
+          `Salvei neste aparelho, mas ainda não sincronizou online.\n\nDetalhe: ${detail}`
         );
         return false;
       }
@@ -1388,10 +1444,53 @@ export default function App() {
     }
   }
 
+  async function callCloudFunction(functionName, payload) {
+    const result = await supabase.rpc(functionName, payload);
+
+    if (!result.error) return result;
+
+    try {
+      const response = await fetch(`${supabaseUrl}/rest/v1/rpc/${functionName}`, {
+        method: "POST",
+        headers: {
+          apikey: supabaseAnonKey,
+          authorization: `Bearer ${supabaseAnonKey}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const text = await response.text();
+
+      if (!response.ok) {
+        return {
+          data: null,
+          error: {
+            message: text || response.statusText,
+            code: String(response.status),
+          },
+        };
+      }
+
+      return {
+        data: text ? JSON.parse(text) : null,
+        error: null,
+      };
+    } catch (fallbackError) {
+      return {
+        data: null,
+        error: {
+          message: cloudErrorText(result.error),
+          details: cloudErrorText(fallbackError),
+        },
+      };
+    }
+  }
+
   function saveBusinessToCloud() {
     return runCloudSave("business", "Dados da barbearia salvos online", async () => {
       const targetSlug = cloudSlug || business.slug;
-      const result = await supabase.rpc("save_business_settings", {
+      const result = await callCloudFunction("save_business_settings", {
         target_slug: targetSlug,
         name_input: business.name,
         slug_input: business.slug || makeSlug(business.name),
@@ -1421,7 +1520,7 @@ export default function App() {
 
       if (result.error) return result;
 
-      return supabase.rpc("save_promotion_settings", {
+      return callCloudFunction("save_promotion_settings", {
         target_slug: business.slug || makeSlug(business.name),
         promotion_title_input: business.promotionTitle || "",
         promotion_description_input: business.promotionDescription || "",
@@ -1432,7 +1531,7 @@ export default function App() {
 
   function saveAccessAccountsToCloud() {
     return runCloudSave("access", "Acessos do painel salvos online", () =>
-      supabase.rpc("save_barbershop_accesses", {
+      callCloudFunction("save_barbershop_accesses", {
         target_slug: cloudSlug || business.slug,
         accesses_input: accessAccounts.map((account) => ({
           id: account.id || null,
@@ -1451,7 +1550,7 @@ export default function App() {
 
   function saveFeatureFlagsToCloud() {
     return runCloudSave("features", "Melhorias salvas online", () =>
-      supabase.rpc("save_feature_flags", {
+      callCloudFunction("save_feature_flags", {
         target_slug: cloudSlug || business.slug,
         features_input: platformFeatures.map((feature) => ({
           feature_key: feature.key,
@@ -1464,7 +1563,7 @@ export default function App() {
 
   function saveServicesToCloud() {
     return runCloudSave("services", "Serviços salvos online", () =>
-      supabase.rpc("save_services", {
+      callCloudFunction("save_services", {
         target_slug: cloudSlug || business.slug,
         services_input: services.map((service, index) => ({
           id: service.id || null,
@@ -1480,7 +1579,7 @@ export default function App() {
 
   function saveProfessionalsToCloud() {
     return runCloudSave("professionals", "Profissionais salvos online", () =>
-      supabase.rpc("save_professionals", {
+      callCloudFunction("save_professionals", {
         target_slug: cloudSlug || business.slug,
         professionals_input: professionals.map((item) => ({
           id: item.id || null,
@@ -1494,7 +1593,7 @@ export default function App() {
 
   function saveScheduleToCloud() {
     return runCloudSave("schedule", "Agenda salva online", () =>
-      supabase.rpc("save_schedule_settings", {
+      callCloudFunction("save_schedule_settings", {
         target_slug: cloudSlug || business.slug,
         slot_interval_input: Number(schedule.slotInterval || 30),
         working_hours_input: weekDays.map((day) => ({
@@ -1526,7 +1625,7 @@ export default function App() {
   async function syncAppointmentAction(id, patch) {
     if (!isUuid(id)) return;
 
-    const { error } = await supabase.rpc("update_appointment_action", {
+    const { error } = await callCloudFunction("update_appointment_action", {
       target_slug: cloudSlug || business.slug,
       appointment_id_input: id,
       paid_input: patch.paid ?? null,
@@ -1568,7 +1667,7 @@ export default function App() {
     setWaitlistSent(true);
     setCloudStatus("Pedido adicionado à lista de espera localmente.");
 
-    const { data, error } = await supabase.rpc("join_waitlist", {
+    const { data, error } = await callCloudFunction("join_waitlist", {
       target_slug: cloudSlug || business.slug,
       client_name_input: clientName,
       whatsapp_input: whatsapp,
@@ -1602,7 +1701,7 @@ export default function App() {
 
     if (!isUuid(id)) return;
 
-    const { error } = await supabase.rpc("update_waitlist_status", {
+    const { error } = await callCloudFunction("update_waitlist_status", {
       target_slug: cloudSlug || business.slug,
       waitlist_id_input: id,
       status_input: status,
@@ -2768,7 +2867,13 @@ export default function App() {
               <div className="barberHeader">
                 <div>
                   <strong>{item.name}</strong>
-                  <p>{item.active ? "Aparece para o cliente" : "Oculto para o cliente"}</p>
+                  <p>
+                    {item.fixed
+                      ? "Escolha automática quando não houver profissional cadastrado"
+                      : item.active
+                      ? "Disponível para agendamentos"
+                      : "Oculto para o cliente"}
+                  </p>
                 </div>
                 <button
                   className={item.active ? "statusPill activeStatus" : "statusPill"}
@@ -3704,29 +3809,29 @@ export default function App() {
         </section>
       )}
 
-      <section className="card">
-        <div className="sectionTitle">
-          <h2>Profissional</h2>
-          <span>Opcional</span>
-        </div>
+      {showProfessionalChoice && (
+        <section className="card">
+          <div className="sectionTitle">
+            <h2>Profissional</h2>
+            <span>Opcional</span>
+          </div>
 
-        <div className="chips">
-          {professionals
-            .filter((item) => item.active || item.fixed)
-            .map((item) => (
-            <button
-              key={item.name}
-              className={professional === item.name ? "chip activeChip" : "chip"}
-              onClick={() => {
-                setProfessional(item.name);
-                setSelectedTime("");
-              }}
-            >
-              {item.name}
-            </button>
-          ))}
-        </div>
-      </section>
+          <div className="chips">
+            {clientProfessionals.map((item) => (
+              <button
+                key={item.name}
+                className={professional === item.name ? "chip activeChip" : "chip"}
+                onClick={() => {
+                  setProfessional(item.name);
+                  setSelectedTime("");
+                }}
+              >
+                {item.name}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="card">
         <div className="sectionTitle">

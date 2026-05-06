@@ -27,12 +27,25 @@ input[type="time"] {
   min-height: 52px;
 }
 
-/* Cliente final: tempo do atendimento fica interno para cálculo de agenda. */
 .app:not(.adminApp) .service small {
   display: none !important;
 }
 
-/* Recurso removido da visão do painel: cliente deve falar com a barbearia para remarcar/cancelar. */
+.app:not(.adminApp) .timeSlot.available small,
+.app:not(.adminApp) .timeSlot.recommended small {
+  font-size: 0 !important;
+}
+
+.app:not(.adminApp) .timeSlot.available small::after {
+  content: "Disponivel";
+  font-size: 14px;
+}
+
+.app:not(.adminApp) .timeSlot.recommended small::after {
+  content: "Recomendado";
+  font-size: 14px;
+}
+
 .adminApp .featureGrid .featureCard:last-child,
 .adminApp .resourceGrid .resourceItem:last-child {
   display: none !important;

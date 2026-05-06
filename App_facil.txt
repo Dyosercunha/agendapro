@@ -156,7 +156,7 @@ const platformFeatures = [
   {
     key: "waitlist",
     title: "Lista de espera",
-    description: "Cliente entra na fila quando não houver horário disponível.",
+    description: "O cliente entra na fila quando não houver horário disponível.",
     released: false,
   },
   {
@@ -167,8 +167,8 @@ const platformFeatures = [
   },
   {
     key: "google_login",
-    title: "Login Google do cliente",
-    description: "Histórico completo do cliente com conta Google.",
+    title: "Login com Google do cliente",
+    description: "Histórico completo do cliente com uma conta Google.",
     released: false,
   },
   {
@@ -180,7 +180,7 @@ const platformFeatures = [
   {
     key: "unique_link",
     title: "Link de remarcar/cancelar",
-    description: "Cliente altera o próprio horário por link único.",
+    description: "O cliente altera o próprio horário por um link único.",
     released: false,
   },
 ];
@@ -259,45 +259,48 @@ function formatDateOnly(dateText) {
 function repairText(value) {
   if (typeof value !== "string") return value;
 
-  return value
-    .replace(/Ã¡/g, "á")
-    .replace(/Ã /g, "à")
-    .replace(/Ã£/g, "ã")
-    .replace(/Ã¢/g, "â")
-    .replace(/Ã©/g, "é")
-    .replace(/Ãª/g, "ê")
-    .replace(/Ã­/g, "í")
-    .replace(/Ã³/g, "ó")
-    .replace(/Ã´/g, "ô")
-    .replace(/Ãµ/g, "õ")
-    .replace(/Ãº/g, "ú")
-    .replace(/Ã§/g, "ç")
-    .replace(/Ã‰/g, "É")
-    .replace(/Ã“/g, "Ó")
-    .replace(/Âº/g, "º")
-    .replace(/âœ“/g, "✓")
-    .replace(/â†’/g, "→")
-    .replace(/hor[?�]rio/g, "horário")
-    .replace(/Hor[?�]rio/g, "Horário")
-    .replace(/j[?�]/g, "já")
-    .replace(/J[?�]/g, "Já")
-    .replace(/est[?�]o/g, "estão")
-    .replace(/est[?�]/g, "está")
-    .replace(/n[?�]o/g, "não")
-    .replace(/N[?�]o/g, "Não")
-    .replace(/servi[?�]o/g, "serviço")
-    .replace(/Servi[?�]o/g, "Serviço")
-    .replace(/op[?�][?�]o/g, "opção")
-    .replace(/promo[?�][?�]o/g, "promoção")
-    .replace(/confirma[?�][?�]o/g, "confirmação")
-    .replace(/endere[?�]o/g, "endereço")
-    .replace(/pre[?�]o/g, "preço")
-    .replace(/c[?�]digo/g, "código")
-    .replace(/poss[?�]vel/g, "possível")
-    .replace(/at[?�]/g, "até")
-    .replace(/tamb[?�]m/g, "também")
-    .replace(/dispon[?�]vel/g, "disponível")
-    .replace(/indispon[?�]vel/g, "indisponível");
+  const fixes = [
+    [/\u00c3\u00a1/g, "á"],
+    [/\u00c3 /g, "à"],
+    [/\u00c3\u00a3/g, "ã"],
+    [/\u00c3\u00a2/g, "â"],
+    [/\u00c3\u00a9/g, "é"],
+    [/\u00c3\u00aa/g, "ê"],
+    [/\u00c3\u00ad/g, "í"],
+    [/\u00c3\u00b3/g, "ó"],
+    [/\u00c3\u00b4/g, "ô"],
+    [/\u00c3\u00b5/g, "õ"],
+    [/\u00c3\u00ba/g, "ú"],
+    [/\u00c3\u00a7/g, "ç"],
+    [/\u00c3\u2030/g, "É"],
+    [/\u00c3\u201c/g, "Ó"],
+    [/\u00c2\u00ba/g, "º"],
+    [/\u00e2\u0153\u201c/g, "✓"],
+    [/\u00e2\u2020\u2019/g, "→"],
+    [/hor[?\uFFFD]rio/g, "horário"],
+    [/Hor[?\uFFFD]rio/g, "Horário"],
+    [/j[?\uFFFD]/g, "já"],
+    [/J[?\uFFFD]/g, "Já"],
+    [/est[?\uFFFD]o/g, "estão"],
+    [/est[?\uFFFD]/g, "está"],
+    [/n[?\uFFFD]o/g, "não"],
+    [/N[?\uFFFD]o/g, "Não"],
+    [/servi[?\uFFFD]o/g, "serviço"],
+    [/Servi[?\uFFFD]o/g, "Serviço"],
+    [/op[?\uFFFD][?\uFFFD]o/g, "opção"],
+    [/promo[?\uFFFD][?\uFFFD]o/g, "promoção"],
+    [/confirma[?\uFFFD][?\uFFFD]o/g, "confirmação"],
+    [/endere[?\uFFFD]o/g, "endereço"],
+    [/pre[?\uFFFD]o/g, "preço"],
+    [/c[?\uFFFD]digo/g, "código"],
+    [/poss[?\uFFFD]vel/g, "possível"],
+    [/at[?\uFFFD]/g, "até"],
+    [/tamb[?\uFFFD]m/g, "também"],
+    [/dispon[?\uFFFD]vel/g, "disponível"],
+    [/indispon[?\uFFFD]vel/g, "indisponível"],
+  ];
+
+  return fixes.reduce((text, [pattern, replacement]) => text.replace(pattern, replacement), value);
 }
 
 function cloudErrorText(error) {
@@ -1111,7 +1114,7 @@ export default function App() {
         .single();
 
       if (businessError || !businessData) {
-        setCloudStatus("Usando dados locais. Barbearia ainda não encontrada na nuvem.");
+        setCloudStatus("Usando dados locais. A barbearia ainda não foi encontrada na nuvem.");
         return;
       }
 
@@ -1380,7 +1383,7 @@ export default function App() {
       return { label: "Livre", available: true };
     }
 
-    return { label: "Cheio", available: false };
+    return { label: "Sem vagas", available: false };
   }
 
   function toggleService(index) {
@@ -1416,7 +1419,7 @@ export default function App() {
     }
 
     if (!canContinue) {
-      showNotice("Informe WhatsApp, nome, serviço e horário disponível.");
+      showNotice("Informe o WhatsApp, o nome, o serviço e um horário disponível.");
       return;
     }
 
@@ -1485,7 +1488,7 @@ export default function App() {
       setCloudSaving("");
       setCloudStatus(`Não foi possível confirmar a disponibilidade: ${detail}`);
       showNotice(
-        `Não consegui conferir a agenda online agora.\n\nPara evitar horário duplicado, tente novamente em instantes.\n\nDetalhe: ${detail}`
+        `Não foi possível conferir a agenda online agora.\n\nPara evitar horário duplicado, tente novamente em instantes.\n\nDetalhe: ${detail}`
       );
       return;
     }
@@ -1534,7 +1537,7 @@ export default function App() {
       const detail = cloudErrorText(error);
       console.error(error);
       setCloudSaving("");
-      setCloudStatus(`Horário não reservado: ${detail}`);
+      setCloudStatus(`O horário não foi reservado: ${detail}`);
       showNotice(`Não foi possível confirmar este horário.\n\n${detail}`);
       return;
     }
@@ -1634,7 +1637,7 @@ export default function App() {
   async function saveAppointmentToCloud(appointmentData, finalProfessional) {
     if (!business.slug) {
       showNotice("Não foi possível identificar a barbearia para salvar online.");
-      setCloudStatus("Barbearia não identificada para salvar online.");
+      setCloudStatus("A barbearia não foi identificada para salvar online.");
       return "";
     }
 
@@ -1657,7 +1660,7 @@ export default function App() {
     if (error) {
       const detail = cloudErrorText(error);
       console.error("Erro ao salvar online:", error);
-      setCloudStatus(`Horário não reservado: ${detail}`);
+      setCloudStatus(`O horário não foi reservado: ${detail}`);
       showNotice(`Não foi possível confirmar este horário.\n\n${detail}`);
       return "";
     }
@@ -1682,7 +1685,7 @@ export default function App() {
       if (error) {
         console.error(error);
         const detail = cloudErrorText(error);
-        setCloudStatus(`Salvo neste aparelho. Falha ao sincronizar online: ${detail}`);
+        setCloudStatus(`Salvo neste aparelho, mas não foi sincronizado online: ${detail}`);
         showNotice(
           `Salvei neste aparelho, mas ainda não sincronizou online.\n\nDetalhe: ${detail}`
         );
@@ -1694,8 +1697,8 @@ export default function App() {
       return true;
     } catch (error) {
       console.error(error);
-      setCloudStatus("Falha ao salvar online.");
-      showNotice("Falha ao salvar online.");
+      setCloudStatus("Não foi possível salvar online.");
+      showNotice("Não foi possível salvar online.");
       return false;
     } finally {
       setCloudSaving("");
@@ -1893,7 +1896,7 @@ export default function App() {
 
     if (error) {
       console.error(error);
-      setCloudStatus("Ação salva neste aparelho. Falhou ao atualizar online.");
+      setCloudStatus("A ação foi salva neste aparelho, mas não foi sincronizada online.");
       return;
     }
 
@@ -1907,7 +1910,7 @@ export default function App() {
     }
 
     if (cleanWhatsapp.length < 8 || clientName.trim() === "" || selectedServices.length === 0) {
-      showNotice("Informe WhatsApp, nome e serviço para entrar na lista de espera.");
+      showNotice("Informe o WhatsApp, o nome e o serviço para entrar na lista de espera.");
       return;
     }
 
@@ -1935,7 +1938,7 @@ export default function App() {
 
     if (error) {
       console.error(error);
-      setCloudStatus("Lista de espera salva neste aparelho. Falhou ao enviar para a nuvem.");
+      setCloudStatus("A lista de espera foi salva neste aparelho, mas não foi sincronizada online.");
       return;
     }
 
@@ -1967,7 +1970,7 @@ export default function App() {
 
     if (error) {
       console.error(error);
-      setCloudStatus("Lista de espera atualizada neste aparelho. Falhou ao enviar para a nuvem.");
+      setCloudStatus("A lista de espera foi atualizada neste aparelho, mas não foi sincronizada online.");
       return;
     }
 
@@ -2340,7 +2343,7 @@ export default function App() {
 
   function verifyBarberIdentity() {
     if (!phoneMatchesBusiness(barberGateWhatsapp) || !nameMatchesBusiness(barberGateName)) {
-      setBarberGateError("WhatsApp ou nome da barbearia não confere com o cadastro.");
+      setBarberGateError("O WhatsApp ou o nome da barbearia não conferem com o cadastro.");
       return;
     }
 
@@ -2362,10 +2365,10 @@ export default function App() {
       });
 
       if (error) {
-        setAdminLoginError("Login Google ainda não configurado na autenticação.");
+        setAdminLoginError("O login com Google ainda não está configurado na autenticação.");
       }
     } catch {
-      setAdminLoginError("Login Google ainda não configurado na autenticação.");
+      setAdminLoginError("O login com Google ainda não está configurado na autenticação.");
     }
   }
 
@@ -2568,7 +2571,7 @@ export default function App() {
 
         <section className="card loginCard">
           <div className="loginBadge">Acesso restrito</div>
-          <h2>Login do barbeiro</h2>
+          <h2>Login da barbearia</h2>
           <p className="hint">
             O painel só aparece para e-mails cadastrados pela plataforma.
           </p>
@@ -2600,8 +2603,8 @@ export default function App() {
           </button>
 
           <p className="adminNote">
-            Demo: use dyoser2@gmail.com com código 123456. O Google precisa estar
-            ativado na autenticação para funcionar em produção.
+            Acesso de teste: use dyoser2@gmail.com com o código 123456. O login com
+            Google precisa estar ativado na autenticação para funcionar em produção.
           </p>
         </section>
       </main>
@@ -2616,7 +2619,7 @@ export default function App() {
             <div className="loginBadge">Acesso restrito</div>
             <h1>Faça login para acessar o painel</h1>
             <button className="green" onClick={() => setViewMode("adminLogin")}>
-              Ir para login
+              Ir para o login
             </button>
             <button className="outline" onClick={() => setViewMode("client")}>
               Voltar para cliente
@@ -2803,7 +2806,7 @@ export default function App() {
             <section className="card storageCard">
               <div className="sectionTitle">
                 <h2>Sincronização</h2>
-                <span>Local + online</span>
+                <span>Local e online</span>
               </div>
 
               <p className="hint">
@@ -2890,7 +2893,7 @@ export default function App() {
             <div>
               <span>Melhor cliente</span>
               <strong>{topCustomer?.name || "Sem dados"}</strong>
-              <small>{topCustomer ? `${topCustomer.visits} visitas` : "aguardando agenda"}</small>
+              <small>{topCustomer ? `${topCustomer.visits} visitas` : "Aguardando agendamento"}</small>
             </div>
           </div>
 
@@ -2899,7 +2902,7 @@ export default function App() {
             <p>
               {loyaltyFeatureEnabled
                 ? "Use o histórico para oferecer vantagens aos clientes recorrentes."
-                : "Libere Fidelidade em Melhorias para transformar visitas em recompensas."}
+                : "Libere a fidelidade em Melhorias para transformar visitas em recompensas."}
             </p>
             {!loyaltyFeatureEnabled && (
               <button onClick={() => setAdminTab("improvements")}>
@@ -3169,7 +3172,9 @@ export default function App() {
                 disabled={item.fixed}
                 onChange={(event) => updateProfessional(index, "name", event.target.value)}
               />
-              {item.fixed && <p className="hint">Esta opção escolhe alguém livre automaticamente.</p>}
+              {item.fixed && (
+                <p className="hint">Esta opção escolhe automaticamente um profissional disponível.</p>
+              )}
               {!item.fixed && (
                 <button className="dangerButton" onClick={() => removeProfessional(index)}>
                   Remover profissional
@@ -3273,8 +3278,8 @@ export default function App() {
 
           <p className="hint">
             {canManageBilling
-              ? `Recursos novos começam bloqueados e são liberados por atualização ou plano da mensalidade. Plano atual: ${currentPlan.name}.`
-              : "Recursos novos começam bloqueados e são liberados pela plataforma quando estiverem disponíveis para esta conta."}
+              ? `Novos recursos começam bloqueados e são liberados por atualização ou pelo plano da mensalidade. Plano atual: ${currentPlan.name}.`
+              : "Novos recursos começam bloqueados e são liberados pela plataforma quando estiverem disponíveis para esta conta."}
           </p>
 
           <div className="featureGrid">
@@ -3405,8 +3410,8 @@ export default function App() {
             <span>App da barbearia</span>
             <strong>{business.slug || "barbearia"}</strong>
             <p>
-              Cada barbearia tem um app próprio pelo identificador do link. Cliente acessa
-              o agendamento; barbeiro acessa o painel protegido.
+              Cada barbearia tem um app próprio, definido pelo identificador do link.
+              O cliente acessa o agendamento; o responsável acessa o painel protegido.
             </p>
           </div>
 
@@ -3755,7 +3760,7 @@ export default function App() {
           </p>
           <p>Profissional: {professional}</p>
           <p className="hint">
-            Em caso de cancelamento ou reagendamento, entre em contato com o barbeiro.
+            Em caso de cancelamento ou reagendamento, entre em contato com a barbearia.
           </p>
           {!confirmationSent && barberConfirmationMessage && (
             <a
@@ -3777,7 +3782,7 @@ export default function App() {
             target="_blank"
             rel="noreferrer"
           >
-            Falar com barbeiro
+            Falar com a barbearia
           </a>
           <button className="outline" onClick={startNewSchedule}>
             Novo agendamento
@@ -3921,7 +3926,7 @@ export default function App() {
           <p className="helpText">
             Precisa de ajuda?{" "}
             <a href={`https://wa.me/${business.whatsapp}`} target="_blank" rel="noreferrer">
-              Falar com barbeiro
+              Falar com a barbearia
             </a>
           </p>
         </section>
@@ -3960,7 +3965,7 @@ export default function App() {
             target="_blank"
             rel="noreferrer"
           >
-            Falar com barbeiro
+            Falar com a barbearia
           </a>
 
         </section>
@@ -4239,7 +4244,7 @@ export default function App() {
         {slots.length > 0 && !slots.some((slot) => slot.available) && waitlistAvailable && (
           <div className="waitlistBox">
             <strong>Nenhum horário livre neste dia</strong>
-            <p>Entre na lista de espera e a barbearia pode te chamar quando abrir um encaixe.</p>
+            <p>Entre na lista de espera para a barbearia te chamar quando abrir um encaixe.</p>
             <button className="black" onClick={joinWaitlist}>
               {waitlistSent ? "Você já está na lista de espera" : "Entrar na lista de espera"}
             </button>

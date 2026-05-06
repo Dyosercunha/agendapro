@@ -2,10 +2,10 @@
 -- Execute este arquivo no SQL Editor do Supabase.
 --
 -- O que ele corrige:
--- 1. A segunda pessoa nao consegue confirmar o mesmo horario.
--- 2. Horarios que se cruzam pelo tempo do servico tambem sao bloqueados.
--- 3. Duas confirmacoes ao mesmo tempo passam por uma trava transacional.
--- 4. O agendamento so entra se a barbearia estiver aberta e fora de pausas/bloqueios.
+-- 1. A segunda pessoa não consegue confirmar o mesmo horário.
+-- 2. Horários que se cruzam pelo tempo do serviço também são bloqueados.
+-- 3. Duas confirmações ao mesmo tempo passam por uma trava transacional.
+-- 4. O agendamento só entra se a barbearia estiver aberta e fora de pausas/bloqueios.
 
 create index if not exists appointments_shop_date_status_time_idx
 on public.appointments (barbershop_id, appointment_date, status, appointment_time);
@@ -44,7 +44,7 @@ begin
   target_barbershop_id := private.barbershop_id_by_slug(target_slug);
 
   if target_barbershop_id is null then
-    raise exception 'Agenda indisponivel para este estabelecimento.';
+    raise exception 'Agenda indisponível para este estabelecimento.';
   end if;
 
   if exists (
@@ -53,11 +53,11 @@ begin
     where account.barbershop_id = target_barbershop_id
       and account.monthly_status = 'blocked'
   ) then
-    raise exception 'Agenda temporariamente indisponivel para este estabelecimento.';
+    raise exception 'Agenda temporariamente indisponível para este estabelecimento.';
   end if;
 
   -- Trava por barbearia + dia.
-  -- Assim duas reservas simultaneas para o mesmo dia nao passam juntas.
+  -- Assim duas reservas simultâneas para o mesmo dia não passam juntas.
   perform pg_advisory_xact_lock(
     hashtext(target_barbershop_id::text),
     hashtext(appointment_date_input::text)
@@ -71,12 +71,12 @@ begin
   limit 1;
 
   if work_day.id is null or work_day.enabled = false then
-    raise exception 'A barbearia esta fechada nesta data.';
+    raise exception 'A barbearia está fechada nesta data.';
   end if;
 
   if appointment_time_input < work_day.start_time
      or appointment_end_time > work_day.end_time then
-    raise exception 'Este horario esta fora do funcionamento da barbearia.';
+    raise exception 'Este horário está fora do funcionamento da barbearia.';
   end if;
 
   if exists (
@@ -85,7 +85,7 @@ begin
     where day_off.barbershop_id = target_barbershop_id
       and day_off.date = appointment_date_input
   ) then
-    raise exception 'A barbearia esta de folga nesta data.';
+    raise exception 'A barbearia está de folga nesta data.';
   end if;
 
   if exists (
@@ -95,11 +95,11 @@ begin
       and appointment_time_input < pause.end_time
       and appointment_end_time > pause.start_time
   ) then
-    raise exception 'Este horario cai em uma pausa ou almoco.';
+    raise exception 'Este horário cai em uma pausa ou almoço.';
   end if;
 
   -- Bloqueio forte por barbearia.
-  -- Qualquer agendamento confirmado que cruze o periodo escolhido impede nova reserva.
+  -- Qualquer agendamento confirmado que cruze o período escolhido impede nova reserva.
   if exists (
     select 1
     from public.appointments appointment
@@ -109,7 +109,7 @@ begin
       and appointment_time_input < (appointment.appointment_time + make_interval(mins => appointment.duration))::time
       and appointment_end_time > appointment.appointment_time
   ) then
-    raise exception 'Este horario acabou de ser ocupado. Escolha outro horario.';
+    raise exception 'Este horário acabou de ser ocupado. Escolha outro horário.';
   end if;
 
   if professional_name_input is not null
@@ -128,7 +128,7 @@ begin
     limit 1;
 
     if target_professional_id is null then
-      raise exception 'Profissional indisponivel.';
+      raise exception 'Profissional indisponível.';
     end if;
 
     if exists (
@@ -143,7 +143,7 @@ begin
         and appointment_time_input < schedule_block.end_time
         and appointment_end_time > schedule_block.start_time
     ) then
-      raise exception 'Este horario esta bloqueado para este profissional.';
+      raise exception 'Este horário está bloqueado para este profissional.';
     end if;
 
   else
@@ -179,7 +179,7 @@ begin
     end if;
 
     if target_professional_id is null then
-      raise exception 'Nenhum profissional disponivel neste horario.';
+      raise exception 'Nenhum profissional disponível neste horário.';
     end if;
   end if;
 
@@ -248,9 +248,9 @@ grant execute on function public.book_appointment(
   text, text, text, text, text, date, time, integer, numeric, text, boolean
 ) to anon, authenticated;
 
--- Verificacao opcional depois de executar:
--- Rode este SELECT para encontrar horarios duplicados ja existentes.
--- Ele apenas lista, nao apaga nada.
+-- Verificação opcional depois de executar:
+-- Rode este SELECT para encontrar horários duplicados já existentes.
+-- Ele apenas lista, não apaga nada.
 select
   shop.slug,
   appointment.appointment_date,

@@ -1094,6 +1094,44 @@ button:disabled {
   text-decoration: none;
 }
 
+.noticeOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.58);
+  backdrop-filter: blur(10px);
+}
+
+.noticeDialog {
+  width: min(100%, 390px);
+  background: linear-gradient(180deg, var(--card), var(--surface));
+  border: 1px solid var(--border-soft);
+  border-radius: 28px;
+  box-shadow: var(--shadow-card);
+  padding: 22px;
+  color: var(--text);
+}
+
+.noticeDialog span {
+  color: var(--success);
+  display: block;
+  font-size: 12px;
+  font-weight: 900;
+  margin-bottom: 8px;
+}
+
+.noticeDialog h2 {
+  margin-bottom: 10px;
+}
+
+.noticeDialog p {
+  color: var(--text-secondary);
+  white-space: pre-line;
+}
+
 .success {
   background: linear-gradient(180deg, var(--card), var(--surface));
   border-radius: 28px;

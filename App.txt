@@ -144,7 +144,7 @@ const platformFeatures = [
   {
     key: "auto_confirmation",
     title: "Confirmação automática",
-    description: "Simula o envio automático dos dados para a barbearia.",
+    description: "Envia os dados da confirmação para o WhatsApp da barbearia.",
     released: true,
   },
   {
@@ -256,10 +256,54 @@ function formatDateOnly(dateText) {
   });
 }
 
+function repairText(value) {
+  if (typeof value !== "string") return value;
+
+  return value
+    .replace(/Ã¡/g, "á")
+    .replace(/Ã /g, "à")
+    .replace(/Ã£/g, "ã")
+    .replace(/Ã¢/g, "â")
+    .replace(/Ã©/g, "é")
+    .replace(/Ãª/g, "ê")
+    .replace(/Ã­/g, "í")
+    .replace(/Ã³/g, "ó")
+    .replace(/Ã´/g, "ô")
+    .replace(/Ãµ/g, "õ")
+    .replace(/Ãº/g, "ú")
+    .replace(/Ã§/g, "ç")
+    .replace(/Ã‰/g, "É")
+    .replace(/Ã“/g, "Ó")
+    .replace(/Âº/g, "º")
+    .replace(/âœ“/g, "✓")
+    .replace(/â†’/g, "→")
+    .replace(/hor[?�]rio/g, "horário")
+    .replace(/Hor[?�]rio/g, "Horário")
+    .replace(/j[?�]/g, "já")
+    .replace(/J[?�]/g, "Já")
+    .replace(/est[?�]o/g, "estão")
+    .replace(/est[?�]/g, "está")
+    .replace(/n[?�]o/g, "não")
+    .replace(/N[?�]o/g, "Não")
+    .replace(/servi[?�]o/g, "serviço")
+    .replace(/Servi[?�]o/g, "Serviço")
+    .replace(/op[?�][?�]o/g, "opção")
+    .replace(/promo[?�][?�]o/g, "promoção")
+    .replace(/confirma[?�][?�]o/g, "confirmação")
+    .replace(/endere[?�]o/g, "endereço")
+    .replace(/pre[?�]o/g, "preço")
+    .replace(/c[?�]digo/g, "código")
+    .replace(/poss[?�]vel/g, "possível")
+    .replace(/at[?�]/g, "até")
+    .replace(/tamb[?�]m/g, "também")
+    .replace(/dispon[?�]vel/g, "disponível")
+    .replace(/indispon[?�]vel/g, "indisponível");
+}
+
 function cloudErrorText(error) {
   if (!error) return "Erro desconhecido.";
 
-  if (typeof error === "string") return error;
+  if (typeof error === "string") return repairText(error);
 
   const pieces = [
     error.message,
@@ -268,10 +312,10 @@ function cloudErrorText(error) {
     error.code ? `Código: ${error.code}` : "",
   ].filter(Boolean);
 
-  if (pieces.length > 0) return pieces.join(" | ");
+  if (pieces.length > 0) return repairText(pieces.join(" | "));
 
   try {
-    return JSON.stringify(error);
+    return repairText(JSON.stringify(error));
   } catch {
     return "Erro desconhecido.";
   }
@@ -437,9 +481,9 @@ function isUuid(value) {
 }
 
 function mapBusinessFromCloud(row, account) {
-  return mergeWithDefault(initialBusiness, {
-    name: row.name,
-    logo: row.logo_text || "B",
+  return normalizeBusiness(mergeWithDefault(initialBusiness, {
+    name: repairText(row.name),
+    logo: repairText(row.logo_text || "B"),
     logoImage: row.logo_url || "",
     slug: row.slug,
     ownerEmail: account?.owner_email || initialBusiness.ownerEmail,
@@ -447,21 +491,39 @@ function mapBusinessFromCloud(row, account) {
     monthlyStatus: account?.monthly_status || initialBusiness.monthlyStatus,
     nextBillingDate: account?.next_billing_date || initialBusiness.nextBillingDate,
     whatsapp: row.whatsapp,
-    address: row.address || "",
+    address: repairText(row.address || ""),
     mapsUrl: row.maps_url || "",
     themeColor: row.theme_color || initialBusiness.themeColor,
     themeColorSecondary: row.theme_color_secondary || initialBusiness.themeColorSecondary,
     pixEnabled: Boolean(row.pix_enabled),
     pixKey: row.pix_key || "",
     pixDiscount: Number(row.pix_discount || 0),
-    promotionTitle: row.promotion_title || initialBusiness.promotionTitle,
-    promotionDescription: row.promotion_description || initialBusiness.promotionDescription,
+    promotionTitle: repairText(row.promotion_title || initialBusiness.promotionTitle),
+    promotionDescription: repairText(
+      row.promotion_description || initialBusiness.promotionDescription
+    ),
     promotionDiscount: Number(row.promotion_discount || initialBusiness.promotionDiscount),
     automaticConfirmationEnabled: Boolean(row.automatic_confirmation_enabled),
-    successTitle: row.success_title || initialBusiness.successTitle,
-    successMessage: row.success_message || initialBusiness.successMessage,
-    successFooter: row.success_footer || initialBusiness.successFooter,
-  });
+    successTitle: repairText(row.success_title || initialBusiness.successTitle),
+    successMessage: repairText(row.success_message || initialBusiness.successMessage),
+    successFooter: repairText(row.success_footer || initialBusiness.successFooter),
+  }));
+}
+
+function normalizeBusiness(value) {
+  const business = mergeWithDefault(initialBusiness, value || {});
+
+  return {
+    ...business,
+    name: repairText(business.name),
+    logo: repairText(business.logo),
+    address: repairText(business.address),
+    promotionTitle: repairText(business.promotionTitle),
+    promotionDescription: repairText(business.promotionDescription),
+    successTitle: repairText(business.successTitle),
+    successMessage: repairText(business.successMessage),
+    successFooter: repairText(business.successFooter),
+  };
 }
 
 function mapAccessAccountsFromCloud(rows, ownerEmail) {
@@ -628,7 +690,7 @@ export default function App() {
   const [barberGateError, setBarberGateError] = useState("");
   const [screen, setScreen] = useState("home");
   const [business, setBusiness] = useState(() =>
-    readSavedData(storageKeys.business, initialBusiness)
+    normalizeBusiness(readSavedData(storageKeys.business, initialBusiness))
   );
   const [accessAccounts, setAccessAccounts] = useState(() =>
     readSavedData(storageKeys.accessAccounts, initialAccessAccounts)
@@ -668,6 +730,8 @@ export default function App() {
   const [cloudSaving, setCloudSaving] = useState("");
   const [cloudHistory, setCloudHistory] = useState(null);
   const [waitlistSent, setWaitlistSent] = useState(false);
+  const [notice, setNotice] = useState(null);
+  const [barberConfirmationMessage, setBarberConfirmationMessage] = useState("");
 
   const today = getDateAfterDays(0);
   const cleanWhatsapp = whatsapp.replace(/\D/g, "");
@@ -1225,6 +1289,17 @@ export default function App() {
     );
   }
 
+  function showNotice(message, title = "AgendaPro") {
+    setNotice({
+      title,
+      message: repairText(String(message || "")),
+    });
+  }
+
+  function closeNotice() {
+    setNotice(null);
+  }
+
   function buildSlotsForDate(dateText, appointmentSource = appointments) {
     const workingDay = getWorkingDay(dateText);
     if (!workingDay.enabled || isDayOff(dateText)) return [];
@@ -1335,12 +1410,12 @@ export default function App() {
 
   function goCheckout() {
     if (scheduleBlocked) {
-      alert("A agenda online está temporariamente indisponível.");
+      showNotice("A agenda online está temporariamente indisponível.");
       return;
     }
 
     if (!canContinue) {
-      alert("Informe WhatsApp, nome, serviço e horário disponível.");
+      showNotice("Informe WhatsApp, nome, serviço e horário disponível.");
       return;
     }
 
@@ -1392,7 +1467,7 @@ export default function App() {
 
   async function finishSchedule() {
     if (!payment) {
-      alert("Escolha a forma de pagamento.");
+      showNotice("Escolha a forma de pagamento.");
       return;
     }
 
@@ -1408,7 +1483,7 @@ export default function App() {
       console.error(error);
       setCloudSaving("");
       setCloudStatus(`Não foi possível confirmar a disponibilidade: ${detail}`);
-      alert(
+      showNotice(
         `Não consegui conferir a agenda online agora.\n\nPara evitar horário duplicado, tente novamente em instantes.\n\nDetalhe: ${detail}`
       );
       return;
@@ -1419,7 +1494,7 @@ export default function App() {
     );
 
     if (!freshSlot?.available) {
-      alert("Esse horário acabou de ficar indisponível. Escolha outro horário.");
+      showNotice("Esse horário acabou de ficar indisponível. Escolha outro horário.");
       setScreen("home");
       setSelectedTime("");
       setCloudSaving("");
@@ -1450,11 +1525,6 @@ export default function App() {
       rescheduleRequested: false,
     };
 
-    console.log("Confirmação automática simulada:", {
-      businessWhatsapp: business.whatsapp,
-      ...appointmentData,
-    });
-
     let cloudId = "";
 
     try {
@@ -1464,7 +1534,7 @@ export default function App() {
       console.error(error);
       setCloudSaving("");
       setCloudStatus(`Horário não reservado: ${detail}`);
-      alert(`Não foi possível confirmar este horário.\n\n${detail}`);
+      showNotice(`Não foi possível confirmar este horário.\n\n${detail}`);
       return;
     }
 
@@ -1482,15 +1552,87 @@ export default function App() {
     );
     setConfirmedId(cloudId);
     setProfessional(finalProfessional);
-    setConfirmationSent(autoConfirmationFeatureEnabled && business.automaticConfirmationEnabled);
+    const notificationSent = await sendBarberConfirmation(savedAppointment, cloudId);
+    setConfirmationSent(notificationSent);
     setScreen("success");
     setCloudSaving("");
     window.scrollTo(0, 0);
   }
 
+  function buildBarberConfirmationMessage(appointmentData, appointmentId) {
+    const paymentLabel =
+      appointmentData.payment === "pix" ? "PIX antecipado" : "Pagamento no local";
+    const paymentStatus =
+      appointmentData.payment === "pix"
+        ? "PIX selecionado no app. Conferir comprovante."
+        : "Pagamento pendente para o atendimento.";
+
+    return [
+      "Novo agendamento confirmado",
+      "",
+      `Barbearia: ${business.name}`,
+      `Cliente: ${appointmentData.clientName}`,
+      `WhatsApp do cliente: ${appointmentData.whatsapp}`,
+      "",
+      `Serviço: ${appointmentData.services}`,
+      `Data: ${formatDateForMessage(appointmentData.date)}`,
+      `Horário: ${appointmentData.time}`,
+      `Profissional: ${appointmentData.professional}`,
+      `Tempo previsto: ${appointmentData.duration} min`,
+      "",
+      `Total: ${money(appointmentData.total)}`,
+      `Forma de pagamento: ${paymentLabel}`,
+      `Status do pagamento: ${paymentStatus}`,
+      appointmentId ? `Código do agendamento: ${appointmentId}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+  }
+
+  async function sendBarberConfirmation(appointmentData, appointmentId) {
+    const message = buildBarberConfirmationMessage(appointmentData, appointmentId);
+    setBarberConfirmationMessage(message);
+
+    if (!autoConfirmationFeatureEnabled || !business.automaticConfirmationEnabled) {
+      setCloudStatus("Confirmação pronta para envio manual ao WhatsApp da barbearia.");
+      return false;
+    }
+
+    try {
+      const response = await fetch("/api/send-whatsapp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          to: business.whatsapp,
+          message,
+        }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        const detail = repairText(
+          data?.error || "WhatsApp automático ainda não configurado para esta barbearia."
+        );
+        console.warn("WhatsApp automático não enviado:", data);
+        setCloudStatus(detail);
+        return false;
+      }
+
+      setCloudStatus("Confirmação enviada para o WhatsApp da barbearia.");
+      return true;
+    } catch (error) {
+      console.error("Falha ao enviar WhatsApp automático:", error);
+      setCloudStatus("Não foi possível enviar o WhatsApp automático.");
+      return false;
+    }
+  }
+
   async function saveAppointmentToCloud(appointmentData, finalProfessional) {
     if (!business.slug) {
-      alert("Não foi possível identificar a barbearia para salvar online.");
+      showNotice("Não foi possível identificar a barbearia para salvar online.");
       setCloudStatus("Barbearia não identificada para salvar online.");
       return "";
     }
@@ -1515,13 +1657,13 @@ export default function App() {
       const detail = cloudErrorText(error);
       console.error("Erro ao salvar online:", error);
       setCloudStatus(`Horário não reservado: ${detail}`);
-      alert(`Não foi possível confirmar este horário.\n\n${detail}`);
+      showNotice(`Não foi possível confirmar este horário.\n\n${detail}`);
       return "";
     }
 
     if (!data) {
       setCloudStatus("A nuvem não retornou o código do agendamento.");
-      alert("Não foi possível confirmar este horário. Tente novamente.");
+      showNotice("Não foi possível confirmar este horário. Tente novamente.");
       return "";
     }
 
@@ -1540,19 +1682,19 @@ export default function App() {
         console.error(error);
         const detail = cloudErrorText(error);
         setCloudStatus(`Salvo neste aparelho. Falha ao sincronizar online: ${detail}`);
-        alert(
+        showNotice(
           `Salvei neste aparelho, mas ainda não sincronizou online.\n\nDetalhe: ${detail}`
         );
         return false;
       }
 
       setCloudStatus(successMessage);
-      alert(successMessage);
+      showNotice(successMessage);
       return true;
     } catch (error) {
       console.error(error);
       setCloudStatus("Falha ao salvar online.");
-      alert("Falha ao salvar online.");
+      showNotice("Falha ao salvar online.");
       return false;
     } finally {
       setCloudSaving("");
@@ -1759,12 +1901,12 @@ export default function App() {
 
   async function joinWaitlist() {
     if (!waitlistAvailable) {
-      alert("Lista de espera ainda não está disponível para esta barbearia.");
+      showNotice("Lista de espera ainda não está disponível para esta barbearia.");
       return;
     }
 
     if (cleanWhatsapp.length < 8 || clientName.trim() === "" || selectedServices.length === 0) {
-      alert("Informe WhatsApp, nome e serviço para entrar na lista de espera.");
+      showNotice("Informe WhatsApp, nome e serviço para entrar na lista de espera.");
       return;
     }
 
@@ -1833,7 +1975,7 @@ export default function App() {
 
   function copyText(text) {
     navigator.clipboard?.writeText(text);
-    alert("Copiado: " + text);
+    showNotice("Copiado: " + text);
   }
 
   function handleLogoUpload(event) {
@@ -1969,6 +2111,7 @@ export default function App() {
     setPayment("");
     setConfirmedId("");
     setConfirmationSent(false);
+    setBarberConfirmationMessage("");
     setWaitlistSent(false);
     window.scrollTo(0, 0);
   }
@@ -2274,7 +2417,7 @@ export default function App() {
 
   function closeToday() {
     if (schedule.daysOff.some((item) => item.date === today)) {
-      alert("Hoje já está fechado.");
+      showNotice("Hoje já está fechado.");
       return;
     }
 
@@ -2307,7 +2450,7 @@ export default function App() {
     const nextSlot = buildSlotsForDate(today).find((slot) => slot.available);
 
     if (!nextSlot) {
-      alert("Não há horário livre hoje.");
+      showNotice("Não há horário livre hoje.");
       return;
     }
 
@@ -2325,8 +2468,28 @@ export default function App() {
     setAdminTab("agenda");
   }
 
-  if (viewMode === "barberGate") {
+  function withNotice(content) {
     return (
+      <>
+        {content}
+        {notice && (
+          <div className="noticeOverlay" role="dialog" aria-modal="true">
+            <div className="noticeDialog">
+              <span>AgendaPro</span>
+              <h2>{notice.title || "AgendaPro"}</h2>
+              <p>{notice.message}</p>
+              <button className="green" onClick={closeNotice}>
+                OK
+              </button>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  }
+
+  if (viewMode === "barberGate") {
+    return withNotice(
       <main className="app">
         <section className="hero">
           <div className="brand">
@@ -2380,7 +2543,7 @@ export default function App() {
   }
 
   if (viewMode === "adminLogin") {
-    return (
+    return withNotice(
       <main className="app">
         <section className="hero">
           <div className="brand">
@@ -2446,7 +2609,7 @@ export default function App() {
 
   if (viewMode === "admin") {
     if (!adminLoggedIn) {
-      return (
+      return withNotice(
         <main className="app">
           <section className="card loginCard">
             <div className="loginBadge">Acesso restrito</div>
@@ -2462,7 +2625,7 @@ export default function App() {
       );
     }
 
-    return (
+    return withNotice(
       <main className="app adminApp">
         <section className="hero">
           <div className="brand">
@@ -3570,15 +3733,19 @@ export default function App() {
   }
 
   if (screen === "success") {
-    return (
+    return withNotice(
       <main className="app">
         <section className="card success">
           <div className="badge">Agendado</div>
-          <h1>{business.successTitle}</h1>
-          <p>{business.successMessage}</p>
-          <p>Te esperamos na {business.name}.</p>
-          <p>{business.address}</p>
-          {confirmationSent && <p>{business.successFooter}</p>}
+          <h1>{repairText(business.successTitle)}</h1>
+          <p>{repairText(business.successMessage)}</p>
+          <p>Te esperamos na {repairText(business.name)}.</p>
+          {business.address && <p>{repairText(business.address)}</p>}
+          {confirmationSent ? (
+            <p>{repairText(business.successFooter)}</p>
+          ) : (
+            <p>A confirmação está pronta para ser enviada à barbearia.</p>
+          )}
           <p>
             <strong>
               {formatDate(selectedDate)} às {selectedTime}
@@ -3589,8 +3756,20 @@ export default function App() {
           <p className="hint">
             Em caso de cancelamento ou reagendamento, entre em contato com o barbeiro.
           </p>
+          {!confirmationSent && barberConfirmationMessage && (
+            <a
+              className="black linkButton"
+              href={`https://wa.me/${business.whatsapp}?text=${encodeURIComponent(
+                barberConfirmationMessage
+              )}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Enviar confirmação para a barbearia
+            </a>
+          )}
           <a
-            className="black linkButton"
+            className={confirmationSent ? "black linkButton" : "outline linkButton"}
             href={`https://wa.me/${business.whatsapp}?text=${encodeURIComponent(
               `Olá! Preciso falar sobre meu agendamento para ${formatDateForMessage(selectedDate)} às ${selectedTime}`
             )}`}
@@ -3608,7 +3787,7 @@ export default function App() {
   }
 
   if (screen === "confirm") {
-    return (
+    return withNotice(
       <main className="app checkoutApp">
         <section className="checkoutHeader">
           <div className="stepper">
@@ -3750,7 +3929,7 @@ export default function App() {
   }
 
   if (scheduleBlocked) {
-    return (
+    return withNotice(
       <main className="app">
         <section className="appHeader">
           <div className="brand">
@@ -3788,7 +3967,7 @@ export default function App() {
     );
   }
 
-  return (
+  return withNotice(
     <main className="app">
       <header className="appHeader">
         <div className="brand">

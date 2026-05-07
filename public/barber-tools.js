@@ -10,23 +10,23 @@
     const parts = location.pathname.split('/').filter(Boolean);
     const a = parts.indexOf('agendamento');
     const p = parts.indexOf('painel');
-    return parts[a + 1] || parts[p + 1] || 'agenda-pro';
+    return parts[a + 1] || parts[p + 1] || 'master-barbearia';
   }
 
   function admin() {
     return location.pathname.includes('/painel') || !!document.querySelector('.adminApp');
   }
 
-  async function supabase() {
+  function supabase() {
     if (sb) return sb;
-    const mod = await import('https://esm.sh/@supabase/supabase-js@2');
-    sb = mod.createClient(SUPABASE_URL, SUPABASE_KEY);
+    if (!window.supabase?.createClient) throw new Error('Cliente Supabase não carregou. Atualize a página.');
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+    });
     return sb;
   }
 
-  function norm(v) {
-    return String(v || '').trim().toLowerCase();
-  }
+  function norm(v) { return String(v || '').trim().toLowerCase(); }
 
   function cardName(card) {
     const input = card.querySelector('input');
@@ -42,19 +42,15 @@
     });
   }
 
-  function clientServiceButtons() {
-    return Array.from(document.querySelectorAll('button.service'));
-  }
+  function clientServiceButtons() { return Array.from(document.querySelectorAll('button.service')); }
 
   async function loadDeleted() {
     try {
-      const api = await supabase();
+      const api = supabase();
       const res = await api.from('services').select('name, deleted_at').not('deleted_at', 'is', null);
       deleted = (res.data || []).map((item) => norm(item.name));
       applyDeleted();
-    } catch (e) {
-      console.warn('AgendaPro: erro ao carregar serviços excluídos', e);
-    }
+    } catch (e) { console.warn('AgendaPro: erro ao carregar serviços excluídos', e); }
   }
 
   function applyDeleted() {
@@ -83,11 +79,7 @@
         btn.disabled = true;
         btn.textContent = 'Excluindo...';
         try {
-          const api = await supabase();
-          const res = await api.rpc('soft_delete_service_by_name', {
-            target_slug: slug(),
-            service_name_input: name,
-          });
+          const res = await supabase().rpc('soft_delete_service_by_name', { target_slug: slug(), service_name_input: name });
           if (res.error) throw res.error;
           deleted.push(norm(name));
           card.style.display = 'none';
@@ -148,8 +140,7 @@
     if (loadedBg && !force) return;
     loadedBg = true;
     try {
-      const api = await supabase();
-      const res = await api.from('barbershops')
+      const res = await supabase().from('barbershops')
         .select('client_background_url,admin_background_url,client_background_opacity,admin_background_opacity')
         .eq('slug', slug()).single();
       if (res.data) {
@@ -157,9 +148,7 @@
         applyBg(currentBg);
         document.querySelectorAll('[data-bg-panel]').forEach(fillBgPanel);
       }
-    } catch (e) {
-      console.warn('AgendaPro: erro ao carregar fundo', e);
-    }
+    } catch (e) { console.warn('AgendaPro: erro ao carregar fundo', e); }
   }
 
   function appearanceCard() {
@@ -170,7 +159,6 @@
   }
 
   async function saveBg(panel, overrides = {}) {
-    const api = await supabase();
     const payload = {
       target_slug: slug(),
       client_background_url_input: overrides.clientUrl ?? panel.querySelector('[data-client-bg]').value.trim(),
@@ -178,7 +166,7 @@
       client_background_opacity_input: Number(overrides.clientOpacity ?? panel.querySelector('[data-client-op]').value ?? 0.18),
       admin_background_opacity_input: Number(overrides.adminOpacity ?? panel.querySelector('[data-admin-op]').value ?? 0.12),
     };
-    const res = await api.rpc('save_background_settings', payload);
+    const res = await supabase().rpc('save_background_settings', payload);
     if (res.error) throw res.error;
     loadedBg = false;
     await loadBg(true);
@@ -211,36 +199,21 @@
       const btn = panel.querySelector('[data-save-bg]');
       btn.disabled = true;
       btn.textContent = 'Salvando...';
-      try {
-        await saveBg(panel);
-        alert('Planos de fundo salvos.');
-      } catch (e) {
-        console.error(e);
-        alert(e.message || 'Não foi possível salvar os planos de fundo.');
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Salvar planos de fundo';
-      }
+      try { await saveBg(panel); alert('Planos de fundo salvos.'); }
+      catch (e) { console.error(e); alert(e.message || 'Não foi possível salvar os planos de fundo.'); }
+      finally { btn.disabled = false; btn.textContent = 'Salvar planos de fundo'; }
     };
 
     panel.querySelector('[data-clear-client-bg]').onclick = async () => {
       if (!confirm('Limpar o fundo da tela do cliente?')) return;
-      try {
-        await saveBg(panel, { clientUrl: '' });
-        alert('Fundo do cliente removido.');
-      } catch (e) {
-        alert(e.message || 'Não foi possível limpar o fundo do cliente.');
-      }
+      try { await saveBg(panel, { clientUrl: '' }); alert('Fundo do cliente removido.'); }
+      catch (e) { alert(e.message || 'Não foi possível limpar o fundo do cliente.'); }
     };
 
     panel.querySelector('[data-clear-admin-bg]').onclick = async () => {
       if (!confirm('Limpar o fundo do painel da barbearia?')) return;
-      try {
-        await saveBg(panel, { adminUrl: '' });
-        alert('Fundo do painel removido.');
-      } catch (e) {
-        alert(e.message || 'Não foi possível limpar o fundo do painel.');
-      }
+      try { await saveBg(panel, { adminUrl: '' }); alert('Fundo do painel removido.'); }
+      catch (e) { alert(e.message || 'Não foi possível limpar o fundo do painel.'); }
     };
 
     card.appendChild(panel);
@@ -248,13 +221,11 @@
 
   function run() {
     applyDeleted();
-    if (admin()) {
-      addDeleteButtons();
-      addBgControls();
-    }
+    if (admin()) { addDeleteButtons(); addBgControls(); }
   }
 
   function start() {
+    if (!document.body) return;
     loadBg();
     loadDeleted();
     run();

@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import PlatformDashboard from "./PlatformDashboard";
 import NativeBarberEnhancements from "./NativeBarberEnhancements";
+import NativeRolePermissions from "./NativeRolePermissions";
 
 const container = document.getElementById("root");
 const path = window.location.pathname.toLowerCase();
@@ -20,6 +21,7 @@ if (container) {
         <>
           <App />
           <NativeBarberEnhancements />
+          <NativeRolePermissions />
         </>
       )}
     </React.StrictMode>

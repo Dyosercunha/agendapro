@@ -21,7 +21,13 @@
   async function getSupabase() {
     if (supabaseClient) return supabaseClient;
     const mod = await import('https://esm.sh/@supabase/supabase-js@2');
-    supabaseClient = mod.createClient(SUPABASE_URL, SUPABASE_KEY);
+    supabaseClient = mod.createClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      },
+    });
     return supabaseClient;
   }
 
@@ -60,12 +66,22 @@
     if (platform) platform.remove();
   }
 
-  async function isPlatformAdmin() {
+  function readableError(error) {
+    if (!error) return 'Erro desconhecido.';
+    return error.message || error.details || error.hint || String(error);
+  }
+
+  async function currentSession() {
     const sb = await getSupabase();
-    const sessionResult = await sb.auth.getSession();
-    const session = sessionResult?.data?.session;
+    const { data } = await sb.auth.getSession();
+    return data?.session || null;
+  }
+
+  async function isPlatformAdmin() {
+    const session = await currentSession();
     if (!session?.user?.email) return false;
 
+    const sb = await getSupabase();
     const { data, error } = await sb.rpc('is_platform_admin');
     if (error) {
       console.warn('AgendaPro: erro ao verificar admin da plataforma', error);
@@ -74,10 +90,62 @@
     return data === true;
   }
 
+  async function findBarbershopForLoggedUser() {
+    const session = await currentSession();
+    if (!session?.user?.email) return null;
+
+    const sb = await getSupabase();
+    const { data, error } = await sb.rpc('find_my_barbershop_admin');
+    if (error) {
+      console.warn('AgendaPro: erro ao buscar barbearia do login', error);
+      return null;
+    }
+    return data || null;
+  }
+
+  async function signInWithGoogle() {
+    const sb = await getSupabase();
+    const redirectTo = `${window.location.origin}${window.location.pathname}?platform=1`;
+    const { error } = await sb.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo },
+    });
+    if (error) alert(readableError(error));
+  }
+
+  async function signOutPlatform() {
+    const sb = await getSupabase();
+    await sb.auth.signOut();
+    renderLogin('Você saiu do Painel AgendaPro.');
+  }
+
+  function renderLogin(message = '') {
+    hideMainApp();
+    const root = platformRoot();
+    root.innerHTML = `
+      <main class="platformApp">
+        <section class="platformHero platformLoginHero">
+          <div>
+            <span>Painel Plataforma</span>
+            <h1>AgendaPro</h1>
+            <p>Entre com o Google autorizado para cadastrar barbearias, liberar funções e administrar planos.</p>
+            ${message ? `<p class="platformNotice">${message}</p>` : ''}
+          </div>
+          <button type="button" class="platformPrimary platformLoginButton" data-platform-login>Entrar com Google</button>
+        </section>
+      </main>
+    `;
+    root.querySelector('[data-platform-login]')?.addEventListener('click', signInWithGoogle);
+  }
+
   async function loadDashboard() {
+    hideMainApp();
     const sb = await getSupabase();
     const { data, error } = await sb.rpc('get_platform_dashboard');
-    if (error) throw error;
+    if (error) {
+      renderLogin('Não foi possível puxar dados da nuvem: ' + readableError(error));
+      return;
+    }
     dashboardData = data || { stats: {}, barbershops: [] };
     renderDashboard();
   }
@@ -106,7 +174,10 @@
             <h1>AgendaPro</h1>
             <p>Gerencie barbearias, planos, funções e suporte em um só lugar.</p>
           </div>
-          <button type="button" class="platformSecondary" data-refresh>Atualizar</button>
+          <div class="platformHeroActions">
+            <button type="button" class="platformSecondary" data-refresh>Atualizar</button>
+            <button type="button" class="platformSecondary" data-platform-logout>Sair</button>
+          </div>
         </header>
 
         <section class="platformStats">
@@ -117,7 +188,7 @@
         </section>
 
         <section class="platformGrid">
-          <div class="platformCard">
+          <div class="platformCard platformNewShopCard">
             <div class="platformTitle">
               <div>
                 <span>Cadastro</span>
@@ -338,6 +409,7 @@
 
   function bindDashboardEvents() {
     document.querySelector('[data-refresh]')?.addEventListener('click', () => loadDashboard());
+    document.querySelector('[data-platform-logout]')?.addEventListener('click', signOutPlatform);
 
     const newForm = document.querySelector('[data-new-shop]');
     newForm?.querySelector('[name="name"]')?.addEventListener('input', event => {
@@ -358,7 +430,7 @@
         newForm.reset();
       } catch (error) {
         console.error(error);
-        alert(error.message || 'Não foi possível cadastrar a barbearia.');
+        alert(readableError(error) || 'Não foi possível cadastrar a barbearia.');
       } finally {
         button.disabled = false;
         button.textContent = 'Cadastrar barbearia';
@@ -388,7 +460,7 @@
         await updateShop(editForm);
       } catch (error) {
         console.error(error);
-        alert(error.message || 'Não foi possível atualizar a barbearia.');
+        alert(readableError(error) || 'Não foi possível atualizar a barbearia.');
       } finally {
         button.disabled = false;
         button.textContent = 'Salvar dados da barbearia';
@@ -403,7 +475,7 @@
         await saveFeatures(button.dataset.saveFeatures);
       } catch (error) {
         console.error(error);
-        alert(error.message || 'Não foi possível salvar as funções.');
+        alert(readableError(error) || 'Não foi possível salvar as funções.');
       } finally {
         button.disabled = false;
         button.textContent = 'Salvar funções';
@@ -412,17 +484,50 @@
   }
 
   async function boot() {
-    const shouldCheck = location.pathname.includes('/painel') || location.search.includes('platform=1');
+    const forcePlatform = location.search.includes('platform=1');
+    const shouldCheck = location.pathname.includes('/painel') || forcePlatform;
     if (!shouldCheck) return;
 
     const sb = await getSupabase();
-    const { data: { subscription } } = sb.auth.onAuthStateChange(async () => {
-      if (await isPlatformAdmin()) await loadDashboard();
-      else showMainApp();
+    sb.auth.onAuthStateChange(async () => {
+      if (await isPlatformAdmin()) {
+        await loadDashboard();
+        return;
+      }
+
+      if (forcePlatform) {
+        const barberShop = await findBarbershopForLoggedUser();
+        if (barberShop?.slug) {
+          renderLogin(`Este login pertence à barbearia ${barberShop.name}. Para administrar a plataforma, entre com o e-mail liberado em platform_admins.`);
+        } else {
+          renderLogin('Entre com o Google liberado como administrador da plataforma.');
+        }
+      } else {
+        showMainApp();
+      }
     });
 
-    if (await isPlatformAdmin()) await loadDashboard();
-    else showMainApp();
+    if (await isPlatformAdmin()) {
+      await loadDashboard();
+      return;
+    }
+
+    if (forcePlatform) {
+      const session = await currentSession();
+      if (!session) {
+        renderLogin('Faça login com o Google administrador para puxar e salvar os dados na nuvem.');
+        return;
+      }
+      const barberShop = await findBarbershopForLoggedUser();
+      if (barberShop?.slug) {
+        renderLogin(`Este login pertence à barbearia ${barberShop.name}. Use o e-mail administrador da plataforma para cadastrar novas barbearias.`);
+      } else {
+        renderLogin('Este e-mail não está liberado como administrador da plataforma.');
+      }
+      return;
+    }
+
+    showMainApp();
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });

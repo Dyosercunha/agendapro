@@ -8,6 +8,10 @@ textarea {
   font-size: 16px;
 }
 
+body {
+  background-attachment: fixed;
+}
+
 .app {
   padding-bottom: calc(120px + env(safe-area-inset-bottom)) !important;
 }
@@ -25,6 +29,37 @@ textarea {
 input[type="date"],
 input[type="time"] {
   min-height: 52px;
+}
+
+#agendaProBackgroundLayer {
+  transition: opacity 0.25s ease, background-image 0.25s ease;
+}
+
+[data-bg-panel] {
+  background: linear-gradient(180deg, rgba(34, 197, 94, 0.08), rgba(16, 20, 24, 0.92)) !important;
+  border: 1px solid rgba(34, 197, 94, 0.2) !important;
+}
+
+[data-bg-panel] h3 {
+  margin-bottom: 6px;
+}
+
+[data-bg-panel] p {
+  color: var(--text-secondary, #b6bbc3);
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+[data-bg-panel] button[data-save-bg] {
+  background: linear-gradient(135deg, var(--primary, #22c55e), var(--success, #4ade80)) !important;
+  border-color: transparent !important;
+  color: #052e16 !important;
+}
+
+[data-agenda-delete-service] {
+  background: rgba(239, 68, 68, 0.12) !important;
+  border: 1px solid rgba(239, 68, 68, 0.26) !important;
+  color: #fca5a5 !important;
 }
 
 @media (min-width: 768px) {
@@ -62,6 +97,10 @@ input[type="time"] {
 
   .adminApp {
     padding-bottom: calc(40px + env(safe-area-inset-bottom)) !important;
+  }
+
+  [data-bg-panel] input {
+    min-height: 52px;
   }
 }
 

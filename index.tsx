@@ -6,6 +6,7 @@ import NativeBarberEnhancements from "./NativeBarberEnhancements";
 import NativeRolePermissions from "./NativeRolePermissions";
 import NativeGrowthFeatures from "./NativeGrowthFeatures";
 import NativeLoginGuard from "./NativeLoginGuard";
+import NativeCloudSourceGuard from "./NativeCloudSourceGuard";
 
 const container = document.getElementById("root");
 const path = window.location.pathname.toLowerCase();
@@ -21,6 +22,7 @@ if (container) {
         <PlatformDashboard />
       ) : (
         <>
+          <NativeCloudSourceGuard />
           <App />
           <NativeBarberEnhancements />
           <NativeRolePermissions />

@@ -31,6 +31,94 @@ input[type="time"] {
   min-height: 52px;
 }
 
+.loginGuardOverlay {
+  align-items: center;
+  background: radial-gradient(circle at top, rgba(34,197,94,.18), rgba(5,8,12,.92));
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 18px;
+  position: fixed;
+  z-index: 9999;
+}
+
+.loginGuardCard {
+  background: linear-gradient(180deg, #171b21, #101418);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 28px;
+  box-shadow: 0 24px 80px rgba(0,0,0,.48);
+  color: #f9fafb;
+  max-width: 440px;
+  padding: 24px;
+  text-align: center;
+  width: 100%;
+}
+
+.loginGuardCard span,
+.roleBadge strong,
+.loginGuardBadge strong {
+  color: #4ade80;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.loginGuardCard h2 {
+  margin: 8px 0;
+}
+
+.loginGuardCard p {
+  color: #b6bbc3;
+  margin: 0 0 16px;
+}
+
+.loginGuardCard button,
+.loginGuardBadge button {
+  background: linear-gradient(135deg, #22c55e, #4ade80);
+  border: 0;
+  border-radius: 999px;
+  color: #052e16;
+  cursor: pointer;
+  font-weight: 900;
+  padding: 12px 16px;
+}
+
+.loginGuardBadge,
+.roleBadge {
+  align-items: center;
+  background: rgba(16,20,24,.9);
+  border: 1px solid rgba(34,197,94,.22);
+  border-radius: 999px;
+  box-shadow: 0 12px 34px rgba(0,0,0,.25);
+  color: #f9fafb;
+  display: flex;
+  gap: 10px;
+  margin: 0 auto 12px;
+  max-width: 1180px;
+  padding: 8px 10px 8px 14px;
+  width: calc(100% - 24px);
+}
+
+.loginGuardBadge {
+  bottom: calc(10px + env(safe-area-inset-bottom));
+  left: 12px;
+  margin: 0;
+  position: fixed;
+  right: 12px;
+  z-index: 80;
+}
+
+.loginGuardBadge span,
+.roleBadge span {
+  color: #b6bbc3;
+  flex: 1;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 #agendaProBackgroundLayer {
   transition: opacity 0.25s ease, background-image 0.25s ease;
 }
@@ -615,6 +703,13 @@ input[type="time"] {
   .platformFeature {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .loginGuardBadge,
+  .roleBadge {
+    border-radius: 20px;
+    display: grid;
+    grid-template-columns: 1fr;
   }
 }
 

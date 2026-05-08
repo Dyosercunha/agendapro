@@ -5,6 +5,7 @@ import App from "./App";
 import PlatformDashboard from "./PlatformDashboard";
 import SafeBackplatePanel from "./SafeBackplatePanel";
 import SafeServiceDelete from "./SafeServiceDelete";
+import SafeGrowthPanel from "./SafeGrowthPanel";
 
 const container = document.getElementById("root");
 const path = window.location.pathname.toLowerCase();
@@ -13,6 +14,6 @@ const isPlatformRoute = window.location.search.includes("platform=1") || path.in
 if (container) {
   const app = isPlatformRoute
     ? React.createElement(PlatformDashboard)
-    : React.createElement(React.Fragment, null, React.createElement(App), React.createElement(SafeBackplatePanel), React.createElement(SafeServiceDelete));
+    : React.createElement(React.Fragment, null, React.createElement(App), React.createElement(SafeBackplatePanel), React.createElement(SafeServiceDelete), React.createElement(SafeGrowthPanel));
   createRoot(container).render(React.createElement(React.StrictMode, null, app));
 }

@@ -93,6 +93,13 @@ input[type="time"] {
   padding: 22px;
 }
 
+.platformHeroActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
 .platformHero span,
 .platformTitle span,
 .platformMuted,
@@ -111,11 +118,20 @@ input[type="time"] {
   margin: 0;
 }
 
+.platformNoticeCard {
+  color: var(--text-secondary, #b6bbc3);
+  margin-bottom: 16px;
+}
+
 .platformStats {
   display: grid;
   gap: 12px;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   margin-bottom: 16px;
+}
+
+.platformStatsPro {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .platformStat {
@@ -133,6 +149,35 @@ input[type="time"] {
 .platformStat strong {
   display: block;
   font-size: 24px;
+}
+
+.platformStat small {
+  color: var(--text-secondary, #b6bbc3);
+  display: block;
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+.platformFilters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+
+.platformFilters button {
+  background: rgba(255,255,255,.04);
+  border: 1px solid var(--border, #2a3038);
+  border-radius: 999px;
+  color: var(--text-secondary, #b6bbc3);
+  font-weight: 900;
+  padding: 10px 13px;
+}
+
+.platformFilters button.active {
+  background: rgba(34,197,94,.14);
+  border-color: rgba(34,197,94,.35);
+  color: #4ade80;
 }
 
 .platformGrid {
@@ -226,6 +271,25 @@ input[type="time"] {
   display: block;
 }
 
+.platformShopMeta {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.platformShopMeta b,
+.platformShopMeta span {
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 999px;
+  color: var(--text-secondary, #b6bbc3);
+  font-size: 12px;
+  font-weight: 900;
+  padding: 7px 9px;
+}
+
 .platformShopActions {
   align-items: center;
   display: flex;
@@ -236,7 +300,8 @@ input[type="time"] {
 
 .statusActive,
 .statusTrial,
-.statusBlocked {
+.statusBlocked,
+.statusOverdue {
   border-radius: 999px;
   font-size: 12px;
   padding: 8px 10px;
@@ -255,6 +320,11 @@ input[type="time"] {
 .statusBlocked {
   background: rgba(239, 68, 68, .14);
   color: #fca5a5;
+}
+
+.statusOverdue {
+  background: rgba(248, 113, 113, .2);
+  color: #fecaca;
 }
 
 .platformFeatures {
@@ -340,7 +410,12 @@ input[type="time"] {
     display: grid;
   }
 
+  .platformHeroActions > * {
+    flex: 1 1 100%;
+  }
+
   .platformStats,
+  .platformStatsPro,
   .platformGrid,
   .platformTwoCols {
     grid-template-columns: 1fr;

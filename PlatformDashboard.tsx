@@ -14,14 +14,21 @@ const featureLabels = {
   unique_link: "Link de remarcar/cancelar",
 };
 
+const planLabels = {
+  starter: "Inicial",
+  professional: "Profissional",
+  premium: "Premium",
+};
+
+const statusOptions = [
+  { value: "active", label: "Ativo" },
+  { value: "trial", label: "Teste de 30 dias" },
+  { value: "overdue", label: "Pagamento atrasado" },
+  { value: "blocked", label: "Desativado" },
+];
+
 function makeSlug(value = "") {
-  return value
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 48);
+  return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48);
 }
 
 function onlyDigits(value = "") {
@@ -33,6 +40,16 @@ function errorText(error) {
   return error.message || error.details || error.hint || String(error);
 }
 
+function money(value) {
+  return Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function dateText(value) {
+  if (!value) return "Sem vencimento";
+  const [year, month, day] = String(value).split("-").map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString("pt-BR");
+}
+
 function emptyForm() {
   return {
     name: "",
@@ -40,7 +57,7 @@ function emptyForm() {
     whatsapp: "",
     owner_email: "",
     plan: "professional",
-    monthly_status: "active",
+    monthly_status: "trial",
     next_billing_date: "",
     address: "",
     pix_key: "",
@@ -48,17 +65,20 @@ function emptyForm() {
   };
 }
 
-function statusBadge(status) {
-  if (status === "blocked") return <b className="statusBlocked">Bloqueado</b>;
-  if (status === "trial") return <b className="statusTrial">Teste</b>;
+function statusBadge(status, label) {
+  const value = label || status;
+  if (value === "Desativado" || status === "blocked") return <b className="statusBlocked">Desativado</b>;
+  if (value === "Pagamento atrasado" || status === "overdue") return <b className="statusOverdue">Pagamento atrasado</b>;
+  if (value === "Teste de 30 dias" || status === "trial") return <b className="statusTrial">Teste de 30 dias</b>;
   return <b className="statusActive">Ativo</b>;
 }
 
-function StatCard({ label, value }) {
+function StatCard({ label, value, hint }) {
   return (
     <div className="platformStat">
       <span>{label}</span>
       <strong>{value ?? "—"}</strong>
+      {hint ? <small>{hint}</small> : null}
     </div>
   );
 }
@@ -74,12 +94,15 @@ export default function PlatformDashboard() {
   const [selectedShop, setSelectedShop] = useState(null);
   const [saving, setSaving] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
+  const [filter, setFilter] = useState("all");
 
   const shops = dashboard?.barbershops || [];
 
-  const sortedShops = useMemo(() => {
-    return [...shops].sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "pt-BR"));
-  }, [shops]);
+  const filteredShops = useMemo(() => {
+    return [...shops]
+      .filter((shop) => filter === "all" || shop.status_label === filter || shop.monthly_status === filter)
+      .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "pt-BR"));
+  }, [shops, filter]);
 
   useEffect(() => {
     let mounted = true;
@@ -252,6 +275,49 @@ export default function PlatformDashboard() {
     await loadDashboard();
   }
 
+  async function sendBillingReminders() {
+    setSaving("reminders");
+    setMessage("");
+
+    const { data, error } = await supabase.rpc("get_platform_billing_reminders");
+    if (error) {
+      setSaving("");
+      setMessage(errorText(error));
+      return;
+    }
+
+    const reminders = data || [];
+    if (!reminders.length) {
+      setSaving("");
+      setMessage("Nenhuma barbearia com vencimento em 3 dias úteis para avisar hoje.");
+      return;
+    }
+
+    let sent = 0;
+    let failed = 0;
+
+    for (const item of reminders) {
+      try {
+        const response = await fetch("/api/send-whatsapp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ to: item.whatsapp, message: item.message }),
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || result.ok === false) throw new Error(result.error || "Falha ao enviar WhatsApp.");
+
+        await supabase.rpc("mark_billing_reminder_sent", { target_slug: item.slug });
+        sent += 1;
+      } catch (err) {
+        failed += 1;
+      }
+    }
+
+    setSaving("");
+    setMessage(`Avisos de vencimento: ${sent} enviado(s), ${failed} com falha.`);
+    await loadDashboard();
+  }
+
   function updateSelected(field, value) {
     setSelectedShop((current) => ({ ...current, [field]: value }));
   }
@@ -259,13 +325,7 @@ export default function PlatformDashboard() {
   function updateFeature(key, field, value) {
     setSelectedShop((current) => ({
       ...current,
-      features: {
-        ...(current.features || {}),
-        [key]: {
-          ...(current.features?.[key] || {}),
-          [field]: value,
-        },
-      },
+      features: { ...(current.features || {}), [key]: { ...(current.features?.[key] || {}), [field]: value } },
     }));
   }
 
@@ -273,11 +333,7 @@ export default function PlatformDashboard() {
     return (
       <main className="platformApp">
         <section className="platformHero platformLoginHero">
-          <div>
-            <span>Painel Plataforma</span>
-            <h1>AgendaPro</h1>
-            <p>Carregando acesso e dados da nuvem...</p>
-          </div>
+          <div><span>Painel Plataforma</span><h1>AgendaPro</h1><p>Carregando acesso e dados da nuvem...</p></div>
         </section>
       </main>
     );
@@ -305,32 +361,36 @@ export default function PlatformDashboard() {
         <div>
           <span>Painel Plataforma</span>
           <h1>AgendaPro</h1>
-          <p>Gerencie barbearias, planos, funções e suporte em um só lugar.</p>
+          <p>Controle de barbearias, planos, faturamento e vencimentos.</p>
           {session?.user?.email ? <small>Logado como {session.user.email}</small> : null}
         </div>
         <div className="platformHeroActions">
           <button type="button" className="platformSecondary" onClick={loadDashboard}>Atualizar</button>
+          <button type="button" className="platformSecondary" disabled={saving === "reminders"} onClick={sendBillingReminders}>{saving === "reminders" ? "Enviando..." : "Enviar avisos de vencimento"}</button>
           <button type="button" className="platformSecondary" onClick={logout}>Sair</button>
         </div>
       </header>
 
       {message ? <section className="platformCard platformNoticeCard">{message}</section> : null}
 
-      <section className="platformStats">
-        <StatCard label="Barbearias" value={dashboard.stats?.total || 0} />
-        <StatCard label="Ativas" value={dashboard.stats?.active || 0} />
-        <StatCard label="Bloqueadas" value={dashboard.stats?.blocked || 0} />
-        <StatCard label="Próximo vencimento" value={dashboard.stats?.next_billing || "—"} />
+      <section className="platformStats platformStatsPro">
+        <StatCard label="Faturamento mensal previsto" value={money(dashboard.stats?.monthly_revenue || 0)} hint="Ativos + teste" />
+        <StatCard label="Em atraso" value={money(dashboard.stats?.overdue_revenue || 0)} hint={`${dashboard.stats?.overdue || 0} barbearia(s)`} />
+        <StatCard label="Ativas" value={dashboard.stats?.active || 0} hint={`${dashboard.stats?.trial || 0} em teste`} />
+        <StatCard label="Desativadas" value={dashboard.stats?.blocked || 0} hint={`Próximo: ${dateText(dashboard.stats?.next_billing)}`} />
+      </section>
+
+      <section className="platformFilters">
+        <button type="button" className={filter === "all" ? "active" : ""} onClick={() => setFilter("all")}>Todas</button>
+        <button type="button" className={filter === "Ativo" ? "active" : ""} onClick={() => setFilter("Ativo")}>Ativas</button>
+        <button type="button" className={filter === "Teste de 30 dias" ? "active" : ""} onClick={() => setFilter("Teste de 30 dias")}>Teste</button>
+        <button type="button" className={filter === "Pagamento atrasado" ? "active" : ""} onClick={() => setFilter("Pagamento atrasado")}>Atrasadas</button>
+        <button type="button" className={filter === "Desativado" ? "active" : ""} onClick={() => setFilter("Desativado")}>Desativadas</button>
       </section>
 
       <section className="platformGrid">
         <div className="platformCard platformNewShopCard">
-          <div className="platformTitle">
-            <div>
-              <span>Cadastro</span>
-              <h2>Nova barbearia</h2>
-            </div>
-          </div>
+          <div className="platformTitle"><div><span>Cadastro</span><h2>Nova barbearia</h2></div></div>
           <form className="platformForm" onSubmit={createShop}>
             <label>Nome da barbearia</label>
             <input value={newShop.name} onChange={(event) => updateNewShop("name", event.target.value)} placeholder="Barbearia do João" required />
@@ -341,22 +401,8 @@ export default function PlatformDashboard() {
             <label>E-mail do dono</label>
             <input value={newShop.owner_email} onChange={(event) => updateNewShop("owner_email", event.target.value)} type="email" placeholder="dono@email.com" required />
             <div className="platformTwoCols">
-              <span>
-                <label>Plano</label>
-                <select value={newShop.plan} onChange={(event) => updateNewShop("plan", event.target.value)}>
-                  <option value="starter">Inicial</option>
-                  <option value="professional">Profissional</option>
-                  <option value="premium">Premium</option>
-                </select>
-              </span>
-              <span>
-                <label>Status</label>
-                <select value={newShop.monthly_status} onChange={(event) => updateNewShop("monthly_status", event.target.value)}>
-                  <option value="active">Ativo</option>
-                  <option value="trial">Teste</option>
-                  <option value="blocked">Bloqueado</option>
-                </select>
-              </span>
+              <span><label>Plano</label><select value={newShop.plan} onChange={(event) => updateNewShop("plan", event.target.value)}><option value="starter">Inicial</option><option value="professional">Profissional</option><option value="premium">Premium</option></select></span>
+              <span><label>Status</label><select value={newShop.monthly_status} onChange={(event) => updateNewShop("monthly_status", event.target.value)}>{statusOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></span>
             </div>
             <label>Vencimento</label>
             <input value={newShop.next_billing_date} onChange={(event) => updateNewShop("next_billing_date", event.target.value)} type="date" />
@@ -371,98 +417,56 @@ export default function PlatformDashboard() {
         </div>
 
         <div className="platformCard">
-          <div className="platformTitle">
-            <div>
-              <span>Clientes</span>
-              <h2>Barbearias cadastradas</h2>
-            </div>
-          </div>
+          <div className="platformTitle"><div><span>Clientes</span><h2>Barbearias cadastradas</h2></div></div>
           <div className="platformShopList">
-            {sortedShops.length ? sortedShops.map((shop) => (
-              <article className="platformShop" key={shop.id || shop.slug}>
+            {filteredShops.length ? filteredShops.map((shop) => (
+              <article className="platformShop platformShopPro" key={shop.id || shop.slug}>
                 <div>
                   <strong>{shop.name || "Sem nome"}</strong>
                   <span>{shop.slug}</span>
-                  <small>{shop.owner_email || "Sem e-mail"} · {shop.plan || "sem plano"}</small>
+                  <small>{shop.owner_email || "Sem e-mail"}</small>
+                  <div className="platformShopMeta">
+                    <b>{shop.plan_label || planLabels[shop.plan] || shop.plan || "Sem plano"}</b>
+                    <span>{money(shop.plan_price || 0)}/mês</span>
+                    <span>Vence: {dateText(shop.next_billing_date)}</span>
+                    {typeof shop.days_to_billing === "number" ? <span>{shop.days_to_billing} dia(s)</span> : null}
+                  </div>
                 </div>
                 <div className="platformShopActions">
-                  {statusBadge(shop.monthly_status)}
+                  {statusBadge(shop.monthly_status, shop.status_label)}
                   <button type="button" onClick={() => setSelectedShop(JSON.parse(JSON.stringify(shop)))}>Editar</button>
                   <a href={`/painel/${shop.slug}`} target="_blank" rel="noreferrer">Entrar no painel</a>
                   <a href={`/agendamento/${shop.slug}`} target="_blank" rel="noreferrer">Link cliente</a>
                 </div>
               </article>
-            )) : <p className="platformMuted">Nenhuma barbearia cadastrada.</p>}
+            )) : <p className="platformMuted">Nenhuma barbearia encontrada nesse filtro.</p>}
           </div>
         </div>
       </section>
 
       <section className="platformCard" id="platformEditor">
-        {!selectedShop ? (
-          <p className="platformMuted">Selecione uma barbearia para editar plano, status e funções.</p>
-        ) : (
+        {!selectedShop ? <p className="platformMuted">Selecione uma barbearia para editar plano, status e funções.</p> : (
           <>
-            <div className="platformTitle">
-              <div>
-                <span>Edição</span>
-                <h2>{selectedShop.name}</h2>
-              </div>
-              <button type="button" className="platformSecondary" onClick={() => setSelectedShop(null)}>Fechar</button>
-            </div>
+            <div className="platformTitle"><div><span>Edição</span><h2>{selectedShop.name}</h2></div><button type="button" className="platformSecondary" onClick={() => setSelectedShop(null)}>Fechar</button></div>
             <form className="platformForm" onSubmit={saveShop}>
-              <label>Nome</label>
-              <input value={selectedShop.name || ""} onChange={(event) => updateSelected("name", event.target.value)} />
-              <label>WhatsApp</label>
-              <input value={selectedShop.whatsapp || ""} onChange={(event) => updateSelected("whatsapp", event.target.value)} />
-              <label>E-mail do dono</label>
-              <input value={selectedShop.owner_email || ""} onChange={(event) => updateSelected("owner_email", event.target.value)} type="email" />
+              <label>Nome</label><input value={selectedShop.name || ""} onChange={(event) => updateSelected("name", event.target.value)} />
+              <label>WhatsApp</label><input value={selectedShop.whatsapp || ""} onChange={(event) => updateSelected("whatsapp", event.target.value)} />
+              <label>E-mail do dono</label><input value={selectedShop.owner_email || ""} onChange={(event) => updateSelected("owner_email", event.target.value)} type="email" />
               <div className="platformTwoCols">
-                <span>
-                  <label>Plano</label>
-                  <select value={selectedShop.plan || "professional"} onChange={(event) => updateSelected("plan", event.target.value)}>
-                    <option value="starter">Inicial</option>
-                    <option value="professional">Profissional</option>
-                    <option value="premium">Premium</option>
-                  </select>
-                </span>
-                <span>
-                  <label>Status</label>
-                  <select value={selectedShop.monthly_status || "active"} onChange={(event) => updateSelected("monthly_status", event.target.value)}>
-                    <option value="active">Ativo</option>
-                    <option value="trial">Teste</option>
-                    <option value="blocked">Bloqueado</option>
-                  </select>
-                </span>
+                <span><label>Plano</label><select value={selectedShop.plan || "professional"} onChange={(event) => updateSelected("plan", event.target.value)}><option value="starter">Inicial</option><option value="professional">Profissional</option><option value="premium">Premium</option></select></span>
+                <span><label>Status</label><select value={selectedShop.monthly_status || "active"} onChange={(event) => updateSelected("monthly_status", event.target.value)}>{statusOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></span>
               </div>
-              <label>Vencimento</label>
-              <input value={selectedShop.next_billing_date || ""} onChange={(event) => updateSelected("next_billing_date", event.target.value)} type="date" />
-              <label>Endereço</label>
-              <input value={selectedShop.address || ""} onChange={(event) => updateSelected("address", event.target.value)} />
-              <label>Chave PIX</label>
-              <input value={selectedShop.pix_key || ""} onChange={(event) => updateSelected("pix_key", event.target.value)} />
-              <label>Cor principal</label>
-              <input value={selectedShop.theme_color || "#22c55e"} onChange={(event) => updateSelected("theme_color", event.target.value)} type="color" />
+              <label>Vencimento</label><input value={selectedShop.next_billing_date || ""} onChange={(event) => updateSelected("next_billing_date", event.target.value)} type="date" />
+              <label>Endereço</label><input value={selectedShop.address || ""} onChange={(event) => updateSelected("address", event.target.value)} />
+              <label>Chave PIX</label><input value={selectedShop.pix_key || ""} onChange={(event) => updateSelected("pix_key", event.target.value)} />
+              <label>Cor principal</label><input value={selectedShop.theme_color || "#22c55e"} onChange={(event) => updateSelected("theme_color", event.target.value)} type="color" />
               <button type="submit" className="platformPrimary" disabled={saving === "shop"}>{saving === "shop" ? "Salvando..." : "Salvar dados da barbearia"}</button>
             </form>
-
             <div className="platformFeatures">
               <h3>Funções liberadas</h3>
               {Object.keys(featureLabels).map((key) => {
                 const item = selectedShop.features?.[key] || {};
-                return (
-                  <label className="platformFeature" key={key}>
-                    <span>
-                      <strong>{featureLabels[key]}</strong>
-                      <small>{key}</small>
-                    </span>
-                    <span className="featureChecks">
-                      <em>Liberado</em>
-                      <input type="checkbox" checked={Boolean(item.released)} onChange={(event) => updateFeature(key, "released", event.target.checked)} />
-                      <em>Ativo</em>
-                      <input type="checkbox" checked={Boolean(item.enabled)} onChange={(event) => updateFeature(key, "enabled", event.target.checked)} />
-                    </span>
-                  </label>
-                );
+                return <label className="platformFeature" key={key}><span><strong>{featureLabels[key]}</strong><small>{key}</small></span><span className="featureChecks"><em>Liberado</em><input type="checkbox" checked={Boolean(item.released)} onChange={(event) => updateFeature(key, "released", event.target.checked)} /><em>Ativo</em><input type="checkbox" checked={Boolean(item.enabled)} onChange={(event) => updateFeature(key, "enabled", event.target.checked)} /></span></label>;
               })}
               <button type="button" className="platformPrimary" disabled={saving === "features"} onClick={saveFeatures}>{saving === "features" ? "Salvando..." : "Salvar funções"}</button>
             </div>

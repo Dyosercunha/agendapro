@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "./supabaseClient";
 
 const blockedTabs = ["Pagamentos", "Melhorias", "Conta"];
-const blockedTitles = ["pagamentos", "melhorias", "conta", "assinatura", "cobrança", "cobranca", "plano atual", "funções", "funcoes", "acessos"];
+const blockedTitles = ["pagamentos", "melhorias", "conta", "assinatura", "cobrança", "cobranca", "plano atual", "funções", "funcoes"];
 
 function isPanelRoute() {
   return window.location.pathname.includes("/painel/");
@@ -19,13 +19,15 @@ function normalizeRole(role) {
   const value = String(role || "").trim().toLowerCase();
   if (["desenvolvedor", "developer", "platform", "plataforma"].includes(value)) return "desenvolvedor";
   if (["dono", "owner"].includes(value)) return "dono";
-  return "funcionario";
+  if (["funcionario", "funcionário", "employee", "staff"].includes(value)) return "funcionario";
+  return "sem_acesso";
 }
 
 function roleLabel(role) {
   if (role === "desenvolvedor") return "Desenvolvedor";
   if (role === "dono") return "Dono";
-  return "Funcionário";
+  if (role === "funcionario") return "Funcionário";
+  return "Sem acesso";
 }
 
 function hide(element) {
@@ -42,7 +44,7 @@ function resetHidden() {
 
 function addBadge(role, email) {
   if (!role || document.querySelector("[data-role-badge]")) return;
-  const target = document.querySelector(".adminApp .hero, .adminApp header, .adminApp");
+  const target = document.querySelector(".adminApp .hero, .adminApp header, .adminApp, main, #root");
   if (!target) return;
   const badge = document.createElement("div");
   badge.dataset.roleBadge = "true";
@@ -51,23 +53,7 @@ function addBadge(role, email) {
   target.prepend(badge);
 }
 
-function goToSafeTabIfNeeded() {
-  const activeBlocked = Array.from(document.querySelectorAll("button, a, [role='button']")).find((item) => {
-    const text = (item.textContent || "").replace(/\s+/g, " ").trim();
-    const active = String(item.className || "").toLowerCase().includes("active") || item.getAttribute("aria-selected") === "true";
-    return active && blockedTabs.includes(text);
-  });
-  if (!activeBlocked) return;
-  const safe = Array.from(document.querySelectorAll("button, a, [role='button']")).find((item) => {
-    const text = (item.textContent || "").replace(/\s+/g, " ").trim();
-    return text === "Agenda" || text === "Painel";
-  });
-  safe?.click?.();
-}
-
 function applyFuncionarioRules() {
-  goToSafeTabIfNeeded();
-
   document.querySelectorAll("button, a, [role='button']").forEach((element) => {
     const text = (element.textContent || "").replace(/\s+/g, " ").trim();
     if (blockedTabs.includes(text)) hide(element);

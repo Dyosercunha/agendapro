@@ -50,6 +50,51 @@ function dateText(value) {
   return new Date(year, month - 1, day).toLocaleDateString("pt-BR");
 }
 
+function buildCepAddress(cepData, number) {
+  const street = cepData?.logradouro || "";
+  const neighborhood = cepData?.bairro || "";
+  const city = cepData?.localidade || "";
+  const state = cepData?.uf || "";
+  const cleanNumber = String(number || "").trim();
+
+  if (!street || !cleanNumber) return "";
+
+  return [
+    `${street}, ${cleanNumber}`,
+    neighborhood,
+    city && state ? `${city} - ${state}` : city || state,
+  ]
+    .filter(Boolean)
+    .join(" - ");
+}
+
+async function fetchCepAddress(cep, number) {
+  const cleanCep = onlyDigits(cep);
+  const cleanNumber = String(number || "").trim();
+
+  if (cleanCep.length !== 8) {
+    throw new Error("Informe um CEP válido com 8 números.");
+  }
+
+  if (!cleanNumber) {
+    throw new Error("Informe o número do comércio antes de puxar o endereço pelo CEP.");
+  }
+
+  const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok || !data || data.erro) {
+    throw new Error("CEP não encontrado. Cadastre o endereço manualmente.");
+  }
+
+  const address = buildCepAddress(data, cleanNumber);
+  if (!address) {
+    throw new Error("O CEP não trouxe rua válida ou está faltando o número do comércio. Cadastre manualmente.");
+  }
+
+  return address;
+}
+
 function emptyForm() {
   return {
     name: "",
@@ -59,6 +104,8 @@ function emptyForm() {
     plan: "professional",
     monthly_status: "trial",
     next_billing_date: "",
+    cep: "",
+    address_number: "",
     address: "",
     pix_key: "",
     theme_color: "#22c55e",
@@ -187,35 +234,65 @@ export default function PlatformDashboard() {
     });
   }
 
+  async function fillNewShopAddressByCep() {
+    setSaving("cep-create");
+    setMessage("");
+    try {
+      const address = await fetchCepAddress(newShop.cep, newShop.address_number);
+      updateNewShop("address", address);
+      setMessage("Endereço encontrado pelo CEP. Confira antes de cadastrar.");
+    } catch (error) {
+      setMessage(errorText(error));
+    } finally {
+      setSaving("");
+    }
+  }
+
+  async function fillSelectedShopAddressByCep() {
+    if (!selectedShop) return;
+    setSaving("cep-shop");
+    setMessage("");
+    try {
+      const address = await fetchCepAddress(selectedShop.cep, selectedShop.address_number);
+      updateSelected("address", address);
+      setMessage("Endereço encontrado pelo CEP. Confira antes de salvar.");
+    } catch (error) {
+      setMessage(errorText(error));
+    } finally {
+      setSaving("");
+    }
+  }
+
   async function createShop(event) {
     event.preventDefault();
     setSaving("create");
     setMessage("");
 
-    const { data, error } = await supabase.rpc("create_barbershop_full", {
-      name_input: newShop.name,
-      slug_input: newShop.slug || makeSlug(newShop.name),
-      whatsapp_input: onlyDigits(newShop.whatsapp),
-      owner_email_input: newShop.owner_email,
-      plan_input: newShop.plan,
-      monthly_status_input: newShop.monthly_status,
-      next_billing_date_input: newShop.next_billing_date || null,
-      address_input: newShop.address,
-      pix_key_input: newShop.pix_key,
-      theme_color_input: newShop.theme_color || "#22c55e",
-    });
+    try {
+      const { data, error } = await supabase.rpc("create_barbershop_full", {
+        name_input: newShop.name,
+        slug_input: newShop.slug || makeSlug(newShop.name),
+        whatsapp_input: onlyDigits(newShop.whatsapp),
+        owner_email_input: newShop.owner_email,
+        plan_input: newShop.plan,
+        monthly_status_input: newShop.monthly_status,
+        next_billing_date_input: newShop.next_billing_date || null,
+        address_input: newShop.address,
+        pix_key_input: newShop.pix_key,
+        theme_color_input: newShop.theme_color || "#22c55e",
+      });
 
-    setSaving("");
+      if (error) throw error;
 
-    if (error) {
+      setMessage(`Barbearia cadastrada. Cliente: ${data?.link_cliente || ""} Painel: ${data?.link_painel || ""}`);
+      setNewShop(emptyForm());
+      setSlugTouched(false);
+      await loadDashboard();
+    } catch (error) {
       setMessage(errorText(error));
-      return;
+    } finally {
+      setSaving("");
     }
-
-    setMessage(`Barbearia cadastrada. Cliente: ${data?.link_cliente || ""} Painel: ${data?.link_painel || ""}`);
-    setNewShop(emptyForm());
-    setSlugTouched(false);
-    await loadDashboard();
   }
 
   async function saveShop(event) {
@@ -224,28 +301,29 @@ export default function PlatformDashboard() {
     setSaving("shop");
     setMessage("");
 
-    const { error } = await supabase.rpc("update_platform_barbershop", {
-      target_slug: selectedShop.slug,
-      name_input: selectedShop.name,
-      whatsapp_input: onlyDigits(selectedShop.whatsapp),
-      owner_email_input: selectedShop.owner_email,
-      plan_input: selectedShop.plan,
-      monthly_status_input: selectedShop.monthly_status,
-      next_billing_date_input: selectedShop.next_billing_date || null,
-      address_input: selectedShop.address,
-      pix_key_input: selectedShop.pix_key,
-      theme_color_input: selectedShop.theme_color || "#22c55e",
-    });
+    try {
+      const { error } = await supabase.rpc("update_platform_barbershop", {
+        target_slug: selectedShop.slug,
+        name_input: selectedShop.name,
+        whatsapp_input: onlyDigits(selectedShop.whatsapp),
+        owner_email_input: selectedShop.owner_email,
+        plan_input: selectedShop.plan,
+        monthly_status_input: selectedShop.monthly_status,
+        next_billing_date_input: selectedShop.next_billing_date || null,
+        address_input: selectedShop.address,
+        pix_key_input: selectedShop.pix_key,
+        theme_color_input: selectedShop.theme_color || "#22c55e",
+      });
 
-    setSaving("");
+      if (error) throw error;
 
-    if (error) {
+      setMessage("Barbearia atualizada com sucesso.");
+      await loadDashboard();
+    } catch (error) {
       setMessage(errorText(error));
-      return;
+    } finally {
+      setSaving("");
     }
-
-    setMessage("Barbearia atualizada com sucesso.");
-    await loadDashboard();
   }
 
   async function saveFeatures() {
@@ -253,69 +331,70 @@ export default function PlatformDashboard() {
     setSaving("features");
     setMessage("");
 
-    const features = Object.keys(featureLabels).map((key) => ({
-      feature_key: key,
-      released: Boolean(selectedShop.features?.[key]?.released),
-      enabled: Boolean(selectedShop.features?.[key]?.enabled),
-    }));
+    try {
+      const features = Object.keys(featureLabels).map((key) => ({
+        feature_key: key,
+        released: Boolean(selectedShop.features?.[key]?.released),
+        enabled: Boolean(selectedShop.features?.[key]?.enabled),
+      }));
 
-    const { error } = await supabase.rpc("save_platform_feature_flags", {
-      target_slug: selectedShop.slug,
-      features_input: features,
-    });
+      const { error } = await supabase.rpc("save_platform_feature_flags", {
+        target_slug: selectedShop.slug,
+        features_input: features,
+      });
 
-    setSaving("");
+      if (error) throw error;
 
-    if (error) {
+      setMessage("Funções atualizadas com sucesso.");
+      await loadDashboard();
+    } catch (error) {
       setMessage(errorText(error));
-      return;
+    } finally {
+      setSaving("");
     }
-
-    setMessage("Funções atualizadas com sucesso.");
-    await loadDashboard();
   }
 
   async function sendBillingReminders() {
     setSaving("reminders");
     setMessage("");
 
-    const { data, error } = await supabase.rpc("get_platform_billing_reminders");
-    if (error) {
-      setSaving("");
-      setMessage(errorText(error));
-      return;
-    }
+    try {
+      const { data, error } = await supabase.rpc("get_platform_billing_reminders");
+      if (error) throw error;
 
-    const reminders = data || [];
-    if (!reminders.length) {
-      setSaving("");
-      setMessage("Nenhuma barbearia com vencimento em 3 dias úteis para avisar hoje.");
-      return;
-    }
-
-    let sent = 0;
-    let failed = 0;
-
-    for (const item of reminders) {
-      try {
-        const response = await fetch("/api/send-whatsapp", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ to: item.whatsapp, message: item.message }),
-        });
-        const result = await response.json().catch(() => ({}));
-        if (!response.ok || result.ok === false) throw new Error(result.error || "Falha ao enviar WhatsApp.");
-
-        await supabase.rpc("mark_billing_reminder_sent", { target_slug: item.slug });
-        sent += 1;
-      } catch (err) {
-        failed += 1;
+      const reminders = data || [];
+      if (!reminders.length) {
+        setMessage("Nenhuma barbearia com vencimento em 3 dias úteis para avisar hoje.");
+        return;
       }
-    }
 
-    setSaving("");
-    setMessage(`Avisos de vencimento: ${sent} enviado(s), ${failed} com falha.`);
-    await loadDashboard();
+      let sent = 0;
+      let failed = 0;
+
+      for (const item of reminders) {
+        try {
+          const response = await fetch("/api/send-whatsapp", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ to: item.whatsapp, message: item.message }),
+          });
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok || result.ok === false) throw new Error(result.error || "Falha ao enviar WhatsApp.");
+
+          await supabase.rpc("mark_billing_reminder_sent", { target_slug: item.slug });
+          sent += 1;
+        } catch (_err) {
+          failed += 1;
+        }
+      }
+
+      setMessage(`Avisos de vencimento: ${sent} enviado(s), ${failed} com falha.`);
+      await loadDashboard();
+    } catch (error) {
+      setMessage(errorText(error));
+    } finally {
+      setSaving("");
+    }
   }
 
   function updateSelected(field, value) {
@@ -406,6 +485,11 @@ export default function PlatformDashboard() {
             </div>
             <label>Vencimento</label>
             <input value={newShop.next_billing_date} onChange={(event) => updateNewShop("next_billing_date", event.target.value)} type="date" />
+            <div className="platformTwoCols">
+              <span><label>CEP</label><input value={newShop.cep || ""} onChange={(event) => updateNewShop("cep", event.target.value)} placeholder="00000000" inputMode="numeric" /></span>
+              <span><label>Número do comércio</label><input value={newShop.address_number || ""} onChange={(event) => updateNewShop("address_number", event.target.value)} placeholder="123" /></span>
+            </div>
+            <button type="button" className="platformSecondary platformCepButton" disabled={saving === "cep-create"} onClick={fillNewShopAddressByCep}>{saving === "cep-create" ? "Buscando CEP..." : "Puxar endereço pelo CEP"}</button>
             <label>Endereço</label>
             <input value={newShop.address} onChange={(event) => updateNewShop("address", event.target.value)} placeholder="Rua, número - bairro" />
             <label>Chave PIX</label>
@@ -457,6 +541,11 @@ export default function PlatformDashboard() {
                 <span><label>Status</label><select value={selectedShop.monthly_status || "active"} onChange={(event) => updateSelected("monthly_status", event.target.value)}>{statusOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></span>
               </div>
               <label>Vencimento</label><input value={selectedShop.next_billing_date || ""} onChange={(event) => updateSelected("next_billing_date", event.target.value)} type="date" />
+              <div className="platformTwoCols">
+                <span><label>CEP</label><input value={selectedShop.cep || ""} onChange={(event) => updateSelected("cep", event.target.value)} placeholder="00000000" inputMode="numeric" /></span>
+                <span><label>Número do comércio</label><input value={selectedShop.address_number || ""} onChange={(event) => updateSelected("address_number", event.target.value)} placeholder="123" /></span>
+              </div>
+              <button type="button" className="platformSecondary platformCepButton" disabled={saving === "cep-shop"} onClick={fillSelectedShopAddressByCep}>{saving === "cep-shop" ? "Buscando CEP..." : "Puxar endereço pelo CEP"}</button>
               <label>Endereço</label><input value={selectedShop.address || ""} onChange={(event) => updateSelected("address", event.target.value)} />
               <label>Chave PIX</label><input value={selectedShop.pix_key || ""} onChange={(event) => updateSelected("pix_key", event.target.value)} />
               <label>Cor principal</label><input value={selectedShop.theme_color || "#22c55e"} onChange={(event) => updateSelected("theme_color", event.target.value)} type="color" />

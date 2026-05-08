@@ -7,130 +7,38 @@ let source = fs.readFileSync(appPath, "utf8");
 function replaceBetween(startMarker, endMarker, replacement) {
   const start = source.indexOf(startMarker);
   const end = source.indexOf(endMarker, start);
-  if (start === -1 || end === -1 || end <= start) {
-    throw new Error(`Não foi possível localizar bloco: ${startMarker}`);
-  }
+  if (start === -1 || end === -1 || end <= start) throw new Error(`Não foi possível localizar bloco: ${startMarker}`);
   source = source.slice(0, start) + replacement + "\n\n" + source.slice(end);
 }
-
 function replaceRequired(search, replacement, label) {
-  if (!source.includes(search)) {
-    throw new Error(`Não foi possível localizar trecho obrigatório: ${label || search}`);
-  }
+  if (!source.includes(search)) throw new Error(`Não foi possível localizar trecho obrigatório: ${label || search}`);
   source = source.replace(search, replacement);
 }
 
-// 1. Remover createClient duplicado e usar cliente único do projeto.
-source = source.replace(
-  'import { createClient } from "@supabase/supabase-js";\n',
-  'import { supabase } from "./supabaseClient";\n'
-);
-source = source.replace(
-  /const supabaseUrl =\n\s+import\.meta\.env\.VITE_SUPABASE_URL \|\| "https:\/\/opcuaxkndslmejhuauyq\.supabase\.co";\nconst supabaseAnonKey =\n\s+import\.meta\.env\.VITE_SUPABASE_ANON_KEY \|\| "[^"]+";\nconst supabase = createClient\(supabaseUrl, supabaseAnonKey\);\n/,
-  ""
-);
+source = source.replace('import { createClient } from "@supabase/supabase-js";\n', 'import { supabase } from "./supabaseClient";\n');
+source = source.replace(/const supabaseUrl =\n\s+import\.meta\.env\.VITE_SUPABASE_URL \|\| "https:\/\/opcuaxkndslmejhuauyq\.supabase\.co";\nconst supabaseAnonKey =\n\s+import\.meta\.env\.VITE_SUPABASE_ANON_KEY \|\| "[^"]+";\nconst supabase = createClient\(supabaseUrl, supabaseAnonKey\);\n/, "");
 
-// 2. Padronizar cargos internamente e visualmente.
 if (!source.includes("function normalizeRole(value)")) {
-  const roleHelpers = `
-function normalizeRole(value) {
-  const role = String(value || "").trim().toLowerCase();
-  if (["desenvolvedor", "developer", "platform", "plataforma"].includes(role)) return "desenvolvedor";
-  if (["dono", "owner"].includes(role)) return "dono";
-  if (["funcionario", "funcionário", "employee", "staff", "manager", "gerente"].includes(role)) return "funcionario";
-  return "funcionario";
+  replaceRequired(`const initialServices = [`, `function normalizeRole(value){const r=String(value||"").trim().toLowerCase();if(["desenvolvedor","developer","platform","plataforma"].includes(r))return"desenvolvedor";if(["dono","owner"].includes(r))return"dono";return"funcionario";}\nfunction roleLabel(value){const r=normalizeRole(value);return r==="desenvolvedor"?"Desenvolvedor":r==="dono"?"Dono":"Funcionário";}\nfunction canAccessAdminTab(roleValue,tabId,isOwnerEmail=false){const r=normalizeRole(roleValue);if(r==="desenvolvedor")return true;if(r==="dono"||isOwnerEmail)return true;return["dashboard","agenda","customers","services","appearance"].includes(tabId);}\n\nconst initialServices = [`, "helpers de cargo");
 }
-
-function roleLabel(value) {
-  const role = normalizeRole(value);
-  if (role === "desenvolvedor") return "Desenvolvedor";
-  if (role === "dono") return "Dono";
-  return "Funcionário";
-}
-
-function canAccessAdminTab(roleValue, tabId, isOwnerEmail = false) {
-  const role = normalizeRole(roleValue);
-  if (role === "desenvolvedor") return true;
-  if (role === "dono" || isOwnerEmail) return true;
-  return ["dashboard", "agenda", "customers", "services", "appearance"].includes(tabId);
-}
-`;
-  replaceRequired(
-    `const initialServices = [`,
-    roleHelpers + `\nconst initialServices = [`,
-    "inserção dos helpers de cargo"
-  );
-}
-
-source = source.replace(
-  /role: item\.role === "owner" \? "Dono" : item\.role === "platform" \? "Plataforma" : "Gerente",/g,
-  `role: roleLabel(item.role),`
-);
+source = source.replace(/role: item\.role === "owner" \? "Dono" : item\.role === "platform" \? "Plataforma" : "Gerente",/g, `role: roleLabel(item.role),`);
 source = source.replace(/fixed: item\.role === "owner",/g, `fixed: normalizeRole(item.role) === "dono",`);
 source = source.replace(/currentAdminAccount\?\.role === "Plataforma"/g, `normalizeRole(currentAdminAccount?.role) === "desenvolvedor"`);
-source = source.replace(/"Plataforma"/g, `"Desenvolvedor"`);
-source = source.replace(/"Gerente"/g, `"Funcionário"`);
-source = source.replace(/>Plataforma</g, `>Desenvolvedor<`);
-source = source.replace(/>Gerente</g, `>Funcionário<`);
+source = source.replace(/"Plataforma"/g, `"Desenvolvedor"`).replace(/"Gerente"/g, `"Funcionário"`).replace(/>Plataforma</g, `>Desenvolvedor<`).replace(/>Gerente</g, `>Funcionário<`);
 
-// 3. localStorage deixa de ser fonte principal. Fica só como fallback manual via ?localFallback=1.
-replaceBetween(
-  "function readSavedData(key, fallback) {",
-  "function saveData(key, value) {",
-  `function readSavedData(key, fallback) {
-  if (typeof window === "undefined") return fallback;
+replaceBetween("function readSavedData(key, fallback) {", "function saveData(key, value) {", `function readSavedData(key, fallback){if(typeof window==="undefined")return fallback;const ok=new URLSearchParams(window.location.search).get("localFallback")==="1";if(!ok)return fallback;try{const saved=window.localStorage.getItem(storageKey(key));return saved?mergeWithDefault(fallback,JSON.parse(saved)):fallback;}catch{return fallback;}}`);
+replaceBetween("function saveData(key, value) {", "function removeSavedData() {", `function saveData(key, value){if(typeof window==="undefined")return;const ok=new URLSearchParams(window.location.search).get("localFallback")==="1";if(!ok)return;try{window.localStorage.setItem(storageKey(key),JSON.stringify(value));}catch{console.warn("Não foi possível salvar os dados no navegador.");}}`);
 
-  const allowLocalFallback = new URLSearchParams(window.location.search).get("localFallback") === "1";
-  if (!allowLocalFallback) return fallback;
+source = source.replace(`const [cloudSaving, setCloudSaving] = useState("");`, `const [cloudSaving,setRawCloudSaving]=useState("");\n  function setCloudSaving(value){setRawCloudSaving(value);if(value&&typeof window!=="undefined"){window.setTimeout(()=>setRawCloudSaving(c=>c===value?"":c),12000);}}`);
 
-  try {
-    const saved = window.localStorage.getItem(storageKey(key));
-    if (!saved) return fallback;
-    return mergeWithDefault(fallback, JSON.parse(saved));
-  } catch {
-    return fallback;
-  }
-}`
-);
+if (source.includes("export default function App() {") && !source.includes("function CoreAgendaProApp()")) {
+  source = source.replace("export default function App() {", "function CoreAgendaProApp() {");
+  source += `\n\nfunction proSlug(){const p=window.location.pathname.split("/").filter(Boolean);return p[p.indexOf("painel")+1]||p[p.indexOf("agendamento")+1]||"master-barbearia";}\nfunction proPanel(){return window.location.pathname.includes("/painel/");}\nfunction proClient(){return window.location.pathname.includes("/agendamento/");}\nfunction todayIsoPro(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}\nfunction promoOk(s){const t=todayIsoPro();return!!s.promotion_active&&(!s.promotion_start_date||t>=s.promotion_start_date)&&(!s.promotion_end_date||t<=s.promotion_end_date);}\nfunction AppProFeatures(){const slug=proSlug(),panel=proPanel(),client=proClient();const[bg,setBg]=useState({client_background_url:"",admin_background_url:"",client_background_opacity:.18,admin_background_opacity:.12});const[txt,setTxt]=useState({success_title:"Agendamento confirmado!",success_message:"Seu horário já está reservado.",success_footer:"A barbearia já recebeu os detalhes do atendimento."});const[services,setServices]=useState([]);const[growth,setGrowth]=useState({promotion_active:false,promotion_title:"Promoção online",promotion_description:"",promotion_discount:10,promotion_start_date:"",promotion_end_date:"",loyalty_enabled:false,loyalty_reward_description:"",loyalty_visit_goal:5,loyalty_discount:20,instagram_url:"",google_client_login_enabled:false});const[waitlist,setWaitlist]=useState([]);const[clients,setClients]=useState([]);const[saving,setSaving]=useState("");const[msg,setMsg]=useState("");async function loadPro(){const shopReq=supabase.from("barbershops").select("client_background_url,admin_background_url,client_background_opacity,admin_background_opacity,success_title,success_message,success_footer,promotion_active,promotion_title,promotion_description,promotion_discount,promotion_start_date,promotion_end_date,loyalty_enabled,loyalty_reward_description,loyalty_visit_goal,loyalty_discount,instagram_url,google_client_login_enabled").eq("slug",slug).single();const servReq=supabase.from("services").select("id,name,price,duration,deleted_at").is("deleted_at",null).order("sort_order",{ascending:true});const waitReq=supabase.rpc("get_admin_waitlist",{target_slug:slug});const cliReq=supabase.rpc("get_loyalty_clients",{target_slug:slug});const[{data:shop},{data:rows},{data:w},{data:c}]=await Promise.all([shopReq,servReq,waitReq,cliReq]);if(shop){setBg({client_background_url:shop.client_background_url||"",admin_background_url:shop.admin_background_url||"",client_background_opacity:shop.client_background_opacity||.18,admin_background_opacity:shop.admin_background_opacity||.12});setTxt({success_title:shop.success_title||txt.success_title,success_message:shop.success_message||txt.success_message,success_footer:shop.success_footer||txt.success_footer});setGrowth(g=>({...g,...shop}));}setServices((rows||[]).filter(x=>x.name));setWaitlist(w||[]);setClients(c||[]);}useEffect(()=>{loadPro();},[slug]);useEffect(()=>{let layer=document.getElementById("agendaProBackgroundLayer");if(!layer){layer=document.createElement("div");layer.id="agendaProBackgroundLayer";Object.assign(layer.style,{position:"fixed",inset:"0",zIndex:"-1",pointerEvents:"none",backgroundSize:"cover",backgroundPosition:"center"});document.body.prepend(layer);document.body.style.position="relative";}const url=panel?bg.admin_background_url:bg.client_background_url;const op=Number(panel?bg.admin_background_opacity:bg.client_background_opacity)||0;if(!url){layer.style.opacity="0";layer.style.backgroundImage="none";return;}layer.style.opacity=String(Math.max(0,Math.min(op,.7)));layer.style.backgroundImage="linear-gradient(rgba(7,10,13,.72),rgba(7,10,13,.72)), url('"+String(url).replace(/'/g,"%27")+"')";},[bg,panel]);async function del(s){if(!window.confirm('Excluir o serviço "'+s.name+'"? O histórico antigo será mantido.'))return;setSaving('d'+s.id);setMsg("");try{const{error}=await supabase.rpc("soft_delete_service_by_name",{target_slug:slug,service_name_input:s.name});if(error)throw error;setServices(a=>a.filter(x=>x.id!==s.id));setMsg("Serviço excluído com segurança.");}catch(e){setMsg(e?.message||"Não foi possível excluir o serviço.");}finally{setSaving("");}}async function saveBg(){setSaving("bg");setMsg("");try{const{error}=await supabase.rpc("save_background_settings",{target_slug:slug,client_background_url_input:bg.client_background_url||"",admin_background_url_input:bg.admin_background_url||"",client_background_opacity_input:Number(bg.client_background_opacity||.18),admin_background_opacity_input:Number(bg.admin_background_opacity||.12)});if(error)throw error;setMsg("Backplate salvo.");await loadPro();}catch(e){setMsg(e?.message||"Não foi possível salvar o backplate.");}finally{setSaving("");}}async function saveTxt(){setSaving("txt");setMsg("");try{const{error}=await supabase.rpc("save_success_texts",{target_slug:slug,success_title_input:txt.success_title,success_message_input:txt.success_message,success_footer_input:txt.success_footer});if(error)throw error;setMsg("Textos salvos.");}catch(e){setMsg(e?.message||"Não foi possível salvar os textos.");}finally{setSaving("");}}async function saveGrowth(){setSaving("growth");setMsg("");try{const{error}=await supabase.from("barbershops").update({promotion_active:!!growth.promotion_active,promotion_title:growth.promotion_title||"Promoção online",promotion_description:growth.promotion_description||"",promotion_discount:Number(growth.promotion_discount||0),promotion_start_date:growth.promotion_start_date||null,promotion_end_date:growth.promotion_end_date||null,loyalty_enabled:!!growth.loyalty_enabled,loyalty_reward_description:growth.loyalty_reward_description||"",loyalty_visit_goal:Number(growth.loyalty_visit_goal||5),loyalty_discount:Number(growth.loyalty_discount||0),instagram_url:growth.instagram_url||null,google_client_login_enabled:!!growth.google_client_login_enabled}).eq("slug",slug);if(error)throw error;setMsg("Melhorias PRO salvas.");await loadPro();}catch(e){setMsg(e?.message||"Não foi possível salvar as melhorias.");}finally{setSaving("");}}if(client){const show=promoOk(growth);if(!show&&!growth.loyalty_enabled&&!growth.instagram_url&&!growth.google_client_login_enabled)return null;return <section className="safeFeatureClientBanner">{show?<div><strong>{growth.promotion_title}</strong><p>{growth.promotion_description}</p>{Number(growth.promotion_discount)>0?<span>{growth.promotion_discount}% de desconto</span>:null}</div>:null}{growth.loyalty_enabled?<p>Fidelidade: {growth.loyalty_reward_description}</p>:null}<div className="safeFeatureActions">{growth.instagram_url?<a href={growth.instagram_url} target="_blank" rel="noreferrer">Abrir Instagram</a>:null}{growth.google_client_login_enabled?<span>Login Google do cliente ativo</span>:null}</div></section>}if(!panel)return null;return <section className="safeFeaturePanel"><div className="safeFeatureHeader"><div><span>AgendaPro PRO</span><h2>Melhorias da barbearia</h2><p>Serviços, backplate, textos, promoções, fidelidade e lista de espera.</p></div><a href={'/agendamento/'+slug}>Ver tela do cliente</a></div>{msg?<div className="safeFeatureNotice">{msg}</div>:null}<div className="safeFeatureGrid"><div className="safeFeatureCard"><h3>Excluir serviço seguro</h3>{services.map(s=><article className="safeFeatureRow" key={s.id}><span><strong>{s.name}</strong><small>{s.duration} min · R$ {Number(s.price||0).toFixed(2)}</small></span><button disabled={saving==='d'+s.id} onClick={()=>del(s)}>{saving==='d'+s.id?'Excluindo...':'Excluir'}</button></article>)}</div><div className="safeFeatureCard"><h3>Backplate</h3><label>Fundo do cliente</label><input value={bg.client_background_url} onChange={e=>setBg(b=>({...b,client_background_url:e.target.value}))}/><label>Opacidade cliente</label><input type="number" min="0" max="0.7" step="0.05" value={bg.client_background_opacity} onChange={e=>setBg(b=>({...b,client_background_opacity:e.target.value}))}/><label>Fundo do painel</label><input value={bg.admin_background_url} onChange={e=>setBg(b=>({...b,admin_background_url:e.target.value}))}/><label>Opacidade painel</label><input type="number" min="0" max="0.7" step="0.05" value={bg.admin_background_opacity} onChange={e=>setBg(b=>({...b,admin_background_opacity:e.target.value}))}/><button onClick={()=>setBg(b=>({...b,client_background_url:""}))}>Limpar cliente</button><button onClick={()=>setBg(b=>({...b,admin_background_url:""}))}>Limpar painel</button><button disabled={saving==='bg'} onClick={saveBg}>{saving==='bg'?'Salvando...':'Salvar backplate'}</button></div><div className="safeFeatureCard"><h3>Antes, processo e finalizado</h3><label>Antes</label><input value={txt.success_title} onChange={e=>setTxt(t=>({...t,success_title:e.target.value}))}/><label>Processo</label><textarea value={txt.success_message} onChange={e=>setTxt(t=>({...t,success_message:e.target.value}))}/><label>Finalizado</label><textarea value={txt.success_footer} onChange={e=>setTxt(t=>({...t,success_footer:e.target.value}))}/><button disabled={saving==='txt'} onClick={saveTxt}>{saving==='txt'?'Salvando...':'Salvar textos'}</button></div><div className="safeFeatureCard"><h3>Promoções e fidelidade</h3><label><input type="checkbox" checked={!!growth.promotion_active} onChange={e=>setGrowth(g=>({...g,promotion_active:e.target.checked}))}/> Promoção ativa</label><input value={growth.promotion_title||""} onChange={e=>setGrowth(g=>({...g,promotion_title:e.target.value}))}/><textarea value={growth.promotion_description||""} onChange={e=>setGrowth(g=>({...g,promotion_description:e.target.value}))}/><input type="number" value={growth.promotion_discount||0} onChange={e=>setGrowth(g=>({...g,promotion_discount:e.target.value}))}/><label><input type="checkbox" checked={!!growth.loyalty_enabled} onChange={e=>setGrowth(g=>({...g,loyalty_enabled:e.target.checked}))}/> Fidelidade ativa</label><textarea value={growth.loyalty_reward_description||""} onChange={e=>setGrowth(g=>({...g,loyalty_reward_description:e.target.value}))}/><button disabled={saving==='growth'} onClick={saveGrowth}>{saving==='growth'?'Salvando...':'Salvar melhorias PRO'}</button></div><div className="safeFeatureCard"><h3>Lista de espera</h3>{waitlist.length?waitlist.slice(0,8).map(w=><article className="safeFeatureRow" key={w.id}><span><strong>{w.client_name}</strong><small>{w.preferred_date||'Sem data'} · {w.service_text||'Serviço'}</small><small>{w.whatsapp}</small></span></article>):<p>Nenhum cliente aguardando.</p>}<h3>Clientes fidelidade</h3>{clients.slice(0,5).map(c=><article className="safeFeatureRow" key={c.id||c.whatsapp}><span><strong>{c.name}</strong><small>{c.visit_count||0} visitas · {c.loyalty_points||0} pontos</small></span></article>)}</div><div className="safeFeatureCard"><h3>Instagram e Google</h3><input value={growth.instagram_url||""} onChange={e=>setGrowth(g=>({...g,instagram_url:e.target.value}))} placeholder="https://instagram.com/sua_barbearia"/><label><input type="checkbox" checked={!!growth.google_client_login_enabled} onChange={e=>setGrowth(g=>({...g,google_client_login_enabled:e.target.checked}))}/> Login Google do cliente</label><button disabled={saving==='growth'} onClick={saveGrowth}>{saving==='growth'?'Salvando...':'Salvar canais'}</button></div></div></section>}\nexport default function App(){return <><CoreAgendaProApp/><AppProFeatures/></>;}`;
+}
 
-replaceBetween(
-  "function saveData(key, value) {",
-  "function removeSavedData() {",
-  `function saveData(key, value) {
-  if (typeof window === "undefined") return;
-
-  const allowLocalFallback = new URLSearchParams(window.location.search).get("localFallback") === "1";
-  if (!allowLocalFallback) return;
-
-  try {
-    window.localStorage.setItem(storageKey(key), JSON.stringify(value));
-  } catch {
-    console.warn("Não foi possível salvar os dados no navegador.");
-  }
-}`
-);
-
-// 4. Evitar salvamento infinito: qualquer estado cloudSaving se auto-limpa se uma chamada travar.
-source = source.replace(
-  `const [cloudSaving, setCloudSaving] = useState("");`,
-  `const [cloudSaving, setRawCloudSaving] = useState("");
-  function setCloudSaving(value) {
-    setRawCloudSaving(value);
-    if (value && typeof window !== "undefined") {
-      window.setTimeout(() => {
-        setRawCloudSaving((current) => (current === value ? "" : current));
-      }, 12000);
-    }
-  }`
-);
-
-// 5. Atualizar textos de sincronização para refletir fonte principal na nuvem.
 source = source.replace(/Local \+ online/g, "Nuvem como fonte principal");
-source = source.replace(
-  /O app mantém uma cópia local para abrir rápido e salva as configurações principais na nuvem quando você usa os botões de salvar\./g,
-  "O Supabase é a fonte principal dos dados. O navegador só usa fallback local quando aberto com ?localFallback=1."
-);
+source = source.replace(/O app mantém uma cópia local para abrir rápido e salva as configurações principais na nuvem quando você usa os botões de salvar\./g, "O Supabase é a fonte principal dos dados. O navegador só usa fallback local quando aberto com ?localFallback=1.");
 source = source.replace(/Usando dados locais\./g, "Usando fallback local de emergência.");
 
 fs.writeFileSync(appPath, source);
-console.log("AgendaPro: App.tsx limpo e padronizado antes do build.");
+console.log("AgendaPro: App.tsx integrado e padronizado antes do build.");

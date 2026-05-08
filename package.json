@@ -1,6 +1,8 @@
 {
   "scripts": {
+    "predev": "node ./scripts/patch-app-before-build.js",
     "dev": "node ./node_modules/vite/bin/vite.js --host 0.0.0.0",
+    "prebuild": "node ./scripts/patch-app-before-build.js",
     "build": "node ./node_modules/vite/bin/vite.js build",
     "preview": "node ./node_modules/vite/bin/vite.js preview"
   },

@@ -1,6 +1,5 @@
 // @ts-nocheck
 import { useEffect, useState } from "react";
-import { createRoot } from "react-dom/client";
 import { supabase } from "./supabaseClient";
 
 function slugFromUrl() {
@@ -24,10 +23,6 @@ function todayIso() {
   const m = String(date.getMonth() + 1).padStart(2, "0");
   const d = String(date.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
-}
-
-function money(value) {
-  return Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
 function formatDate(value) {
@@ -204,38 +199,6 @@ function ClientGrowthBanner({ settings }) {
   );
 }
 
-function GrowthMount({ children, targetSelector, id }) {
-  useEffect(() => {
-    let root;
-    let host;
-    let mounted = false;
-
-    function mount() {
-      if (mounted) return;
-      if (document.getElementById(id)) return;
-      const target = document.querySelector(targetSelector);
-      if (!target) return;
-      host = document.createElement("div");
-      host.id = id;
-      target.prepend(host);
-      root = createRoot(host);
-      root.render(children);
-      mounted = true;
-    }
-
-    mount();
-    const observer = new MutationObserver(() => window.requestAnimationFrame(mount));
-    observer.observe(document.body, { childList: true, subtree: true });
-    return () => {
-      observer.disconnect();
-      root?.unmount?.();
-      host?.remove?.();
-    };
-  }, [children, targetSelector, id]);
-
-  return null;
-}
-
 export default function NativeGrowthFeatures() {
   const [settings, setSettings] = useState(null);
   const [waitlist, setWaitlist] = useState([]);
@@ -268,19 +231,11 @@ export default function NativeGrowthFeatures() {
   if (!settings) return null;
 
   if (isPanelRoute()) {
-    return (
-      <GrowthMount id="agendaProGrowthAdmin" targetSelector=".adminApp">
-        <GrowthAdminPanel settings={settings} setSettings={setSettings} waitlist={waitlist} loyaltyClients={loyaltyClients} onReload={() => setReloadKey((value) => value + 1)} />
-      </GrowthMount>
-    );
+    return <GrowthAdminPanel settings={settings} setSettings={setSettings} waitlist={waitlist} loyaltyClients={loyaltyClients} onReload={() => setReloadKey((value) => value + 1)} />;
   }
 
   if (isClientRoute()) {
-    return (
-      <GrowthMount id="agendaProClientGrowth" targetSelector=".app">
-        <ClientGrowthBanner settings={settings} />
-      </GrowthMount>
-    );
+    return <ClientGrowthBanner settings={settings} />;
   }
 
   return null;

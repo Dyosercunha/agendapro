@@ -4,15 +4,12 @@ const path = require("path");
 const filePath = path.join(process.cwd(), "PlatformDashboard.tsx");
 let source = fs.readFileSync(filePath, "utf8");
 
-function replaceAll(search, replacement) {
-  source = source.split(search).join(replacement);
-}
 function replaceOnce(search, replacement) {
   if (!source.includes(search)) throw new Error(`Trecho não encontrado: ${search.slice(0, 80)}`);
   source = source.replace(search, replacement);
 }
 
-// Chaves novas usadas pelo fluxo comercial e pelo App.tsx.
+// Chaves usadas pelo fluxo comercial e pelo App.tsx.
 source = source.replace(/const featureLabels = \{[\s\S]*?\};/, `const featureLabels = {
   service_delete: "Excluir serviço seguro",
   backplate: "Backplate / plano de fundo",
@@ -48,7 +45,7 @@ replaceOnce(
 
 // Ao criar barbearia, grava o valor mensal logo depois da RPC principal.
 replaceOnce(
-  `setMessage(\`Barbearia cadastrada. Cliente: ${data?.link_cliente || ""} Painel: ${data?.link_painel || ""}\`);`,
+  `setMessage(\`Barbearia cadastrada. Cliente: \${data?.link_cliente || ""} Painel: \${data?.link_painel || ""}\`);`,
   `try {
         await supabase.rpc("update_platform_barbershop", {
           target_slug: newShop.slug || makeSlug(newShop.name),
@@ -65,7 +62,7 @@ replaceOnce(
         });
       } catch (_syncPriceError) {}
 
-      setMessage(\`Barbearia cadastrada. Cliente: ${data?.link_cliente || ""} Painel: ${data?.link_painel || ""}\`);`
+      setMessage(\`Barbearia cadastrada. Cliente: \${data?.link_cliente || ""} Painel: \${data?.link_painel || ""}\`);`
 );
 
 // Ao editar barbearia, envia plan_price_input.
@@ -76,14 +73,12 @@ replaceOnce(
       });`
 );
 
-// As features agora usam enabled como fonte principal e released apenas para compatibilidade visual.
 replaceOnce(
   `released: Boolean(selectedShop.features?.[key]?.released),\n        enabled: Boolean(selectedShop.features?.[key]?.enabled),`,
   `released: Boolean(selectedShop.features?.[key]?.released ?? true),
         enabled: Boolean(selectedShop.features?.[key]?.enabled),`
 );
 
-// Texto da seção de funções para explicar o comportamento correto.
 replaceOnce(
   `<h3>Funções liberadas</h3>`,
   `<h3>Funções liberadas por plano</h3><p className="platformMuted">Ative aqui e o recurso aparece automaticamente no lugar certo do painel da barbearia.</p>`

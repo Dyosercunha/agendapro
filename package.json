@@ -1,8 +1,8 @@
 {
   "scripts": {
-    "predev": "node ./scripts/patch-app-before-build.js && node ./scripts/patch-premium-appearance-before-build.js && node ./scripts/patch-platform-dashboard-before-build.js",
+    "predev": "node ./scripts/patch-app-before-build.js && node ./scripts/patch-premium-appearance-before-build.js && node ./scripts/patch-permissions-before-build.js && node ./scripts/patch-platform-dashboard-before-build.js",
     "dev": "node ./node_modules/vite/bin/vite.js --host 0.0.0.0",
-    "prebuild": "node ./scripts/patch-app-before-build.js && node ./scripts/patch-premium-appearance-before-build.js && node ./scripts/patch-platform-dashboard-before-build.js",
+    "prebuild": "node ./scripts/patch-app-before-build.js && node ./scripts/patch-premium-appearance-before-build.js && node ./scripts/patch-permissions-before-build.js && node ./scripts/patch-platform-dashboard-before-build.js",
     "build": "node ./node_modules/vite/bin/vite.js build",
     "preview": "node ./node_modules/vite/bin/vite.js preview"
   },

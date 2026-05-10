@@ -58,7 +58,7 @@ replaceOnce(
         });
       } catch (_syncPriceError) {}
 
-      setMessage(\`Barbearia cadastrada. Cliente: ${data?.link_cliente || ""} Painel: ${data?.link_painel || ""}\`);`
+      setMessage(\`Barbearia cadastrada. Cliente: \${data?.link_cliente || ""} Painel: \${data?.link_painel || ""}\`);`
 );
 
 replaceOnce(
@@ -105,8 +105,8 @@ if (!source.includes("async function hideShopFromPlatform")) {
 
 if (!source.includes("hideShopFromPlatform(shop)")) {
   source = source.replace(
-    `<a href={\`/agendamento/${shop.slug}\`} target="_blank" rel="noreferrer">Link cliente</a>`,
-    `<a href={\`/agendamento/${shop.slug}\`} target="_blank" rel="noreferrer">Link cliente</a>
+    `<a href={\`/agendamento/\${shop.slug}\`} target="_blank" rel="noreferrer">Link cliente</a>`,
+    `<a href={\`/agendamento/\${shop.slug}\`} target="_blank" rel="noreferrer">Link cliente</a>
                   <button type="button" className="platformDanger" disabled={saving === "hide-" + shop.slug} onClick={() => hideShopFromPlatform(shop)}>{saving === "hide-" + shop.slug ? "Removendo..." : "Remover da lista"}</button>`
   );
 }

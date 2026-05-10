@@ -9,7 +9,6 @@ function replaceOnce(search, replacement) {
   source = source.replace(search, replacement);
 }
 
-// Chaves usadas pelo fluxo comercial e pelo App.tsx.
 source = source.replace(/const featureLabels = \{[\s\S]*?\};/, `const featureLabels = {
   service_delete: "Excluir serviço seguro",
   backplate: "Backplate / plano de fundo",
@@ -25,7 +24,6 @@ source = source.replace(/theme_color: "#22c55e",\n  \};/, `theme_color: "#22c55e
     plan_price: 89,
   };`);
 
-// Valor mensal no cadastro.
 replaceOnce(
   `<label>Vencimento</label>\n            <input value={newShop.next_billing_date} onChange={(event) => updateNewShop("next_billing_date", event.target.value)} type="date" />`,
   `<div className="platformTwoCols">
@@ -34,7 +32,6 @@ replaceOnce(
             </div>`
 );
 
-// Valor mensal no editor.
 replaceOnce(
   `<label>Vencimento</label><input value={selectedShop.next_billing_date || ""} onChange={(event) => updateSelected("next_billing_date", event.target.value)} type="date" />`,
   `<div className="platformTwoCols">
@@ -43,7 +40,6 @@ replaceOnce(
               </div>`
 );
 
-// Ao criar barbearia, grava o valor mensal logo depois da RPC principal.
 replaceOnce(
   `setMessage(\`Barbearia cadastrada. Cliente: \${data?.link_cliente || ""} Painel: \${data?.link_painel || ""}\`);`,
   `try {
@@ -62,10 +58,9 @@ replaceOnce(
         });
       } catch (_syncPriceError) {}
 
-      setMessage(\`Barbearia cadastrada. Cliente: \${data?.link_cliente || ""} Painel: \${data?.link_painel || ""}\`);`
+      setMessage(\`Barbearia cadastrada. Cliente: ${data?.link_cliente || ""} Painel: ${data?.link_painel || ""}\`);`
 );
 
-// Ao editar barbearia, envia plan_price_input.
 replaceOnce(
   `theme_color_input: selectedShop.theme_color || "#22c55e",\n      });`,
   `theme_color_input: selectedShop.theme_color || "#22c55e",
@@ -84,5 +79,37 @@ replaceOnce(
   `<h3>Funções liberadas por plano</h3><p className="platformMuted">Ative aqui e o recurso aparece automaticamente no lugar certo do painel da barbearia.</p>`
 );
 
+if (!source.includes("async function hideShopFromPlatform")) {
+  source = source.replace(
+    `  async function saveFeatures() {`,
+    `  async function hideShopFromPlatform(shop) {
+    if (!shop?.slug) return;
+    setSaving("hide-" + shop.slug);
+    setMessage("");
+    try {
+      const { error } = await supabase.rpc("archive_platform_barbershop", { target_slug: shop.slug });
+      if (error) throw error;
+      if (selectedShop?.slug === shop.slug) setSelectedShop(null);
+      setMessage("Barbearia removida da lista do painel. Ela continua cadastrada no banco de dados.");
+      await loadDashboard();
+    } catch (error) {
+      setMessage(errorText(error));
+    } finally {
+      setSaving("");
+    }
+  }
+
+  async function saveFeatures() {`
+  );
+}
+
+if (!source.includes("hideShopFromPlatform(shop)")) {
+  source = source.replace(
+    `<a href={\`/agendamento/${shop.slug}\`} target="_blank" rel="noreferrer">Link cliente</a>`,
+    `<a href={\`/agendamento/${shop.slug}\`} target="_blank" rel="noreferrer">Link cliente</a>
+                  <button type="button" className="platformDanger" disabled={saving === "hide-" + shop.slug} onClick={() => hideShopFromPlatform(shop)}>{saving === "hide-" + shop.slug ? "Removendo..." : "Remover da lista"}</button>`
+  );
+}
+
 fs.writeFileSync(filePath, source);
-console.log("AgendaPro: PlatformDashboard com valor mensal editável e funções comerciais corrigidas.");
+console.log("AgendaPro: PlatformDashboard comercial atualizado.");

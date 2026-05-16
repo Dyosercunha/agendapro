@@ -1,0 +1,1 @@
+const fs=require('fs');const s=fs.readFileSync('App.tsx','utf8');const pats=['viewMode === "barberGate"','adminAccessCode','adminLoginError','handleAuthSession','isAdminEmailAllowed','return ('];for(const p of pats){console.log('\n-- '+p+' --');let i=s.indexOf(p);console.log(i);if(i>=0)console.log(s.slice(Math.max(0,i-500),i+1000));}

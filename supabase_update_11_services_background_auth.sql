@@ -821,6 +821,49 @@ begin
       released = excluded.released,
       updated_at = now();
   end loop;
+
+  update public.barbershops
+  set
+    pro_service_delete_enabled = exists (
+      select 1 from public.feature_flags
+      where barbershop_id = target_id and feature_key = 'service_delete' and enabled and released
+    ),
+    pro_backplate_enabled = exists (
+      select 1 from public.feature_flags
+      where barbershop_id = target_id and feature_key = 'backplate' and enabled and released
+    ),
+    pro_appearance_media_enabled = exists (
+      select 1 from public.feature_flags
+      where barbershop_id = target_id and feature_key = 'appearance_media' and enabled and released
+    ),
+    pro_promotions_enabled = exists (
+      select 1 from public.feature_flags
+      where barbershop_id = target_id and feature_key = 'promotions' and enabled and released
+    ),
+    pro_waitlist_enabled = exists (
+      select 1 from public.feature_flags
+      where barbershop_id = target_id and feature_key = 'waitlist' and enabled and released
+    ),
+    pro_loyalty_enabled = exists (
+      select 1 from public.feature_flags
+      where barbershop_id = target_id and feature_key = 'loyalty' and enabled and released
+    ),
+    pro_instagram_enabled = exists (
+      select 1 from public.feature_flags
+      where barbershop_id = target_id
+        and feature_key in ('instagram_booking', 'instagram')
+        and enabled
+        and released
+    ),
+    pro_google_client_enabled = exists (
+      select 1 from public.feature_flags
+      where barbershop_id = target_id
+        and feature_key in ('google_login', 'google_client')
+        and enabled
+        and released
+    ),
+    updated_at = now()
+  where id = target_id;
 end;
 $$;
 
@@ -1493,6 +1536,39 @@ for update
 to authenticated
 using (private.can_manage_barbershop(id))
 with check (private.can_manage_barbershop(id));
+
+revoke update on public.barbershops from anon, authenticated;
+
+grant update (
+  name,
+  whatsapp,
+  address,
+  pix_key,
+  theme_color,
+  logo_url,
+  client_background_url,
+  admin_background_url,
+  client_background_opacity,
+  admin_background_opacity,
+  before_image_url,
+  process_image_url,
+  final_image_url,
+  before_image_label,
+  process_image_label,
+  final_image_label,
+  promotion_active,
+  promotion_title,
+  promotion_description,
+  promotion_discount,
+  promotion_start_date,
+  promotion_end_date,
+  loyalty_enabled,
+  loyalty_reward_description,
+  loyalty_visit_goal,
+  loyalty_discount,
+  instagram_url,
+  google_client_login_enabled
+) on public.barbershops to authenticated;
 
 drop policy if exists "agendapro public read admins" on public.barbershop_admins;
 drop policy if exists "agendapro admin read admins" on public.barbershop_admins;

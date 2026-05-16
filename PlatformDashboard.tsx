@@ -4,14 +4,17 @@ import { supabase } from "./supabaseClient";
 import "./styles.css";
 
 const featureLabels = {
+  pix: "PIX antecipado",
+  auto_confirmation: "Confirmação automática no WhatsApp",
   service_delete: "Excluir serviço seguro",
-  backplate: "Backplate / plano de fundo",
+  backplate: "Plano de fundo personalizado",
   appearance_media: "Fotos Antes / Processo / Finalizado",
   promotions: "Promoções",
   waitlist: "Lista de espera",
   loyalty: "Fidelidade",
-  google_client: "Login Google do cliente",
-  instagram: "Instagram",
+  instagram_booking: "Agendamento pelo Instagram",
+  google_login: "Login Google do cliente",
+  unique_link: "Link para remarcar/cancelar",
 };
 
 const planLabels = {

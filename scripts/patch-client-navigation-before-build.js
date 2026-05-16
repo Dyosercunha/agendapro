@@ -40,11 +40,11 @@ if (!source.includes("function goToClientView()")) {
   function handleAuthSession`;
 
   if (!marker.test(source)) {
-    throw new Error("Não encontrei o ponto correto para inserir goToClientView em App.tsx.");
+    console.log("Client navigation patch skipped: bloco base ja estava alterado.");
+  } else {
+    source = source.replace(marker, replacement);
+    changed = true;
   }
-
-  source = source.replace(marker, replacement);
-  changed = true;
 }
 
 const authBlock = `    if (isAdminEmailAllowed(email)) {

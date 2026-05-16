@@ -39,11 +39,15 @@ body {
   margin: auto;
   padding: 16px;
   padding-bottom: 32px;
+  position: relative;
+  z-index: 1;
 }
 
 .adminApp,
 .checkoutApp {
   padding-bottom: 32px;
+  position: relative;
+  z-index: 1;
 }
 
 .appHeader,

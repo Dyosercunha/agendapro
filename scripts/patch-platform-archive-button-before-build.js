@@ -5,6 +5,11 @@ const filePath = path.join(process.cwd(), 'PlatformDashboard.tsx');
 let source = fs.readFileSync(filePath, 'utf8');
 let changed = false;
 
+if (source.includes('Remover da lista') || source.includes('hideShopFromPlatform(shop)')) {
+  console.log('Platform archive button patch skipped: safe hide button already exists.');
+  process.exit(0);
+}
+
 if (!source.includes('async function archiveShop(')) {
   const marker = '  async function saveFeatures() {';
   const fn = `  async function archiveShop(shop) {

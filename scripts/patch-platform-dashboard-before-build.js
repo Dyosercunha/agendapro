@@ -5,8 +5,9 @@ const filePath = path.join(process.cwd(), "PlatformDashboard.tsx");
 let source = fs.readFileSync(filePath, "utf8");
 
 function replaceOnce(search, replacement) {
-  if (!source.includes(search)) throw new Error(`Trecho não encontrado: ${search.slice(0, 80)}`);
-  source = source.replace(search, replacement);
+  if (source.includes(search)) {
+    source = source.replace(search, replacement);
+  }
 }
 
 source = source.replace(/const featureLabels = \{[\s\S]*?\};/, `const featureLabels = {
@@ -20,10 +21,13 @@ source = source.replace(/const featureLabels = \{[\s\S]*?\};/, `const featureLab
   instagram: "Instagram",
 };`);
 
+if (!source.includes("plan_price: 89")) {
 source = source.replace(/theme_color: "#22c55e",\n  \};/, `theme_color: "#22c55e",
     plan_price: 89,
   };`);
+}
 
+if (!source.includes("value={newShop.plan_price")) {
 replaceOnce(
   `<label>Vencimento</label>\n            <input value={newShop.next_billing_date} onChange={(event) => updateNewShop("next_billing_date", event.target.value)} type="date" />`,
   `<div className="platformTwoCols">
@@ -31,7 +35,9 @@ replaceOnce(
               <span><label>Valor mensal</label><input value={newShop.plan_price || ""} onChange={(event) => updateNewShop("plan_price", event.target.value)} type="number" min="0" step="1" placeholder="89" /></span>
             </div>`
 );
+}
 
+if (!source.includes("value={selectedShop.plan_price")) {
 replaceOnce(
   `<label>Vencimento</label><input value={selectedShop.next_billing_date || ""} onChange={(event) => updateSelected("next_billing_date", event.target.value)} type="date" />`,
   `<div className="platformTwoCols">
@@ -39,7 +45,9 @@ replaceOnce(
                 <span><label>Valor mensal</label><input value={selectedShop.plan_price ?? ""} onChange={(event) => updateSelected("plan_price", event.target.value)} type="number" min="0" step="1" placeholder="89" /></span>
               </div>`
 );
+}
 
+if (!source.includes("plan_price_input: Number(newShop.plan_price")) {
 replaceOnce(
   `setMessage(\`Barbearia cadastrada. Cliente: \${data?.link_cliente || ""} Painel: \${data?.link_painel || ""}\`);`,
   `try {
@@ -60,13 +68,16 @@ replaceOnce(
 
       setMessage(\`Barbearia cadastrada. Cliente: \${data?.link_cliente || ""} Painel: \${data?.link_painel || ""}\`);`
 );
+}
 
+if (!source.includes("plan_price_input: Number(selectedShop.plan_price")) {
 replaceOnce(
   `theme_color_input: selectedShop.theme_color || "#22c55e",\n      });`,
   `theme_color_input: selectedShop.theme_color || "#22c55e",
         plan_price_input: Number(selectedShop.plan_price || 0),
       });`
 );
+}
 
 replaceOnce(
   `released: Boolean(selectedShop.features?.[key]?.released),\n        enabled: Boolean(selectedShop.features?.[key]?.enabled),`,
@@ -103,7 +114,7 @@ if (!source.includes("async function hideShopFromPlatform")) {
   );
 }
 
-if (!source.includes("hideShopFromPlatform(shop)")) {
+if (!source.includes("Remover da lista")) {
   source = source.replace(
     `<a href={\`/agendamento/\${shop.slug}\`} target="_blank" rel="noreferrer">Link cliente</a>`,
     `<a href={\`/agendamento/\${shop.slug}\`} target="_blank" rel="noreferrer">Link cliente</a>

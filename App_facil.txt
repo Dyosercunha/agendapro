@@ -1,14 +1,9 @@
 // @ts-nocheck
 import React from "react";
 import { useEffect, useMemo, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { supabase, supabaseAnonKey, supabaseUrl } from "./supabaseClient";
 import "./styles.css";
 
-const supabaseUrl =
-  import.meta.env.VITE_SUPABASE_URL || "https://opcuaxkndslmejhuauyq.supabase.co";
-const supabaseAnonKey =
-  import.meta.env.VITE_SUPABASE_ANON_KEY || "sb_publishable_BdyBW7dYCg5qf4bBkRFdHQ_doLtqCsy";
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
 const fallbackProfessionalName = "Profissional disponível";
 
 const initialBusiness = {
@@ -25,6 +20,10 @@ const initialBusiness = {
   mapsUrl: "https://maps.google.com/",
   themeColor: "#22c55e",
   themeColorSecondary: "#4ade80",
+  clientBackgroundUrl: "",
+  adminBackgroundUrl: "",
+  clientBackgroundOpacity: 0.18,
+  adminBackgroundOpacity: 0.12,
   pixEnabled: true,
   pixKey: "51996238323",
   pixDiscount: 10,
@@ -46,6 +45,10 @@ const initialAccessAccounts = [
     fixed: true,
   },
 ];
+
+function normalizeRole(value){const r=String(value||"").trim().toLowerCase();if(["desenvolvedor","developer","platform","plataforma"].includes(r))return"desenvolvedor";if(["dono","owner"].includes(r))return"dono";return"funcionario";}
+function roleLabel(value){const r=normalizeRole(value);return r==="desenvolvedor"?"Desenvolvedor":r==="dono"?"Dono":"Funcionário";}
+function canAccessAdminTab(roleValue,tabId,isOwnerEmail=false){const r=normalizeRole(roleValue);if(r==="desenvolvedor")return true;if(r==="dono"||isOwnerEmail)return true;return["dashboard","agenda","customers","services","appearance"].includes(tabId);}
 
 const initialServices = [
   { name: "Corte de cabelo", duration: 30, price: 35, active: true },
@@ -385,6 +388,11 @@ function hexToRgba(hex, opacity) {
   return `rgba(${red}, ${green}, ${blue}, ${opacity})`;
 }
 
+function safeImageUrl(value) {
+  const url = String(value || "").trim();
+  return url.startsWith("https://") || url.startsWith("http://") ? url : "";
+}
+
 const storagePrefix = "agendaProV3";
 
 const storageKeys = {
@@ -426,27 +434,9 @@ function mergeWithDefault(defaultValue, savedValue) {
   return savedValue === undefined || savedValue === null ? defaultValue : savedValue;
 }
 
-function readSavedData(key, fallback) {
-  if (typeof window === "undefined") return fallback;
+function readSavedData(key, fallback){if(typeof window==="undefined")return fallback;const ok=new URLSearchParams(window.location.search).get("localFallback")==="1";if(!ok)return fallback;try{const saved=window.localStorage.getItem(storageKey(key));return saved?mergeWithDefault(fallback,JSON.parse(saved)):fallback;}catch{return fallback;}}
 
-  try {
-    const saved = window.localStorage.getItem(storageKey(key));
-    if (!saved) return fallback;
-    return mergeWithDefault(fallback, JSON.parse(saved));
-  } catch {
-    return fallback;
-  }
-}
-
-function saveData(key, value) {
-  if (typeof window === "undefined") return;
-
-  try {
-    window.localStorage.setItem(storageKey(key), JSON.stringify(value));
-  } catch {
-    console.warn("Não foi possível salvar os dados no navegador.");
-  }
-}
+function saveData(key, value){if(typeof window==="undefined")return;const ok=new URLSearchParams(window.location.search).get("localFallback")==="1";if(!ok)return;try{window.localStorage.setItem(storageKey(key),JSON.stringify(value));}catch{console.warn("Não foi possível salvar os dados no navegador.");}}
 
 function removeSavedData() {
   if (typeof window === "undefined") return;
@@ -498,6 +488,10 @@ function mapBusinessFromCloud(row, account) {
     mapsUrl: row.maps_url || "",
     themeColor: row.theme_color || initialBusiness.themeColor,
     themeColorSecondary: row.theme_color_secondary || initialBusiness.themeColorSecondary,
+    clientBackgroundUrl: row.client_background_url || "",
+    adminBackgroundUrl: row.admin_background_url || "",
+    clientBackgroundOpacity: Number(row.client_background_opacity ?? initialBusiness.clientBackgroundOpacity),
+    adminBackgroundOpacity: Number(row.admin_background_opacity ?? initialBusiness.adminBackgroundOpacity),
     pixEnabled: Boolean(row.pix_enabled),
     pixKey: row.pix_key || "",
     pixDiscount: Number(row.pix_discount || 0),
@@ -533,9 +527,9 @@ function mapAccessAccountsFromCloud(rows, ownerEmail) {
   const cloudAccounts = (rows || []).map((item) => ({
     id: item.id,
     email: item.email,
-    role: item.role === "owner" ? "Dono" : item.role === "platform" ? "Plataforma" : "Gerente",
+    role: roleLabel(item.role),
     active: item.active !== false,
-    fixed: item.role === "owner",
+    fixed: normalizeRole(item.role) === "dono",
   }));
 
   if (cloudAccounts.length) return cloudAccounts;
@@ -604,6 +598,8 @@ function mapServicesFromCloud(rows) {
   const byName = new Map();
 
   (rows || []).forEach((item, index) => {
+    if (item.deleted_at) return;
+
     const name = String(item.name || "").trim();
     const key = makeSlug(name);
 
@@ -615,6 +611,7 @@ function mapServicesFromCloud(rows) {
       duration: Number(item.duration || 30),
       price: Number(item.price || 0),
       active: Boolean(item.active),
+      deletedAt: item.deleted_at || "",
       sortOrder: Number(item.sort_order || index + 1),
       createdAt: item.created_at || "",
     };
@@ -681,13 +678,15 @@ function mapScheduleFromCloud(workingRows, breakRows, dayOffRows, blockRows, pro
   };
 }
 
-export default function App() {
+function CoreAgendaProApp() {
   const [viewMode, setViewMode] = useState(() => initialViewModeFromUrl());
   const [adminTab, setAdminTab] = useState("dashboard");
   const [adminLoggedIn, setAdminLoggedIn] = useState(false);
+  useEffect(()=>{if(typeof window!=="undefined"){window.__agendaProAdminTab=adminTab;window.__agendaProViewMode=viewMode;window.__agendaProAdminLoggedIn=adminLoggedIn;}},[adminTab,viewMode,adminLoggedIn]);
   const [adminEmail, setAdminEmail] = useState("");
   const [adminAccessCode, setAdminAccessCode] = useState("");
   const [adminLoginError, setAdminLoginError] = useState("");
+  const [adminContext, setAdminContext] = useState(null);
   const [barberGateWhatsapp, setBarberGateWhatsapp] = useState("");
   const [barberGateName, setBarberGateName] = useState("");
   const [barberGateError, setBarberGateError] = useState("");
@@ -730,7 +729,8 @@ export default function App() {
   const [barbershopId, setBarbershopId] = useState("");
   const [cloudSlug, setCloudSlug] = useState(currentSlugFromUrl());
   const [cloudStatus, setCloudStatus] = useState("Conectando à nuvem...");
-  const [cloudSaving, setCloudSaving] = useState("");
+  const [cloudSaving,setRawCloudSaving]=useState("");
+  function setCloudSaving(value){setRawCloudSaving(value);if(value&&typeof window!=="undefined"){window.setTimeout(()=>setRawCloudSaving(c=>c===value?"":c),12000);}}
   const [cloudHistory, setCloudHistory] = useState(null);
   const [waitlistSent, setWaitlistSent] = useState(false);
   const [notice, setNotice] = useState(null);
@@ -758,7 +758,13 @@ export default function App() {
   );
   const canManageBilling =
     normalizedAdminEmail === normalizedOwnerEmail ||
-    currentAdminAccount?.role === "Plataforma";
+    normalizeRole(currentAdminAccount?.role) === "desenvolvedor";
+
+  function handleClearLocalCache() {
+    removeSavedData();
+    setNotice({ type: "success", message: "Cache local limpo. Recarregando dados da nuvem..." });
+    window.setTimeout(() => window.location.reload(), 350);
+  }
 
   function isAdminEmailAllowed(email) {
     const normalizedEmail = String(email || "").trim().toLowerCase();
@@ -781,13 +787,47 @@ export default function App() {
     window.scrollTo(0, 0);
   }
 
-  function handleAuthSession(session) {
+  async function handleAuthSession(session) {
     const email = session?.user?.email || "";
 
     if (!email) return;
 
-    if (isAdminEmailAllowed(email)) {
+    const { data: contextData, error: contextError } = await supabase.rpc("get_my_admin_context");
+    const context = Array.isArray(contextData) ? contextData[0] : contextData;
+
+    if (!contextError && context?.access_type === "platform") {
+      setAdminContext(context);
+      setAdminEmail(email);
+      setAdminLoggedIn(true);
+      setAdminLoginError("");
+
+      if (!window.location.pathname.toLowerCase().includes("/plataforma")) {
+        window.location.href = `${window.location.origin}/plataforma?platform=1`;
+      }
+
+      return;
+    }
+
+    if (!contextError && context?.access_type === "barbershop" && context?.slug) {
+      setAdminContext(context);
+
+      if (context.slug !== (cloudSlug || business.slug)) {
+        window.location.href = `${window.location.origin}/painel/${context.slug}`;
+        return;
+      }
+
       enterAdminWithEmail(email);
+      return;
+    }
+
+    if (isAdminEmailAllowed(email)) {
+      const path = typeof window !== "undefined" ? window.location.pathname : "";
+      const isPanelRoute = path.split("/").filter(Boolean).includes("painel");
+
+      if (viewMode !== "client" || isPanelRoute) {
+        enterAdminWithEmail(email);
+      }
+
       return;
     }
 
@@ -920,9 +960,52 @@ export default function App() {
     root.style.setProperty("--shadow-glow", `0 0 32px ${hexToRgba(business.themeColor, 0.22)}`);
   }, [business.themeColor, business.themeColorSecondary]);
 
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    let layer = document.getElementById("agendaProBackgroundLayer");
+
+    if (!layer) {
+      layer = document.createElement("div");
+      layer.id = "agendaProBackgroundLayer";
+      document.body.prepend(layer);
+    }
+
+    const isAdminView = viewMode === "admin" || viewMode === "adminLogin" || viewMode === "barberGate";
+    const imageUrl = safeImageUrl(
+      isAdminView ? business.adminBackgroundUrl : business.clientBackgroundUrl
+    );
+    const opacity = Number(
+      isAdminView ? business.adminBackgroundOpacity : business.clientBackgroundOpacity
+    );
+
+    Object.assign(layer.style, {
+      position: "fixed",
+      inset: "0",
+      zIndex: "0",
+      pointerEvents: "none",
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+      opacity: imageUrl ? String(Math.max(0, Math.min(opacity || 0.16, 0.7))) : "0",
+      backgroundImage: imageUrl
+        ? `linear-gradient(rgba(7,10,13,.72),rgba(7,10,13,.72)), url("${imageUrl.replace(/"/g, "%22")}")`
+        : "none",
+    });
+  }, [
+    business.adminBackgroundOpacity,
+    business.adminBackgroundUrl,
+    business.clientBackgroundOpacity,
+    business.clientBackgroundUrl,
+    viewMode,
+  ]);
+
+  function isServiceDeleted(service) {
+    return Boolean(service?.deletedAt || service?.deleted_at);
+  }
+
   const activeServices = services
     .map((service, index) => ({ ...service, originalIndex: index }))
-    .filter((service) => service.active);
+    .filter((service) => service.active && !isServiceDeleted(service));
 
   const clientProfessionals = professionals.filter(
     (item) => (item.active || item.fixed) && item.name.trim() !== ""
@@ -931,7 +1014,10 @@ export default function App() {
     clientProfessionals.length > 1 || clientProfessionals.some((item) => !item.fixed);
 
   const chosenServices = useMemo(
-    () => services.filter((_, index) => selectedServices.includes(index)),
+    () =>
+      services.filter(
+        (service, index) => selectedServices.includes(index) && !isServiceDeleted(service)
+      ),
     [services, selectedServices]
   );
 
@@ -1114,7 +1200,7 @@ export default function App() {
         .single();
 
       if (businessError || !businessData) {
-        setCloudStatus("Usando dados locais. A barbearia ainda não foi encontrada na nuvem.");
+        setCloudStatus("Usando fallback local de emergência. A barbearia ainda não foi encontrada na nuvem.");
         return;
       }
 
@@ -1143,6 +1229,7 @@ export default function App() {
           .from("services")
           .select("*")
           .eq("barbershop_id", businessData.id)
+          .is("deleted_at", null)
           .order("sort_order", { ascending: true }),
         supabase
           .from("professionals")
@@ -1210,7 +1297,7 @@ export default function App() {
       setCloudStatus("Conectado à nuvem");
     } catch (error) {
       console.error(error);
-      setCloudStatus("Usando dados locais. Não foi possível conectar à nuvem.");
+      setCloudStatus("Usando fallback local de emergência. Não foi possível conectar à nuvem.");
     }
   }
 
@@ -1766,6 +1853,10 @@ export default function App() {
         maps_url_input: business.mapsUrl || "",
         theme_color_input: business.themeColor,
         theme_color_secondary_input: business.themeColorSecondary,
+        client_background_url_input: business.clientBackgroundUrl || "",
+        admin_background_url_input: business.adminBackgroundUrl || "",
+        client_background_opacity_input: Number(business.clientBackgroundOpacity || 0.18),
+        admin_background_opacity_input: Number(business.adminBackgroundOpacity || 0.12),
         pix_enabled_input: Boolean(business.pixEnabled),
         pix_key_input: business.pixKey || "",
         pix_discount_input: Number(business.pixDiscount || 0),
@@ -1800,7 +1891,7 @@ export default function App() {
           role:
             account.role === "Dono"
               ? "owner"
-              : account.role === "Plataforma"
+              : account.role === "Desenvolvedor"
               ? "platform"
               : "manager",
           active: Boolean(account.active),
@@ -1826,14 +1917,16 @@ export default function App() {
     return runCloudSave("services", "Serviços salvos online", () =>
       callCloudFunction("save_services", {
         target_slug: cloudSlug || business.slug,
-        services_input: services.map((service, index) => ({
-          id: service.id || null,
-          name: service.name,
-          duration: Number(service.duration || 30),
-          price: Number(service.price || 0),
-          active: Boolean(service.active),
-          sort_order: index + 1,
-        })),
+        services_input: services
+          .filter((service) => !isServiceDeleted(service))
+          .map((service, index) => ({
+            id: service.id || null,
+            name: service.name,
+            duration: Number(service.duration || 30),
+            price: Number(service.price || 0),
+            active: Boolean(service.active),
+            sort_order: index + 1,
+          })),
       })
     );
   }
@@ -2014,7 +2107,7 @@ export default function App() {
       current.concat({
         id: makeId("access"),
         email: "novo@email.com",
-        role: "Gerente",
+        role: "Funcionário",
         active: true,
         fixed: false,
       })
@@ -2136,6 +2229,46 @@ export default function App() {
     setServices((current) =>
       current.concat({ name: "Novo serviço", duration: 30, price: 50, active: true })
     );
+  }
+
+  async function removeService(index) {
+    const service = services[index];
+
+    if (!service) return;
+
+    const ok = window.confirm(
+      `Excluir o serviço "${service.name}"? Os agendamentos antigos continuarão salvos.`
+    );
+
+    if (!ok) return;
+
+    const deletedAt = new Date().toISOString();
+
+    setServices((current) =>
+      current.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, active: false, deletedAt } : item
+      )
+    );
+    setSelectedServices((current) => current.filter((itemIndex) => itemIndex !== index));
+    setSelectedTime("");
+
+    if (!service.id) return;
+
+    setCloudSaving("services");
+    const { error } = await callCloudFunction("soft_delete_service", {
+      target_slug: cloudSlug || business.slug,
+      service_id_input: service.id,
+    });
+    setCloudSaving("");
+
+    if (error) {
+      console.error(error);
+      setCloudStatus("Serviço excluído neste aparelho, mas ainda não sincronizou online.");
+      showNotice("Serviço ocultado neste aparelho. Tente salvar serviços para sincronizar online.");
+      return;
+    }
+
+    setCloudStatus("Serviço excluído online com segurança.");
   }
 
   function updateProfessional(index, field, value) {
@@ -2482,7 +2615,7 @@ export default function App() {
               <span>AgendaPro</span>
               <h2>{notice.title || "AgendaPro"}</h2>
               <p>{notice.message}</p>
-              <button className="green" onClick={closeNotice}>
+              <button type="button" className="green" onClick={closeNotice}>
                 OK
               </button>
             </div>
@@ -2505,7 +2638,7 @@ export default function App() {
               <h1>Confirmar acesso</h1>
             </div>
           </div>
-          <button className="logoutButton" onClick={() => setViewMode("client")}>
+          <button type="button" className="logoutButton" onClick={() => goToClientView()}>
             Voltar
           </button>
         </section>
@@ -2534,7 +2667,7 @@ export default function App() {
 
           {barberGateError && <p className="loginError">{barberGateError}</p>}
 
-          <button className="green" onClick={verifyBarberIdentity}>
+          <button type="button" className="green" onClick={verifyBarberIdentity}>
             Continuar para login
           </button>
 
@@ -2560,10 +2693,10 @@ export default function App() {
             </div>
           </div>
           <div className="adminHeaderActions">
-            <button className="whatsappButton" onClick={() => setViewMode("client")}>
+            <button type="button" className="whatsappButton" onClick={() => goToClientView()}>
               Cliente
             </button>
-            <button className="logoutButton" onClick={logoutAdmin}>
+            <button type="button" className="logoutButton" onClick={logoutAdmin}>
               Voltar
             </button>
           </div>
@@ -2594,11 +2727,11 @@ export default function App() {
 
           {adminLoginError && <p className="loginError">{adminLoginError}</p>}
 
-          <button className="green" onClick={loginAdmin}>
+          <button type="button" className="green" onClick={loginAdmin}>
             Entrar no painel
           </button>
 
-          <button className="googleButton" onClick={loginWithGoogle}>
+          <button type="button" className="googleButton" onClick={loginWithGoogle}>
             Entrar com Google
           </button>
 
@@ -2618,10 +2751,10 @@ export default function App() {
           <section className="card loginCard">
             <div className="loginBadge">Acesso restrito</div>
             <h1>Faça login para acessar o painel</h1>
-            <button className="green" onClick={() => setViewMode("adminLogin")}>
+            <button type="button" className="green" onClick={() => setViewMode("adminLogin")}>
               Ir para o login
             </button>
-            <button className="outline" onClick={() => setViewMode("client")}>
+            <button type="button" className="outline" onClick={() => goToClientView()}>
               Voltar para cliente
             </button>
           </section>
@@ -2643,10 +2776,10 @@ export default function App() {
           </div>
 
           <div className="adminHeaderActions">
-            <button className="whatsappButton" onClick={() => setViewMode("client")}>
+            <button type="button" className="whatsappButton" onClick={() => goToClientView()}>
               Cliente
             </button>
-            <button className="logoutButton" onClick={logoutAdmin}>
+            <button type="button" className="logoutButton" onClick={logoutAdmin}>
               Sair
             </button>
           </div>
@@ -2654,7 +2787,7 @@ export default function App() {
 
         <section className="adminTabs">
           {adminTabs.map((tab) => (
-            <button
+            <button type="button"
               key={tab.id}
               className={adminTab === tab.id ? "activeAdminTab" : ""}
               onClick={() => setAdminTab(tab.id)}
@@ -2701,12 +2834,12 @@ export default function App() {
               </div>
 
               <div className="commandGrid">
-                <button onClick={() => setAdminTab("agenda")}>Ver agenda</button>
-                <button onClick={() => setAdminTab("customers")}>Ver clientes</button>
-                <button onClick={blockNextAvailableTime}>Bloquear próximo horário</button>
-                <button onClick={closeToday}>Fechar hoje</button>
-                <button onClick={openToday}>Liberar hoje</button>
-                <button
+                <button type="button" onClick={() => setAdminTab("agenda")}>Ver agenda</button>
+                <button type="button" onClick={() => setAdminTab("customers")}>Ver clientes</button>
+                <button type="button" onClick={blockNextAvailableTime}>Bloquear próximo horário</button>
+                <button type="button" onClick={closeToday}>Fechar hoje</button>
+                <button type="button" onClick={openToday}>Liberar hoje</button>
+                <button type="button"
                   onClick={() => {
                     addService();
                     setAdminTab("services");
@@ -2714,7 +2847,7 @@ export default function App() {
                 >
                   Novo serviço
                 </button>
-                <button
+                <button type="button"
                   onClick={() => {
                     addProfessional();
                     setAdminTab("services");
@@ -2722,7 +2855,7 @@ export default function App() {
                 >
                   Novo profissional
                 </button>
-                <button
+                <button type="button"
                   disabled={!featureFlags.pix?.released}
                   onClick={() => {
                     setBusiness((current) => ({ ...current, pixEnabled: !current.pixEnabled }));
@@ -2732,11 +2865,8 @@ export default function App() {
                 >
                   {pixAvailable ? "Desativar PIX" : "Ativar PIX"}
                 </button>
-                <button
-                  onClick={() => {
-                    setViewMode("client");
-                    setScreen("home");
-                  }}
+                <button type="button"
+                  onClick={() => goToClientView()}
                 >
                   Ver tela do cliente
                 </button>
@@ -2755,7 +2885,7 @@ export default function App() {
 
               <div className="setupList">
                 {setupItems.map((item) => (
-                  <button
+                  <button type="button"
                     className={item.done ? "setupItem setupDone" : "setupItem"}
                     key={item.label}
                     onClick={() => setAdminTab(item.tab)}
@@ -2776,7 +2906,7 @@ export default function App() {
 
               <div className="resourceGrid">
                 {featureStatusCards.map((feature) => (
-                  <button
+                  <button type="button"
                     className={[
                       "resourceItem",
                       feature.state.released ? "resourceReleased" : "resourceLocked",
@@ -2842,7 +2972,7 @@ export default function App() {
               </div>
 
               {canManageBilling && (
-                <button className="dangerButton" onClick={resetDemoData}>
+                <button type="button" className="dangerButton" onClick={resetDemoData}>
                   Restaurar demonstração
                 </button>
               )}
@@ -2905,7 +3035,7 @@ export default function App() {
                 : "Libere a fidelidade em Melhorias para transformar visitas em recompensas."}
             </p>
             {!loyaltyFeatureEnabled && (
-              <button onClick={() => setAdminTab("improvements")}>
+              <button type="button" onClick={() => setAdminTab("improvements")}>
                 Liberar fidelidade
               </button>
             )}
@@ -2963,7 +3093,7 @@ export default function App() {
             }
           />
 
-          <button className="green" onClick={saveScheduleToCloud}>
+          <button type="button" className="green" onClick={saveScheduleToCloud}>
             {cloudSaving === "schedule" ? "Salvando agenda..." : "Salvar agenda"}
           </button>
 
@@ -2973,7 +3103,7 @@ export default function App() {
 
               return (
                 <div className={config.enabled ? "dayRow" : "dayRow closedDay"} key={day.key}>
-                  <button
+                  <button type="button"
                     className={config.enabled ? "dayToggle activeDay" : "dayToggle"}
                     onClick={() => updateWorkingDay(day.key, "enabled", !config.enabled)}
                   >
@@ -3029,13 +3159,13 @@ export default function App() {
                 </div>
               </div>
 
-              <button className="dangerButton" onClick={() => removeBreak(index)}>
+              <button type="button" className="dangerButton" onClick={() => removeBreak(index)}>
                 Remover intervalo
               </button>
             </div>
           ))}
 
-          <button className="black" onClick={addBreak}>
+          <button type="button" className="black" onClick={addBreak}>
             Adicionar intervalo
           </button>
         </section>
@@ -3052,13 +3182,13 @@ export default function App() {
               <input type="date" value={item.date} onChange={(event) => updateDayOff(index, "date", event.target.value)} />
               <label>Motivo</label>
               <input value={item.reason} onChange={(event) => updateDayOff(index, "reason", event.target.value)} />
-              <button className="dangerButton" onClick={() => removeDayOff(index)}>
+              <button type="button" className="dangerButton" onClick={() => removeDayOff(index)}>
                 Remover folga
               </button>
             </div>
           ))}
 
-          <button className="black" onClick={addDayOff}>
+          <button type="button" className="black" onClick={addDayOff}>
             Adicionar folga
           </button>
         </section>
@@ -3098,46 +3228,52 @@ export default function App() {
               <label>Motivo</label>
               <input value={item.reason} onChange={(event) => updateBlock(index, "reason", event.target.value)} />
 
-              <button className="dangerButton" onClick={() => removeBlock(index)}>
+              <button type="button" className="dangerButton" onClick={() => removeBlock(index)}>
                 Remover bloqueio
               </button>
             </div>
           ))}
 
-          <button className="black" onClick={addBlock}>
+          <button type="button" className="black" onClick={addBlock}>
             Adicionar bloqueio
           </button>
         </section>
 
         <section className={adminTab === "services" ? "card" : "hiddenPanel"}>
           <h2>Serviços</h2>
-          {services.map((service, index) => (
-            <div className="adminItem" key={index}>
+          {services
+            .map((service, index) => ({ ...service, originalIndex: index }))
+            .filter((service) => !isServiceDeleted(service))
+            .map((service) => (
+            <div className="adminItem" key={service.id || service.originalIndex}>
               <label>Nome</label>
-              <input value={service.name} onChange={(event) => updateService(index, "name", event.target.value)} />
+              <input value={service.name} onChange={(event) => updateService(service.originalIndex, "name", event.target.value)} />
 
               <div className="timePair">
                 <div>
                   <label>Tempo</label>
-                  <input type="number" value={service.duration} onChange={(event) => updateService(index, "duration", event.target.value)} />
+                  <input type="number" value={service.duration} onChange={(event) => updateService(service.originalIndex, "duration", event.target.value)} />
                 </div>
                 <div>
                   <label>Preço</label>
-                  <input type="number" value={service.price} onChange={(event) => updateService(index, "price", event.target.value)} />
+                  <input type="number" value={service.price} onChange={(event) => updateService(service.originalIndex, "price", event.target.value)} />
                 </div>
               </div>
 
-              <button className={service.active ? "selected" : ""} onClick={() => updateService(index, "active", !service.active)}>
+              <button type="button" className={service.active ? "selected" : ""} onClick={() => updateService(service.originalIndex, "active", !service.active)}>
                 {service.active ? "Serviço ativo" : "Serviço inativo"}
+              </button>
+              <button type="button" className="dangerButton" onClick={() => removeService(service.originalIndex)}>
+                Excluir serviço
               </button>
             </div>
           ))}
 
-          <button className="black" onClick={addService}>
+          <button type="button" className="black" onClick={addService}>
             Adicionar serviço
           </button>
 
-          <button className="green" onClick={saveServicesToCloud}>
+          <button type="button" className="green" onClick={saveServicesToCloud}>
             {cloudSaving === "services" ? "Salvando serviços..." : "Salvar serviços"}
           </button>
         </section>
@@ -3157,7 +3293,7 @@ export default function App() {
                       : "Oculto para o cliente"}
                   </p>
                 </div>
-                <button
+                <button type="button"
                   className={item.active ? "statusPill activeStatus" : "statusPill"}
                   disabled={item.fixed}
                   onClick={() => updateProfessional(index, "active", !item.active)}
@@ -3176,18 +3312,18 @@ export default function App() {
                 <p className="hint">Esta opção escolhe automaticamente um profissional disponível.</p>
               )}
               {!item.fixed && (
-                <button className="dangerButton" onClick={() => removeProfessional(index)}>
+                <button type="button" className="dangerButton" onClick={() => removeProfessional(index)}>
                   Remover profissional
                 </button>
               )}
             </div>
           ))}
 
-          <button className="black" onClick={addProfessional}>
+          <button type="button" className="black" onClick={addProfessional}>
             Adicionar profissional
           </button>
 
-          <button className="green" onClick={saveProfessionalsToCloud}>
+          <button type="button" className="green" onClick={saveProfessionalsToCloud}>
             {cloudSaving === "professionals"
               ? "Salvando profissionais..."
               : "Salvar profissionais"}
@@ -3196,7 +3332,7 @@ export default function App() {
 
         <section className={adminTab === "payments" ? "card" : "hiddenPanel"}>
           <h2>Pagamentos</h2>
-          <button
+          <button type="button"
             className={pixAvailable ? "selected" : ""}
             disabled={!featureFlags.pix?.released}
             onClick={() => {
@@ -3265,7 +3401,7 @@ export default function App() {
             />
           </div>
 
-          <button className="green" onClick={saveBusinessToCloud}>
+          <button type="button" className="green" onClick={saveBusinessToCloud}>
             {cloudSaving === "business" ? "Salvando pagamentos..." : "Salvar pagamentos"}
           </button>
         </section>
@@ -3324,13 +3460,13 @@ export default function App() {
                 </div>
 
                 <div className="featureActions">
-                  <button
+                  <button type="button"
                     onClick={() => setFeatureRelease(feature.key, !featureState.released)}
                   >
                     {featureState.released ? "Bloquear recurso" : "Liberar recurso"}
                   </button>
 
-                  <button
+                  <button type="button"
                     disabled={
                       !featureState.released ||
                       feature.key === "pix" ||
@@ -3346,7 +3482,7 @@ export default function App() {
                 </div>
 
                 {feature.key === "pix" && featureState.released && (
-                  <button
+                  <button type="button"
                     onClick={() => {
                       setBusiness({ ...business, pixEnabled: !business.pixEnabled });
                       updateFeatureFlag("pix", "enabled", !featureFlags.pix?.enabled);
@@ -3358,7 +3494,7 @@ export default function App() {
 
                 {feature.key === "auto_confirmation" &&
                   featureState.released && (
-                    <button
+                    <button type="button"
                       onClick={() => {
                         setBusiness({
                           ...business,
@@ -3378,7 +3514,7 @@ export default function App() {
                   )}
 
                   {featureState.released && (
-                    <button
+                    <button type="button"
                       className="featureShortcut"
                       disabled={shortcut.disabled}
                       onClick={() => {
@@ -3395,7 +3531,7 @@ export default function App() {
             })}
           </div>
 
-          <button className="green" onClick={saveFeatureFlagsToCloud}>
+          <button type="button" className="green" onClick={saveFeatureFlagsToCloud}>
             {cloudSaving === "features" ? "Salvando melhorias..." : "Salvar melhorias"}
           </button>
         </section>
@@ -3432,14 +3568,14 @@ export default function App() {
           <label>Link para divulgar</label>
           <input value={publicScheduleLink} readOnly />
 
-          <button className="black" onClick={() => copyText(publicScheduleLink)}>
+          <button type="button" className="black" onClick={() => copyText(publicScheduleLink)}>
             Copiar link de agendamento
           </button>
 
           <label>Link do painel</label>
           <input value={adminPanelLink} readOnly />
 
-          <button className="outline" onClick={() => copyText(adminPanelLink)}>
+          <button type="button" className="outline" onClick={() => copyText(adminPanelLink)}>
             Copiar link do painel
           </button>
 
@@ -3448,7 +3584,7 @@ export default function App() {
               <span>Acessos ao painel</span>
               <strong>{accessAccounts.filter((account) => account.active).length} ativos</strong>
             </div>
-            <button onClick={addAccessAccount}>Adicionar</button>
+            <button type="button" onClick={addAccessAccount}>Adicionar</button>
           </div>
 
           <div className="accessList">
@@ -3471,13 +3607,13 @@ export default function App() {
                       onChange={(event) => updateAccessAccount(index, "role", event.target.value)}
                     >
                       <option value="Dono">Dono</option>
-                      <option value="Gerente">Gerente</option>
-                      <option value="Plataforma">Plataforma</option>
+                      <option value="Funcionário">Funcionário</option>
+                      <option value="Desenvolvedor">Desenvolvedor</option>
                     </select>
                   </div>
                   <div>
                     <label>Status</label>
-                    <button
+                    <button type="button"
                       className={account.active ? "selected" : ""}
                       disabled={account.fixed}
                       onClick={() => updateAccessAccount(index, "active", !account.active)}
@@ -3492,7 +3628,7 @@ export default function App() {
                 )}
 
                 {!account.fixed && (
-                  <button className="dangerButton" onClick={() => removeAccessAccount(index)}>
+                  <button type="button" className="dangerButton" onClick={() => removeAccessAccount(index)}>
                     Remover acesso
                   </button>
                 )}
@@ -3500,7 +3636,7 @@ export default function App() {
             ))}
           </div>
 
-          <button className="green" onClick={saveAccessAccountsToCloud}>
+          <button type="button" className="green" onClick={saveAccessAccountsToCloud}>
             {cloudSaving === "access" ? "Salvando acessos..." : "Salvar acessos"}
           </button>
 
@@ -3516,7 +3652,7 @@ export default function App() {
 
               <div className="planGrid">
                 {planOptions.map((plan) => (
-                  <button
+                  <button type="button"
                     key={plan.id}
                     className={business.plan === plan.id ? "planCard activePlan" : "planCard"}
                     onClick={() => setBusiness({ ...business, plan: plan.id })}
@@ -3550,7 +3686,7 @@ export default function App() {
                 Esta área administrativa aparece apenas para o dono da conta.
               </p>
 
-              <button className="green" onClick={saveBusinessToCloud}>
+              <button type="button" className="green" onClick={saveBusinessToCloud}>
                 {cloudSaving === "business" ? "Salvando conta..." : "Salvar conta"}
               </button>
             </>
@@ -3576,7 +3712,7 @@ export default function App() {
           <label>Subir logo em imagem</label>
           <input type="file" accept="image/*" onChange={handleLogoUpload} />
           {business.logoImage && (
-            <button
+            <button type="button"
               className="dangerButton"
               onClick={() => setBusiness({ ...business, logoImage: "" })}
             >
@@ -3617,6 +3753,61 @@ export default function App() {
             </div>
           </div>
 
+          <div className="adminItem">
+            <h3>Plano de fundo</h3>
+            <label>Imagem de fundo do cliente</label>
+            <input
+              value={business.clientBackgroundUrl || ""}
+              onChange={(event) =>
+                setBusiness({ ...business, clientBackgroundUrl: event.target.value })
+              }
+              placeholder="https://site.com/fundo-cliente.jpg"
+            />
+            <label>Opacidade do fundo do cliente</label>
+            <input
+              type="number"
+              min="0"
+              max="0.7"
+              step="0.05"
+              value={business.clientBackgroundOpacity}
+              onChange={(event) =>
+                setBusiness({ ...business, clientBackgroundOpacity: Number(event.target.value) })
+              }
+            />
+            <button type="button"
+              className="outline"
+              onClick={() => setBusiness({ ...business, clientBackgroundUrl: "" })}
+            >
+              Excluir fundo do cliente
+            </button>
+
+            <label>Imagem de fundo do painel</label>
+            <input
+              value={business.adminBackgroundUrl || ""}
+              onChange={(event) =>
+                setBusiness({ ...business, adminBackgroundUrl: event.target.value })
+              }
+              placeholder="https://site.com/fundo-painel.jpg"
+            />
+            <label>Opacidade do fundo do painel</label>
+            <input
+              type="number"
+              min="0"
+              max="0.7"
+              step="0.05"
+              value={business.adminBackgroundOpacity}
+              onChange={(event) =>
+                setBusiness({ ...business, adminBackgroundOpacity: Number(event.target.value) })
+              }
+            />
+            <button type="button"
+              className="outline"
+              onClick={() => setBusiness({ ...business, adminBackgroundUrl: "" })}
+            >
+              Excluir fundo do painel
+            </button>
+          </div>
+
           <label>WhatsApp</label>
           <input value={business.whatsapp} onChange={(event) => setBusiness({ ...business, whatsapp: event.target.value })} />
 
@@ -3641,7 +3832,7 @@ export default function App() {
           <label>Mensagem final</label>
           <input value={business.successFooter} onChange={(event) => setBusiness({ ...business, successFooter: event.target.value })} />
 
-          <button className="green" onClick={saveBusinessToCloud}>
+          <button type="button" className="green" onClick={saveBusinessToCloud}>
             {cloudSaving === "business" ? "Salvando aparência..." : "Salvar aparência"}
           </button>
         </section>
@@ -3670,14 +3861,14 @@ export default function App() {
 
               <div className="appointmentActions">
                 {!appointment.paid && (
-                  <button onClick={() => confirmAppointmentPayment(appointment.id)}>
+                  <button type="button" onClick={() => confirmAppointmentPayment(appointment.id)}>
                     Confirmar pagamento
                   </button>
                 )}
-                <button onClick={() => rescheduleAppointment(appointment.id)}>
+                <button type="button" onClick={() => rescheduleAppointment(appointment.id)}>
                   {appointment.rescheduleRequested ? "Remarcação marcada" : "Remarcar"}
                 </button>
-                <button className="dangerAction" onClick={() => cancelAppointment(appointment.id)}>
+                <button type="button" className="dangerAction" onClick={() => cancelAppointment(appointment.id)}>
                   Cancelar
                 </button>
               </div>
@@ -3707,7 +3898,7 @@ export default function App() {
               <p>Status: {item.status === "contacted" ? "Contatado" : "Aguardando contato"}</p>
 
               <div className="appointmentActions">
-                <button
+                <button type="button"
                   onClick={() =>
                     updateWaitlistStatus(
                       item.id,
@@ -3727,7 +3918,7 @@ export default function App() {
                 >
                   Enviar para WhatsApp
                 </a>
-                <button className="dangerAction" onClick={() => updateWaitlistStatus(item.id, "removed")}>
+                <button type="button" className="dangerAction" onClick={() => updateWaitlistStatus(item.id, "removed")}>
                   Remover
                 </button>
               </div>
@@ -3784,7 +3975,7 @@ export default function App() {
           >
             Falar com a barbearia
           </a>
-          <button className="outline" onClick={startNewSchedule}>
+          <button type="button" className="outline" onClick={startNewSchedule}>
             Novo agendamento
           </button>
         </section>
@@ -3855,7 +4046,7 @@ export default function App() {
           <h2>Pagamento</h2>
 
           {pixAvailable && (
-            <button
+            <button type="button"
               className={payment === "pix" ? "paymentOption selected" : "paymentOption"}
               onClick={() => setPayment("pix")}
             >
@@ -3872,7 +4063,7 @@ export default function App() {
             </button>
           )}
 
-          <button
+          <button type="button"
             className={payment === "local" ? "paymentOption selected" : "paymentOption"}
             onClick={() => setPayment("local")}
           >
@@ -3894,7 +4085,7 @@ export default function App() {
               <p>
                 <strong>Chave PIX:</strong> {business.pixKey}
               </p>
-              <button className="black" onClick={() => copyText(business.pixKey)}>
+              <button type="button" className="black" onClick={() => copyText(business.pixKey)}>
                 Copiar chave PIX
               </button>
             </div>
@@ -3912,14 +4103,14 @@ export default function App() {
             <span>Total a pagar</span>
             <strong>{money(selectedPaymentTotal)}</strong>
           </div>
-          <button
+          <button type="button"
             className="confirmButton"
             disabled={cloudSaving === "appointment"}
             onClick={finishSchedule}
           >
             {cloudSaving === "appointment" ? "Reservando horário..." : "Confirmar agendamento"}
           </button>
-          <button className="outline" onClick={() => setScreen("home")}>
+          <button type="button" className="outline" onClick={() => setScreen("home")}>
             Voltar
           </button>
 
@@ -3990,7 +4181,7 @@ export default function App() {
           <a className="miniWhatsapp" href={`https://wa.me/${business.whatsapp}`} target="_blank" rel="noreferrer">
             WhatsApp
           </a>
-          <button className="ownerLoginButton" onClick={openAdminArea}>
+          <button type="button" className="ownerLoginButton" onClick={openAdminArea}>
             Entrar
           </button>
         </div>
@@ -4053,7 +4244,7 @@ export default function App() {
                 history.lastServices.map((index) => services[index]?.name).join(" + ")}
               .
             </p>
-            <button className="black" onClick={repeatLastService}>
+            <button type="button" className="black" onClick={repeatLastService}>
               Agendar novamente
             </button>
           </div>
@@ -4074,7 +4265,7 @@ export default function App() {
         </div>
 
         {activeServices.map((service) => (
-          <button
+          <button type="button"
             key={service.originalIndex}
             className={selectedServices.includes(service.originalIndex) ? "service selected" : "service"}
             onClick={() => toggleService(service.originalIndex)}
@@ -4122,7 +4313,7 @@ export default function App() {
 
           <div className="chips">
             {clientProfessionals.map((item) => (
-              <button
+              <button type="button"
                 key={item.name}
                 className={professional === item.name ? "chip activeChip" : "chip"}
                 onClick={() => {
@@ -4145,13 +4336,13 @@ export default function App() {
         <p className="hint">A agenda considera funcionamento, pausas, bloqueios e horários ocupados.</p>
 
         <div className="rangeTabs">
-          <button className={range === "today" ? "selected" : ""} onClick={() => setRange("today")}>
+          <button type="button" className={range === "today" ? "selected" : ""} onClick={() => setRange("today")}>
             Hoje
           </button>
-          <button className={range === "week" ? "selected" : ""} onClick={() => setRange("week")}>
+          <button type="button" className={range === "week" ? "selected" : ""} onClick={() => setRange("week")}>
             Semana
           </button>
-          <button className={range === "twoMonths" ? "selected" : ""} onClick={() => setRange("twoMonths")}>
+          <button type="button" className={range === "twoMonths" ? "selected" : ""} onClick={() => setRange("twoMonths")}>
             2 meses
           </button>
         </div>
@@ -4162,7 +4353,7 @@ export default function App() {
             const availability = getDateAvailability(dateText);
 
             return (
-              <button
+              <button type="button"
                 key={dateText}
                 className={[
                   "dateCard",
@@ -4215,7 +4406,7 @@ export default function App() {
             <strong>Fechado nesta data</strong>
             <p>Escolha outro dia ou ajuste a agenda no painel.</p>
             {waitlistAvailable && selectedServices.length > 0 && (
-              <button className="black" onClick={joinWaitlist}>
+              <button type="button" className="black" onClick={joinWaitlist}>
                 {waitlistSent ? "Você já está na lista de espera" : "Entrar na lista de espera"}
               </button>
             )}
@@ -4223,7 +4414,7 @@ export default function App() {
         ) : (
           <div className="timeGrid">
             {slots.map((slot) => (
-              <button
+              <button type="button"
                 key={slot.time}
                 className={[
                   "timeSlot",
@@ -4245,7 +4436,7 @@ export default function App() {
           <div className="waitlistBox">
             <strong>Nenhum horário livre neste dia</strong>
             <p>Entre na lista de espera para a barbearia te chamar quando abrir um encaixe.</p>
-            <button className="black" onClick={joinWaitlist}>
+            <button type="button" className="black" onClick={joinWaitlist}>
               {waitlistSent ? "Você já está na lista de espera" : "Entrar na lista de espera"}
             </button>
           </div>
@@ -4272,10 +4463,56 @@ export default function App() {
           <span>Total</span>
           <strong className="bottomTotal">{hasChosenService ? money(promotionalTotal) : "A definir"}</strong>
         </div>
-        <button className={canContinue ? "green" : "green disabled"} onClick={goCheckout}>
+        <button type="button" className={canContinue ? "green" : "green disabled"} onClick={goCheckout}>
           {hasChosenService ? "Continuar →" : "Escolha um serviço"}
         </button>
       </section>
     </main>
   );
 }
+
+
+
+
+
+
+function proSlug(){const p=window.location.pathname.split("/").filter(Boolean);return p[p.indexOf("painel")+1]||p[p.indexOf("agendamento")+1]||"master-barbearia";}
+function proClient(){return window.location.pathname.includes("/agendamento/");}
+function todayIsoPro(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+function promoOk(s){const t=todayIsoPro();return !!s.pro_promotions_enabled&&!!s.promotion_active&&(!s.promotion_start_date||t>=s.promotion_start_date)&&(!s.promotion_end_date||t<=s.promotion_end_date);}
+function directImage(url){const u=String(url||"").trim();return u&&(u.startsWith("http://")||u.startsWith("https://"))?u:"";}
+function AppProFeatures(){
+ const slug=proSlug();
+ const[ctx,setCtx]=useState({tab:"",admin:false});
+ const[bg,setBg]=useState({client_background_url:"",admin_background_url:"",client_background_opacity:.18,admin_background_opacity:.12});
+ const[media,setMedia]=useState({before_image_url:"",process_image_url:"",final_image_url:"",before_image_label:"Antes",process_image_label:"Processo",final_image_label:"Finalizado"});
+ const[services,setServices]=useState([]);
+ const[growth,setGrowth]=useState({pro_service_delete_enabled:true,pro_backplate_enabled:false,pro_appearance_media_enabled:false,pro_promotions_enabled:false,pro_loyalty_enabled:false,pro_waitlist_enabled:false,pro_instagram_enabled:false,pro_google_client_enabled:false,promotion_active:false,promotion_title:"Promoção online",promotion_description:"",promotion_discount:10,promotion_start_date:"",promotion_end_date:"",loyalty_enabled:false,loyalty_reward_description:"",loyalty_visit_goal:5,loyalty_discount:20,instagram_url:"",google_client_login_enabled:false});
+ const[waitlist,setWaitlist]=useState([]);const[clients,setClients]=useState([]);const[saving,setSaving]=useState("");const[msg,setMsg]=useState("");
+ useEffect(()=>{const tick=()=>setCtx({tab:window.__agendaProAdminTab||"",admin:window.__agendaProViewMode==="admin"&&window.__agendaProAdminLoggedIn===true});tick();const id=setInterval(tick,400);return()=>clearInterval(id);},[]);
+ function goTab(target){try{window.__agendaProAdminTab=target;const labels={services:"Serviços",appearance:"Aparência",improvements:"Melhorias"};const button=[...document.querySelectorAll("button")].find((b)=>(b.textContent||"").trim().toLowerCase()===String(labels[target]||target).toLowerCase());if(button)button.click();window.scrollTo({top:0,behavior:"smooth"});}catch(_e){}}
+ async function loadPro(){
+  const columns="logo_url,theme_color,client_background_url,admin_background_url,client_background_opacity,admin_background_opacity,before_image_url,process_image_url,final_image_url,before_image_label,process_image_label,final_image_label,pro_service_delete_enabled,pro_backplate_enabled,pro_appearance_media_enabled,pro_promotions_enabled,pro_loyalty_enabled,pro_waitlist_enabled,pro_instagram_enabled,pro_google_client_enabled,promotion_active,promotion_title,promotion_description,promotion_discount,promotion_start_date,promotion_end_date,loyalty_enabled,loyalty_reward_description,loyalty_visit_goal,loyalty_discount,instagram_url,google_client_login_enabled";
+  const shopReq=supabase.from("barbershops").select(columns).eq("slug",slug).single();
+  const servReq=supabase.from("services").select("id,name,price,duration,deleted_at").is("deleted_at",null).order("sort_order",{ascending:true});
+  const waitReq=supabase.rpc("get_admin_waitlist",{target_slug:slug});
+  const cliReq=supabase.rpc("get_loyalty_clients",{target_slug:slug});
+  const r=await Promise.allSettled([shopReq,servReq,waitReq,cliReq]);const shop=r[0].value?.data;const rows=r[1].value?.data;const w=r[2].value?.data;const c=r[3].value?.data;
+  if(shop){setBg({client_background_url:shop.client_background_url||"",admin_background_url:shop.admin_background_url||"",client_background_opacity:shop.client_background_opacity||.18,admin_background_opacity:shop.admin_background_opacity||.12});setMedia({logo_url:shop.logo_url||"",before_image_url:shop.before_image_url||"",process_image_url:shop.process_image_url||"",final_image_url:shop.final_image_url||"",before_image_label:shop.before_image_label||"Antes",process_image_label:shop.process_image_label||"Processo",final_image_label:shop.final_image_label||"Finalizado"});setGrowth(g=>({...g,...shop}));}
+  setServices((rows||[]).filter(x=>x.name));setWaitlist(w||[]);setClients(c||[]);
+ }
+ useEffect(()=>{loadPro();},[slug]);
+ useEffect(()=>{let layer=document.getElementById("agendaProBackgroundLayer");if(!layer){layer=document.createElement("div");layer.id="agendaProBackgroundLayer";Object.assign(layer.style,{position:"fixed",inset:"0",zIndex:"0",pointerEvents:"none",backgroundSize:"cover",backgroundPosition:"center"});document.body.prepend(layer);document.body.style.position="relative";}const url=growth.pro_backplate_enabled?(ctx.admin?bg.admin_background_url:bg.client_background_url):"";const op=Number(ctx.admin?bg.admin_background_opacity:bg.client_background_opacity)||0;if(!directImage(url)){layer.style.opacity="0";layer.style.backgroundImage="none";return;}layer.style.opacity=String(Math.max(0,Math.min(op,.7)));layer.style.backgroundImage="linear-gradient(rgba(7,10,13,.72),rgba(7,10,13,.72)), url('"+String(url).replace(/'/g,"%27")+"')";},[bg,growth.pro_backplate_enabled,ctx.admin]);
+ async function del(s){if(!window.confirm('Excluir o serviço "'+s.name+'"? O histórico antigo será mantido.'))return;setSaving('d'+s.id);setMsg("");try{const{error}=await supabase.rpc("soft_delete_service_by_name",{target_slug:slug,service_name_input:s.name});if(error)throw error;setServices(a=>a.filter(x=>x.id!==s.id));setMsg("Serviço excluído com segurança.");}catch(e){setMsg(e?.message||"Não foi possível excluir o serviço.");}finally{setSaving("");}}
+ async function saveBg(){setSaving("bg");setMsg("");try{const{error}=await supabase.rpc("save_background_settings",{target_slug:slug,client_background_url_input:bg.client_background_url||"",admin_background_url_input:bg.admin_background_url||"",client_background_opacity_input:Number(bg.client_background_opacity||.18),admin_background_opacity_input:Number(bg.admin_background_opacity||.12)});if(error)throw error;setMsg("Backplate salvo.");await loadPro();}catch(e){setMsg(e?.message||"Não foi possível salvar o backplate.");}finally{setSaving("");}}
+ async function saveMedia(){setSaving("media");setMsg("");try{const{error}=await supabase.rpc("save_appearance_media",{target_slug:slug,before_image_url_input:media.before_image_url||"",process_image_url_input:media.process_image_url||"",final_image_url_input:media.final_image_url||"",before_image_label_input:media.before_image_label||"Antes",process_image_label_input:media.process_image_label||"Processo",final_image_label_input:media.final_image_label||"Finalizado"});if(error)throw error;setMsg("Fotos Antes, Processo e Finalizado salvas.");await loadPro();}catch(e){setMsg(e?.message||"Não foi possível salvar as fotos.");}finally{setSaving("");}}
+ async function saveGrowth(){setSaving("growth");setMsg("");try{const{error}=await supabase.from("barbershops").update({pro_service_delete_enabled:!!growth.pro_service_delete_enabled,pro_backplate_enabled:!!growth.pro_backplate_enabled,pro_appearance_media_enabled:!!growth.pro_appearance_media_enabled,pro_promotions_enabled:!!growth.pro_promotions_enabled,pro_loyalty_enabled:!!growth.pro_loyalty_enabled,pro_waitlist_enabled:!!growth.pro_waitlist_enabled,pro_instagram_enabled:!!growth.pro_instagram_enabled,pro_google_client_enabled:!!growth.pro_google_client_enabled,promotion_active:!!growth.promotion_active,promotion_title:growth.promotion_title||"Promoção online",promotion_description:growth.promotion_description||"",promotion_discount:Number(growth.promotion_discount||0),promotion_start_date:growth.promotion_start_date||null,promotion_end_date:growth.promotion_end_date||null,loyalty_enabled:!!growth.loyalty_enabled,loyalty_reward_description:growth.loyalty_reward_description||"",loyalty_visit_goal:Number(growth.loyalty_visit_goal||5),loyalty_discount:Number(growth.loyalty_discount||0),instagram_url:growth.instagram_url||null,google_client_login_enabled:!!growth.google_client_login_enabled}).eq("slug",slug);if(error)throw error;setMsg("Melhorias salvas e liberadas nos locais corretos.");await loadPro();}catch(e){setMsg(e?.message||"Não foi possível salvar as melhorias.");}finally{setSaving("");}}
+ const imgs=[['before_image_url','before_image_label'],['process_image_url','process_image_label'],['final_image_url','final_image_label']].map(([u,l])=>({url:directImage(media[u]),label:media[l]})).filter(x=>x.url);
+ if(proClient()){const show=promoOk(growth);return <>{growth.pro_appearance_media_enabled&&imgs.length?<section className="portfolio proImageGallery">{imgs.map((i,idx)=><div key={idx} style={{backgroundImage:'linear-gradient(180deg,rgba(0,0,0,.02),rgba(0,0,0,.56)), url('+i.url+')'}}><span>{i.label}</span></div>)}</section>:null}{(show||(growth.pro_loyalty_enabled&&growth.loyalty_enabled)||(growth.pro_instagram_enabled&&growth.instagram_url)||(growth.pro_google_client_enabled&&growth.google_client_login_enabled))?<section className="safeFeatureClientBanner">{show?<div><strong>{growth.promotion_title}</strong><p>{growth.promotion_description}</p>{Number(growth.promotion_discount)>0?<span>{growth.promotion_discount}% de desconto</span>:null}</div>:null}{growth.pro_loyalty_enabled&&growth.loyalty_enabled?<p>Fidelidade: {growth.loyalty_reward_description}</p>:null}<div className="safeFeatureActions">{growth.pro_instagram_enabled&&growth.instagram_url?<a href={growth.instagram_url} target="_blank" rel="noreferrer">Abrir Instagram</a>:null}{growth.pro_google_client_enabled&&growth.google_client_login_enabled?<span>Login Google do cliente ativo</span>:null}</div></section>:null}</>}
+ if(!ctx.admin)return null;
+ if(ctx.tab==="services")return null;
+ if(ctx.tab==="appearance")return <section className="safeFeaturePanel appearancePremium"><div className="safeFeatureHeader"><div><span>Aparência</span><h2>Aparência premium da barbearia</h2><p>Personalize logo, cor, fundos e fotos do cliente com prévia antes de salvar.</p></div><a href={'/agendamento/'+slug}>Ver tela do cliente</a></div>{msg?<div className="safeFeatureNotice">{msg}</div>:null}<div className="appearancePremiumGrid"><div className="safeFeatureCard appearanceBrandCard"><h3>Identidade da barbearia</h3><label>Logo da barbearia</label><input value={media.logo_url||""} onChange={e=>setMedia(m=>({...m,logo_url:e.target.value}))} placeholder="https://site.com/logo.png"/><div className="logoPreview">{directImage(media.logo_url)?<img src={media.logo_url} alt="Logo da barbearia"/>:<span>Logo</span>}</div><label>Cor principal</label><input type="color" value={growth.theme_color||"#22c55e"} onChange={e=>setGrowth(g=>({...g,theme_color:e.target.value}))}/><p className="fieldHint">A cor principal ajuda a deixar o painel com a identidade da barbearia.</p></div>{growth.pro_backplate_enabled?<div className="safeFeatureCard"><h3>Planos de fundo</h3><label>Imagem de fundo do cliente</label><input value={bg.client_background_url} onChange={e=>setBg(b=>({...b,client_background_url:e.target.value}))} placeholder="https://site.com/fundo-cliente.jpg"/>{directImage(bg.client_background_url)?<div className="imagePreview" style={{backgroundImage:'url('+bg.client_background_url+')'}}><button type="button" onClick={()=>setBg(b=>({...b,client_background_url:""}))}>Limpar</button></div>:<p className="fieldHint">Use link direto .jpg, .png ou .webp.</p>}<label>Opacidade cliente</label><input type="number" min="0" max="0.7" step="0.05" value={bg.client_background_opacity} onChange={e=>setBg(b=>({...b,client_background_opacity:e.target.value}))}/><label>Imagem de fundo do painel</label><input value={bg.admin_background_url} onChange={e=>setBg(b=>({...b,admin_background_url:e.target.value}))} placeholder="https://site.com/fundo-painel.jpg"/>{directImage(bg.admin_background_url)?<div className="imagePreview" style={{backgroundImage:'url('+bg.admin_background_url+')'}}><button type="button" onClick={()=>setBg(b=>({...b,admin_background_url:""}))}>Limpar</button></div>:null}<label>Opacidade painel</label><input type="number" min="0" max="0.7" step="0.05" value={bg.admin_background_opacity} onChange={e=>setBg(b=>({...b,admin_background_opacity:e.target.value}))}/></div>:<div className="safeFeatureCard"><h3>Backplate desativado</h3><p>Ative em Melhorias para liberar os fundos do cliente e do painel.</p></div>}{growth.pro_appearance_media_enabled?<div className="safeFeatureCard appearancePhotos"><h3>Fotos Antes / Processo / Finalizado</h3>{[['before_image_url','before_image_label','Antes'],['process_image_url','process_image_label','Processo'],['final_image_url','final_image_label','Finalizado']].map(([urlKey,labelKey,title])=><div className="photoConfig" key={urlKey}><label>Foto {title}</label><input value={media[urlKey]||""} onChange={e=>setMedia(m=>({...m,[urlKey]:e.target.value}))} placeholder={'https://site.com/'+String(title).toLowerCase()+'.jpg'}/>{directImage(media[urlKey])?<div className="imagePreview photoPreview" style={{backgroundImage:'url('+media[urlKey]+')'}}><button type="button" onClick={()=>setMedia(m=>({...m,[urlKey]:""}))}>Limpar</button></div>:<div className="emptyPreview">Prévia da imagem</div>}<label>Legenda {title}</label><input value={media[labelKey]||title} onChange={e=>setMedia(m=>({...m,[labelKey]:e.target.value}))}/></div>)}</div>:<div className="safeFeatureCard"><h3>Fotos do cliente desativadas</h3><p>Ative em Melhorias para liberar as fotos Antes, Processo e Finalizado.</p></div>}<div className="safeFeatureCard clientScreenPreview"><h3>Prévia da tela do cliente</h3><div className="phonePreview" style={{borderColor:growth.theme_color||"#22c55e"}}>{directImage(bg.client_background_url)?<div className="phoneBg" style={{backgroundImage:'linear-gradient(rgba(0,0,0,.5),rgba(0,0,0,.78)), url('+bg.client_background_url+')'}}/>:null}<div className="phoneContent">{directImage(media.logo_url)?<img src={media.logo_url} alt="Logo"/>:<div className="phoneLogo">Logo</div>}<strong>Agende seu horário</strong><small>Escolha serviço, profissional e horário disponível.</small><div className="phoneButton" style={{background:growth.theme_color||"#22c55e"}}>Continuar</div>{growth.pro_appearance_media_enabled&&imgs.length?<div className="miniGallery">{imgs.slice(0,3).map((i,idx)=><span key={idx} style={{backgroundImage:'url('+i.url+')'}}>{i.label}</span>)}</div>:null}</div></div></div><div className="safeFeatureCard appearanceActions"><h3>Salvar aparência</h3><p>Salva logo, cor principal, fundos e fotos em uma única ação.</p><button type="button" disabled={saving==='premiumAppearance'} onClick={async()=>{setSaving('premiumAppearance');setMsg('');try{const{error}=await supabase.rpc('save_premium_appearance',{target_slug:slug,logo_url_input:media.logo_url||'',theme_color_input:growth.theme_color||'#22c55e',client_background_url_input:bg.client_background_url||'',admin_background_url_input:bg.admin_background_url||'',client_background_opacity_input:Number(bg.client_background_opacity||.18),admin_background_opacity_input:Number(bg.admin_background_opacity||.12),before_image_url_input:media.before_image_url||'',process_image_url_input:media.process_image_url||'',final_image_url_input:media.final_image_url||'',before_image_label_input:media.before_image_label||'Antes',process_image_label_input:media.process_image_label||'Processo',final_image_label_input:media.final_image_label||'Finalizado'});if(error)throw error;setMsg('Aparência premium salva.');await loadPro();}catch(e){setMsg(e?.message||'Não foi possível salvar a aparência.');}finally{setSaving('');}}}>{saving==='premiumAppearance'?'Salvando...':'Salvar aparência'}</button><button type="button" className="secondaryModuleButton" onClick={()=>window.open('/agendamento/'+slug,'_blank')}>Ver tela do cliente</button></div></div></section>;
+ if(ctx.tab==="improvements"){const modules=[{group:"Serviços",items:[{key:"pro_service_delete_enabled",title:"Excluir serviço seguro",desc:"Permite remover um serviço da vitrine sem apagar agendamentos antigos.",tab:"services",depends:"Precisa existir pelo menos um serviço cadastrado."}]},{group:"Aparência",items:[{key:"pro_backplate_enabled",title:"Backplate",desc:"Libera plano de fundo personalizado para cliente e painel.",tab:"appearance",depends:"Usa link direto de imagem .jpg, .png ou .webp."},{key:"pro_appearance_media_enabled",title:"Fotos Antes / Processo / Finalizado",desc:"Mostra três fotos no painel do cliente, com legenda opcional.",tab:"appearance",depends:"Precisa cadastrar os links das imagens na aba Aparência."}]},{group:"Marketing",items:[{key:"pro_promotions_enabled",title:"Promoções",desc:"Exibe promoção ativa no painel do cliente.",tab:"improvements",depends:"Também marque Promoção ativa e salve o texto/desconto."},{key:"pro_instagram_enabled",title:"Instagram",desc:"Mostra botão direto para o Instagram da barbearia.",tab:"improvements",depends:"Informe o link do Instagram abaixo."}]},{group:"Clientes",items:[{key:"pro_loyalty_enabled",title:"Fidelidade",desc:"Libera controle de pontos, visitas e recompensa para clientes.",tab:"improvements",depends:"Também ative Fidelidade e salve a recompensa."},{key:"pro_waitlist_enabled",title:"Lista de espera",desc:"Permite acompanhar clientes aguardando horário.",tab:"improvements",depends:"Depende de clientes entrarem na lista de espera."},{key:"pro_google_client_enabled",title:"Login Google cliente",desc:"Libera identificação do cliente com conta Google.",tab:"improvements",depends:"Também marque Login Google do cliente."}]}];return <section className="safeFeaturePanel improvementsCenter"><div className="safeFeatureHeader"><div><span>Melhorias</span><h2>Central de módulos PRO</h2><p>Ative ou desative cada recurso. Depois use Configurar para ir direto ao local correto.</p></div></div>{msg?<div className="safeFeatureNotice">{msg}</div>:null}<div className="improvementGroups">{modules.map((group)=><div className="improvementGroup" key={group.group}><h3>{group.group}</h3>{group.items.map((item)=><article className={growth[item.key]?"improvementModule active":"improvementModule"} key={item.key}><div className="improvementTop"><span className="moduleStatus">{growth[item.key]?"Ativo":"Desativado"}</span><label><input type="checkbox" checked={!!growth[item.key]} onChange={e=>setGrowth(g=>({...g,[item.key]:e.target.checked}))}/>{item.title}</label></div><p>{item.desc}</p><small>{item.depends}</small><div className="moduleActions"><button type="button" onClick={saveGrowth} disabled={saving==='growth'}>{saving==='growth'?"Salvando...":growth[item.key]?"Desativar/Salvar":"Ativar/Salvar"}</button><button type="button" className="secondaryModuleButton" onClick={()=>goTab(item.tab)}>Configurar</button></div></article>)}</div>)}</div><div className="safeFeatureGrid"><div className="safeFeatureCard"><h3>Configuração de promoções</h3><label><input type="checkbox" checked={!!growth.promotion_active} onChange={e=>setGrowth(g=>({...g,promotion_active:e.target.checked}))}/> Promoção ativa</label><input value={growth.promotion_title||""} onChange={e=>setGrowth(g=>({...g,promotion_title:e.target.value}))} placeholder="Título da promoção"/><textarea value={growth.promotion_description||""} onChange={e=>setGrowth(g=>({...g,promotion_description:e.target.value}))} placeholder="Descrição da promoção"/><input type="number" value={growth.promotion_discount||0} onChange={e=>setGrowth(g=>({...g,promotion_discount:e.target.value}))} placeholder="Desconto %"/><button type="button" disabled={saving==='growth'} onClick={saveGrowth}>{saving==='growth'?'Salvando...':'Salvar promoção'}</button></div><div className="safeFeatureCard"><h3>Configuração de fidelidade</h3><label><input type="checkbox" checked={!!growth.loyalty_enabled} onChange={e=>setGrowth(g=>({...g,loyalty_enabled:e.target.checked}))}/> Fidelidade ativa</label><textarea value={growth.loyalty_reward_description||""} onChange={e=>setGrowth(g=>({...g,loyalty_reward_description:e.target.value}))} placeholder="Recompensa do cliente"/><button type="button" disabled={saving==='growth'} onClick={saveGrowth}>{saving==='growth'?'Salvando...':'Salvar fidelidade'}</button>{growth.pro_loyalty_enabled?clients.slice(0,5).map(c=><article className="safeFeatureRow" key={c.id||c.whatsapp}><span><strong>{c.name}</strong><small>{c.visit_count||0} visitas · {c.loyalty_points||0} pontos</small></span></article>):null}</div>{growth.pro_waitlist_enabled?<div className="safeFeatureCard"><h3>Lista de espera</h3>{waitlist.length?waitlist.slice(0,8).map(w=><article className="safeFeatureRow" key={w.id}><span><strong>{w.client_name}</strong><small>{w.preferred_date||'Sem data'} · {w.service_text||'Serviço'}</small><small>{w.whatsapp}</small></span></article>):<p>Nenhum cliente aguardando.</p>}</div>:null}<div className="safeFeatureCard"><h3>Instagram e Google</h3><input value={growth.instagram_url||""} onChange={e=>setGrowth(g=>({...g,instagram_url:e.target.value}))} placeholder="https://instagram.com/sua_barbearia"/><label><input type="checkbox" checked={!!growth.google_client_login_enabled} onChange={e=>setGrowth(g=>({...g,google_client_login_enabled:e.target.checked}))}/> Login Google do cliente</label><button type="button" disabled={saving==='growth'} onClick={saveGrowth}>{saving==='growth'?'Salvando...':'Salvar canais'}</button></div></div></section>}
+ return null;
+}
+export default function App(){return <><CoreAgendaProApp/><AppProFeatures/></>;}

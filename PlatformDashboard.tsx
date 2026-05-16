@@ -4,14 +4,14 @@ import { supabase } from "./supabaseClient";
 import "./styles.css";
 
 const featureLabels = {
-  pix: "PIX antecipado",
-  auto_confirmation: "Confirmação WhatsApp",
+  service_delete: "Excluir serviço seguro",
+  backplate: "Backplate / plano de fundo",
+  appearance_media: "Fotos Antes / Processo / Finalizado",
   promotions: "Promoções",
   waitlist: "Lista de espera",
   loyalty: "Fidelidade",
-  google_login: "Login Google do cliente",
-  instagram_booking: "Instagram",
-  unique_link: "Link de remarcar/cancelar",
+  google_client: "Login Google do cliente",
+  instagram: "Instagram",
 };
 
 const planLabels = {
@@ -109,6 +109,7 @@ function emptyForm() {
     address: "",
     pix_key: "",
     theme_color: "#22c55e",
+    plan_price: 89,
   };
 }
 
@@ -124,7 +125,7 @@ function StatCard({ label, value, hint }) {
   return (
     <div className="platformStat">
       <span>{label}</span>
-      <strong>{value ?? "—"}</strong>
+      <strong>{value ?? "-"}</strong>
       {hint ? <small>{hint}</small> : null}
     </div>
   );
@@ -284,6 +285,22 @@ export default function PlatformDashboard() {
 
       if (error) throw error;
 
+      try {
+        await supabase.rpc("update_platform_barbershop", {
+          target_slug: newShop.slug || makeSlug(newShop.name),
+          name_input: newShop.name,
+          whatsapp_input: onlyDigits(newShop.whatsapp),
+          owner_email_input: newShop.owner_email,
+          plan_input: newShop.plan,
+          monthly_status_input: newShop.monthly_status,
+          next_billing_date_input: newShop.next_billing_date || null,
+          address_input: newShop.address,
+          pix_key_input: newShop.pix_key,
+          theme_color_input: newShop.theme_color || "#22c55e",
+          plan_price_input: Number(newShop.plan_price || 0),
+        });
+      } catch (_syncPriceError) {}
+
       setMessage(`Barbearia cadastrada. Cliente: ${data?.link_cliente || ""} Painel: ${data?.link_painel || ""}`);
       setNewShop(emptyForm());
       setSlugTouched(false);
@@ -313,11 +330,29 @@ export default function PlatformDashboard() {
         address_input: selectedShop.address,
         pix_key_input: selectedShop.pix_key,
         theme_color_input: selectedShop.theme_color || "#22c55e",
+        plan_price_input: Number(selectedShop.plan_price || 0),
       });
 
       if (error) throw error;
 
       setMessage("Barbearia atualizada com sucesso.");
+      await loadDashboard();
+    } catch (error) {
+      setMessage(errorText(error));
+    } finally {
+      setSaving("");
+    }
+  }
+
+  async function hideShopFromPlatform(shop) {
+    if (!shop?.slug) return;
+    setSaving("hide-" + shop.slug);
+    setMessage("");
+    try {
+      const { error } = await supabase.rpc("archive_platform_barbershop", { target_slug: shop.slug });
+      if (error) throw error;
+      if (selectedShop?.slug === shop.slug) setSelectedShop(null);
+      setMessage("Barbearia removida da lista do painel. Ela continua cadastrada no banco de dados.");
       await loadDashboard();
     } catch (error) {
       setMessage(errorText(error));
@@ -483,8 +518,10 @@ export default function PlatformDashboard() {
               <span><label>Plano</label><select value={newShop.plan} onChange={(event) => updateNewShop("plan", event.target.value)}><option value="starter">Inicial</option><option value="professional">Profissional</option><option value="premium">Premium</option></select></span>
               <span><label>Status</label><select value={newShop.monthly_status} onChange={(event) => updateNewShop("monthly_status", event.target.value)}>{statusOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></span>
             </div>
-            <label>Vencimento</label>
-            <input value={newShop.next_billing_date} onChange={(event) => updateNewShop("next_billing_date", event.target.value)} type="date" />
+            <div className="platformTwoCols">
+              <span><label>Vencimento</label><input value={newShop.next_billing_date} onChange={(event) => updateNewShop("next_billing_date", event.target.value)} type="date" /></span>
+              <span><label>Valor mensal</label><input value={newShop.plan_price || ""} onChange={(event) => updateNewShop("plan_price", event.target.value)} type="number" min="0" step="1" placeholder="89" /></span>
+            </div>
             <div className="platformTwoCols">
               <span><label>CEP</label><input value={newShop.cep || ""} onChange={(event) => updateNewShop("cep", event.target.value)} placeholder="00000000" inputMode="numeric" /></span>
               <span><label>Número do comércio</label><input value={newShop.address_number || ""} onChange={(event) => updateNewShop("address_number", event.target.value)} placeholder="123" /></span>
@@ -521,6 +558,7 @@ export default function PlatformDashboard() {
                   <button type="button" onClick={() => setSelectedShop(JSON.parse(JSON.stringify(shop)))}>Editar</button>
                   <a href={`/painel/${shop.slug}`} target="_blank" rel="noreferrer">Entrar no painel</a>
                   <a href={`/agendamento/${shop.slug}`} target="_blank" rel="noreferrer">Link cliente</a>
+                  <button type="button" className="platformDanger" disabled={saving === "hide-" + shop.slug} onClick={() => hideShopFromPlatform(shop)}>{saving === "hide-" + shop.slug ? "Removendo..." : "Remover da lista"}</button>
                 </div>
               </article>
             )) : <p className="platformMuted">Nenhuma barbearia encontrada nesse filtro.</p>}
@@ -540,7 +578,10 @@ export default function PlatformDashboard() {
                 <span><label>Plano</label><select value={selectedShop.plan || "professional"} onChange={(event) => updateSelected("plan", event.target.value)}><option value="starter">Inicial</option><option value="professional">Profissional</option><option value="premium">Premium</option></select></span>
                 <span><label>Status</label><select value={selectedShop.monthly_status || "active"} onChange={(event) => updateSelected("monthly_status", event.target.value)}>{statusOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></span>
               </div>
-              <label>Vencimento</label><input value={selectedShop.next_billing_date || ""} onChange={(event) => updateSelected("next_billing_date", event.target.value)} type="date" />
+              <div className="platformTwoCols">
+                <span><label>Vencimento</label><input value={selectedShop.next_billing_date || ""} onChange={(event) => updateSelected("next_billing_date", event.target.value)} type="date" /></span>
+                <span><label>Valor mensal</label><input value={selectedShop.plan_price ?? ""} onChange={(event) => updateSelected("plan_price", event.target.value)} type="number" min="0" step="1" placeholder="89" /></span>
+              </div>
               <div className="platformTwoCols">
                 <span><label>CEP</label><input value={selectedShop.cep || ""} onChange={(event) => updateSelected("cep", event.target.value)} placeholder="00000000" inputMode="numeric" /></span>
                 <span><label>Número do comércio</label><input value={selectedShop.address_number || ""} onChange={(event) => updateSelected("address_number", event.target.value)} placeholder="123" /></span>
@@ -552,7 +593,7 @@ export default function PlatformDashboard() {
               <button type="submit" className="platformPrimary" disabled={saving === "shop"}>{saving === "shop" ? "Salvando..." : "Salvar dados da barbearia"}</button>
             </form>
             <div className="platformFeatures">
-              <h3>Funções liberadas</h3>
+              <h3>Funções liberadas por plano</h3><p className="platformMuted">Ative aqui e o recurso aparece automaticamente no lugar certo do painel da barbearia.</p>
               {Object.keys(featureLabels).map((key) => {
                 const item = selectedShop.features?.[key] || {};
                 return <label className="platformFeature" key={key}><span><strong>{featureLabels[key]}</strong><small>{key}</small></span><span className="featureChecks"><em>Liberado</em><input type="checkbox" checked={Boolean(item.released)} onChange={(event) => updateFeature(key, "released", event.target.checked)} /><em>Ativo</em><input type="checkbox" checked={Boolean(item.enabled)} onChange={(event) => updateFeature(key, "enabled", event.target.checked)} /></span></label>;

@@ -684,9 +684,12 @@ function CoreAgendaProApp() {
   const [adminLoggedIn, setAdminLoggedIn] = useState(false);
   useEffect(()=>{if(typeof window!=="undefined"){window.__agendaProAdminTab=adminTab;window.__agendaProViewMode=viewMode;window.__agendaProAdminLoggedIn=adminLoggedIn;}},[adminTab,viewMode,adminLoggedIn]);
   const [adminEmail, setAdminEmail] = useState("");
-  const [adminAccessCode, setAdminAccessCode] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
   const [adminLoginError, setAdminLoginError] = useState("");
   const [adminContext, setAdminContext] = useState(null);
+  const [passwordForm, setPasswordForm] = useState({ next: "", confirm: "" });
+  const [passwordSaving, setPasswordSaving] = useState("");
+  const [passwordMessage, setPasswordMessage] = useState("");
   const [barberGateWhatsapp, setBarberGateWhatsapp] = useState("");
   const [barberGateName, setBarberGateName] = useState("");
   const [barberGateError, setBarberGateError] = useState("");
@@ -2505,26 +2508,68 @@ function CoreAgendaProApp() {
     }
   }
 
-  function loginAdmin() {
+  async function loginAdmin() {
     const normalizedEmail = adminEmail.trim().toLowerCase();
-    const emailAllowed = isAdminEmailAllowed(normalizedEmail);
-    const codeAllowed = adminAccessCode.trim() === "123456";
 
-    if (!emailAllowed || !codeAllowed) {
-      setAdminLoginError("E-mail ou código de acesso inválido.");
+    if (!normalizedEmail || !adminPassword) {
+      setAdminLoginError("Informe o e-mail e a senha cadastrados.");
       return;
     }
 
-    enterAdminWithEmail(normalizedEmail);
+    setAdminLoginError("");
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: normalizedEmail,
+        password: adminPassword,
+      });
+
+      if (error) throw error;
+
+      setAdminPassword("");
+      await handleAuthSession(data?.session);
+    } catch {
+      setAdminLoginError("E-mail ou senha inválidos para este painel.");
+    }
   }
 
   function logoutAdmin() {
     supabase.auth.signOut();
     setAdminLoggedIn(false);
-    setAdminAccessCode("");
-    setViewMode("client");
-    setScreen("home");
-    window.scrollTo(0, 0);
+    setAdminPassword("");
+    setPasswordForm({ next: "", confirm: "" });
+    setPasswordMessage("");
+    goToClientView();
+  }
+
+  async function updateOwnPassword() {
+    const nextPassword = passwordForm.next.trim();
+
+    if (nextPassword.length < 6) {
+      setPasswordMessage("A nova senha precisa ter pelo menos 6 caracteres.");
+      return;
+    }
+
+    if (nextPassword !== passwordForm.confirm.trim()) {
+      setPasswordMessage("A confirmação da senha não confere.");
+      return;
+    }
+
+    setPasswordSaving("password");
+    setPasswordMessage("");
+
+    try {
+      const { error } = await supabase.auth.updateUser({ password: nextPassword });
+
+      if (error) throw error;
+
+      setPasswordForm({ next: "", confirm: "" });
+      setPasswordMessage("Senha atualizada com sucesso.");
+    } catch {
+      setPasswordMessage("Não foi possível alterar a senha. Entre novamente e tente de novo.");
+    } finally {
+      setPasswordSaving("");
+    }
   }
 
   function resetDemoData() {
@@ -2717,18 +2762,18 @@ function CoreAgendaProApp() {
             onChange={(event) => setAdminEmail(event.target.value)}
           />
 
-          <label>Código de acesso</label>
+          <label>Senha</label>
           <input
             type="password"
-            placeholder="Digite o código"
-            value={adminAccessCode}
-            onChange={(event) => setAdminAccessCode(event.target.value)}
+            placeholder="Digite sua senha"
+            value={adminPassword}
+            onChange={(event) => setAdminPassword(event.target.value)}
           />
 
           {adminLoginError && <p className="loginError">{adminLoginError}</p>}
 
           <button type="button" className="green" onClick={loginAdmin}>
-            Entrar no painel
+            Entrar com e-mail e senha
           </button>
 
           <button type="button" className="googleButton" onClick={loginWithGoogle}>
@@ -2736,8 +2781,8 @@ function CoreAgendaProApp() {
           </button>
 
           <p className="adminNote">
-            Acesso de teste: use dyoser2@gmail.com com o código 123456. O login com
-            Google precisa estar ativado na autenticação para funcionar em produção.
+            Use o e-mail cadastrado pela plataforma. O dono pode alterar a própria senha
+            dentro da aba Conta.
           </p>
         </section>
       </main>
@@ -3549,6 +3594,37 @@ function CoreAgendaProApp() {
               Cada barbearia tem um app próprio, definido pelo identificador do link.
               O cliente acessa o agendamento; o responsável acessa o painel protegido.
             </p>
+          </div>
+
+          <div className="passwordPanel">
+            <h3>Alterar senha de acesso</h3>
+            <p className="hint">
+              Esta senha é do login da barbearia no Supabase Auth. Ela vale para o e-mail
+              que está conectado neste painel.
+            </p>
+            <label>Nova senha</label>
+            <input
+              type="password"
+              value={passwordForm.next}
+              onChange={(event) => setPasswordForm({ ...passwordForm, next: event.target.value })}
+              placeholder="mínimo 6 caracteres"
+            />
+            <label>Confirmar nova senha</label>
+            <input
+              type="password"
+              value={passwordForm.confirm}
+              onChange={(event) => setPasswordForm({ ...passwordForm, confirm: event.target.value })}
+              placeholder="repita a nova senha"
+            />
+            {passwordMessage && <p className="adminNote">{passwordMessage}</p>}
+            <button
+              type="button"
+              className="black"
+              disabled={passwordSaving === "password"}
+              onClick={updateOwnPassword}
+            >
+              {passwordSaving === "password" ? "Alterando senha..." : "Alterar minha senha"}
+            </button>
           </div>
 
           <label>E-mail responsável</label>

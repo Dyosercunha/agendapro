@@ -104,6 +104,7 @@ function emptyForm() {
     slug: "",
     whatsapp: "",
     owner_email: "",
+    owner_password: "",
     plan: "professional",
     monthly_status: "trial",
     next_billing_date: "",
@@ -146,6 +147,7 @@ export default function PlatformDashboard() {
   const [saving, setSaving] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
   const [filter, setFilter] = useState("all");
+  const [platformLogin, setPlatformLogin] = useState({ email: "dyoser2@gmail.com", password: "" });
 
   const shops = dashboard?.barbershops || [];
 
@@ -221,6 +223,24 @@ export default function PlatformDashboard() {
     if (error) setMessage(errorText(error));
   }
 
+  async function loginWithPassword() {
+    setSaving("platform-login");
+    setMessage("");
+
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: platformLogin.email.trim().toLowerCase(),
+        password: platformLogin.password,
+      });
+
+      if (error) throw error;
+    } catch (error) {
+      setMessage("Não foi possível entrar com e-mail e senha: " + errorText(error));
+    } finally {
+      setSaving("");
+    }
+  }
+
   async function logout() {
     await supabase.auth.signOut();
     setIsDeveloper(false);
@@ -267,6 +287,40 @@ export default function PlatformDashboard() {
     }
   }
 
+  async function syncOwnerAuthUser({ slug, email, password, role = "owner" }) {
+    if (!password) return { skipped: true };
+
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData?.session?.access_token;
+
+    if (!token) {
+      throw new Error("Sessão da plataforma expirada. Entre novamente para criar o login.");
+    }
+
+    const response = await fetch("/api/admin-auth-user", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        barbershopSlug: slug,
+        email,
+        password,
+        role,
+        active: true,
+      }),
+    });
+
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok || result.ok === false) {
+      throw new Error(result.error || "Não foi possível criar o login do dono.");
+    }
+
+    return result;
+  }
+
   async function createShop(event) {
     event.preventDefault();
     setSaving("create");
@@ -304,7 +358,25 @@ export default function PlatformDashboard() {
         });
       } catch (_syncPriceError) {}
 
-      setMessage(`Barbearia cadastrada. Cliente: ${data?.link_cliente || ""} Painel: ${data?.link_painel || ""}`);
+      let loginMessage = "";
+
+      if (newShop.owner_password) {
+        try {
+          await syncOwnerAuthUser({
+            slug: newShop.slug || makeSlug(newShop.name),
+            email: newShop.owner_email,
+            password: newShop.owner_password,
+            role: "owner",
+          });
+          loginMessage = " Login do dono criado.";
+        } catch (authError) {
+          loginMessage = ` Login do dono não foi criado: ${errorText(authError)}`;
+        }
+      }
+
+      setMessage(
+        `Barbearia cadastrada. Cliente: ${data?.link_cliente || ""} Painel: ${data?.link_painel || ""}${loginMessage}`
+      );
       setNewShop(emptyForm());
       setSlugTouched(false);
       await loadDashboard();
@@ -338,7 +410,24 @@ export default function PlatformDashboard() {
 
       if (error) throw error;
 
-      setMessage("Barbearia atualizada com sucesso.");
+      let loginMessage = "";
+
+      if (selectedShop.owner_password) {
+        try {
+          await syncOwnerAuthUser({
+            slug: selectedShop.slug,
+            email: selectedShop.owner_email,
+            password: selectedShop.owner_password,
+            role: "owner",
+          });
+          updateSelected("owner_password", "");
+          loginMessage = " Login do dono atualizado.";
+        } catch (authError) {
+          loginMessage = ` Login do dono não foi atualizado: ${errorText(authError)}`;
+        }
+      }
+
+      setMessage(`Barbearia atualizada com sucesso.${loginMessage}`);
       await loadDashboard();
     } catch (error) {
       setMessage(errorText(error));
@@ -463,10 +552,36 @@ export default function PlatformDashboard() {
           <div>
             <span>Painel Plataforma</span>
             <h1>AgendaPro</h1>
-            <p>Entre com o Google de desenvolvedor para cadastrar barbearias, liberar funções e administrar planos.</p>
+            <p>Entre como desenvolvedor para cadastrar barbearias, liberar funções e administrar planos.</p>
             {message ? <p className="platformNotice">{message}</p> : null}
           </div>
-          <button type="button" className="platformPrimary platformLoginButton" onClick={login}>Entrar com Google</button>
+          <div className="platformLoginBox">
+            <label>E-mail</label>
+            <input
+              type="email"
+              value={platformLogin.email}
+              onChange={(event) => setPlatformLogin({ ...platformLogin, email: event.target.value })}
+              placeholder="dyoser2@gmail.com"
+            />
+            <label>Senha</label>
+            <input
+              type="password"
+              value={platformLogin.password}
+              onChange={(event) => setPlatformLogin({ ...platformLogin, password: event.target.value })}
+              placeholder="Digite sua senha"
+            />
+            <button
+              type="button"
+              className="platformPrimary platformLoginButton"
+              disabled={saving === "platform-login"}
+              onClick={loginWithPassword}
+            >
+              {saving === "platform-login" ? "Entrando..." : "Entrar com e-mail e senha"}
+            </button>
+            <button type="button" className="platformSecondary platformLoginButton" onClick={login}>
+              Entrar com Google
+            </button>
+          </div>
         </section>
       </main>
     );
@@ -517,6 +632,8 @@ export default function PlatformDashboard() {
             <input value={newShop.whatsapp} onChange={(event) => updateNewShop("whatsapp", event.target.value)} placeholder="5551999999999" />
             <label>E-mail do dono</label>
             <input value={newShop.owner_email} onChange={(event) => updateNewShop("owner_email", event.target.value)} type="email" placeholder="dono@email.com" required />
+            <label>Senha inicial do dono</label>
+            <input value={newShop.owner_password || ""} onChange={(event) => updateNewShop("owner_password", event.target.value)} type="password" placeholder="mínimo 6 caracteres" />
             <div className="platformTwoCols">
               <span><label>Plano</label><select value={newShop.plan} onChange={(event) => updateNewShop("plan", event.target.value)}><option value="starter">Inicial</option><option value="professional">Profissional</option><option value="premium">Premium</option></select></span>
               <span><label>Status</label><select value={newShop.monthly_status} onChange={(event) => updateNewShop("monthly_status", event.target.value)}>{statusOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></span>
@@ -577,6 +694,7 @@ export default function PlatformDashboard() {
               <label>Nome</label><input value={selectedShop.name || ""} onChange={(event) => updateSelected("name", event.target.value)} />
               <label>WhatsApp</label><input value={selectedShop.whatsapp || ""} onChange={(event) => updateSelected("whatsapp", event.target.value)} />
               <label>E-mail do dono</label><input value={selectedShop.owner_email || ""} onChange={(event) => updateSelected("owner_email", event.target.value)} type="email" />
+              <label>Nova senha do dono</label><input value={selectedShop.owner_password || ""} onChange={(event) => updateSelected("owner_password", event.target.value)} type="password" placeholder="preencha apenas se quiser alterar" />
               <div className="platformTwoCols">
                 <span><label>Plano</label><select value={selectedShop.plan || "professional"} onChange={(event) => updateSelected("plan", event.target.value)}><option value="starter">Inicial</option><option value="professional">Profissional</option><option value="premium">Premium</option></select></span>
                 <span><label>Status</label><select value={selectedShop.monthly_status || "active"} onChange={(event) => updateSelected("monthly_status", event.target.value)}>{statusOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></span>

@@ -20,6 +20,15 @@ function errorMessage(error) {
   return error?.message || error?.error_description || String(error || "Erro desconhecido.");
 }
 
+function normalizeRole(value = "") {
+  const role = String(value).trim().toLowerCase();
+
+  if (["owner", "dono"].includes(role)) return "owner";
+  if (["platform", "developer", "desenvolvedor", "plataforma"].includes(role)) return "platform";
+
+  return "manager";
+}
+
 async function findUserByEmail(adminClient, email) {
   for (let page = 1; page <= 20; page += 1) {
     const { data, error } = await adminClient.auth.admin.listUsers({ page, perPage: 1000 });
@@ -71,20 +80,6 @@ export default async function handler(request, response) {
     return response.status(401).json({ ok: false, error: "Sessão inválida ou expirada." });
   }
 
-  const { data: platformAdmin, error: platformError } = await adminClient
-    .from("platform_admins")
-    .select("email, active")
-    .eq("email", requesterEmail)
-    .eq("active", true)
-    .maybeSingle();
-
-  if (platformError || !platformAdmin) {
-    return response.status(403).json({
-      ok: false,
-      error: "Apenas o administrador da plataforma pode criar ou alterar logins.",
-    });
-  }
-
   let payload = {};
 
   try {
@@ -95,7 +90,7 @@ export default async function handler(request, response) {
   const email = cleanEmail(payload.email);
   const password = String(payload.password || "");
   const barbershopSlug = String(payload.barbershopSlug || payload.slug || "").trim();
-  const role = String(payload.role || "owner").trim() || "owner";
+  let role = normalizeRole(payload.role || "owner");
   const active = payload.active !== false;
 
   if (!email || !email.includes("@")) {
@@ -118,6 +113,35 @@ export default async function handler(request, response) {
 
   if (shopError || !shop) {
     return response.status(404).json({ ok: false, error: "Barbearia não encontrada para vincular o login." });
+  }
+
+  const { data: platformAdmin, error: platformError } = await adminClient
+    .from("platform_admins")
+    .select("email, active")
+    .eq("email", requesterEmail)
+    .eq("active", true)
+    .maybeSingle();
+
+  const { data: barbershopAdmin, error: adminError } = await adminClient
+    .from("barbershop_admins")
+    .select("email, role, active")
+    .eq("barbershop_id", shop.id)
+    .eq("email", requesterEmail)
+    .eq("active", true)
+    .maybeSingle();
+
+  const requesterRole = normalizeRole(barbershopAdmin?.role);
+  const canManageLogin = Boolean(platformAdmin) || requesterRole === "owner";
+
+  if (platformError || adminError || !canManageLogin) {
+    return response.status(403).json({
+      ok: false,
+      error: "Apenas o desenvolvedor da plataforma ou o dono desta barbearia pode criar ou alterar logins.",
+    });
+  }
+
+  if (!platformAdmin && role === "platform") {
+    role = "manager";
   }
 
   let authUser = null;

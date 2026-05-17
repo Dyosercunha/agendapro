@@ -479,7 +479,7 @@ function mapBusinessFromCloud(row, account) {
     logo: repairText(row.logo_text || "B"),
     logoImage: row.logo_url || "",
     slug: row.slug,
-    ownerEmail: account?.owner_email || initialBusiness.ownerEmail,
+    ownerEmail: account?.owner_email || "",
     plan: account?.plan || initialBusiness.plan,
     monthlyStatus: account?.monthly_status || initialBusiness.monthlyStatus,
     nextBillingDate: account?.next_billing_date || initialBusiness.nextBillingDate,
@@ -530,6 +530,7 @@ function mapAccessAccountsFromCloud(rows, ownerEmail) {
     role: roleLabel(item.role),
     active: item.active !== false,
     fixed: normalizeRole(item.role) === "dono",
+    password: "",
   }));
 
   if (cloudAccounts.length) return cloudAccounts;
@@ -541,6 +542,7 @@ function mapAccessAccountsFromCloud(rows, ownerEmail) {
       role: "Dono",
       active: true,
       fixed: true,
+      password: "",
     },
   ]);
 }
@@ -799,12 +801,16 @@ function CoreAgendaProApp() {
     );
   }
 
-  function enterAdminWithEmail(email) {
+  function enterAdminWithEmail(email, options = {}) {
+    const resetTab = options.resetTab !== false;
+
     setAdminEmail(email || "");
     setAdminLoggedIn(true);
     setAdminLoginError("");
     setBarberGateError("");
-    setAdminTab("dashboard");
+    if (resetTab) {
+      setAdminTab("dashboard");
+    }
     setViewMode("admin");
     window.scrollTo(0, 0);
   }
@@ -828,7 +834,10 @@ function CoreAgendaProApp() {
       setAdminLoginError("");
 
       if (isPanelRoute) {
-        setAdminTab("dashboard");
+        if (!adminLoggedIn) {
+          setAdminTab("dashboard");
+        }
+        await loadCloudData();
         setViewMode("admin");
         window.scrollTo(0, 0);
       }
@@ -844,7 +853,8 @@ function CoreAgendaProApp() {
         return;
       }
 
-      enterAdminWithEmail(email);
+      await loadCloudData();
+      enterAdminWithEmail(email, { resetTab: !adminLoggedIn });
       return;
     }
 
@@ -853,7 +863,8 @@ function CoreAgendaProApp() {
       const isPanelRoute = path.split("/").filter(Boolean).includes("painel");
 
       if (viewMode !== "client" || isPanelRoute) {
-        enterAdminWithEmail(email);
+        await loadCloudData();
+        enterAdminWithEmail(email, { resetTab: !adminLoggedIn });
       }
 
       return;
@@ -941,7 +952,7 @@ function CoreAgendaProApp() {
       active = false;
       authListener?.subscription?.unsubscribe();
     };
-  }, [business.ownerEmail, accessAccounts, adminLoggedIn, viewMode]);
+  }, []);
 
   useEffect(() => {
     if (cleanWhatsapp.length < 8 || !business.slug) {
@@ -1910,8 +1921,31 @@ function CoreAgendaProApp() {
   }
 
   function saveAccessAccountsToCloud() {
-    return runCloudSave("access", "Acessos do painel salvos online", () =>
-      callCloudFunction("save_barbershop_accesses", {
+    return runCloudSave("access", "Acessos do painel salvos online", async () => {
+      const activeAccounts = accessAccounts.filter((account) => account.active !== false);
+      const invalidAccount = activeAccounts.find((account) => !String(account.email || "").includes("@"));
+      const missingPassword = activeAccounts.find(
+        (account) => !account.fixed && !isUuid(account.id) && !String(account.password || "").trim()
+      );
+
+      if (invalidAccount) {
+        return { error: { message: "Informe um e-mail válido em todos os acessos ativos." } };
+      }
+
+      if (missingPassword) {
+        return {
+          error: {
+            message:
+              "Informe a senha inicial do novo acesso antes de salvar. A senha cria o login no Supabase Auth.",
+          },
+        };
+      }
+
+      const authResult = await syncAccessAuthUsers(activeAccounts);
+
+      if (authResult.error) return authResult;
+
+      const result = await callCloudFunction("save_barbershop_accesses", {
         target_slug: cloudSlug || business.slug,
         accesses_input: accessAccounts.map((account) => ({
           id: account.id || null,
@@ -1924,8 +1958,65 @@ function CoreAgendaProApp() {
               : "manager",
           active: Boolean(account.active),
         })),
-      })
-    );
+      });
+
+      if (!result.error) {
+        setAccessAccounts((current) => current.map((account) => ({ ...account, password: "" })));
+        await loadCloudData();
+        setAdminTab("account");
+      }
+
+      return result;
+    });
+  }
+
+  async function syncAccessAuthUsers(accounts) {
+    const accountsWithPassword = accounts.filter((account) => String(account.password || "").trim());
+
+    if (!accountsWithPassword.length) return { error: null };
+
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData?.session?.access_token;
+
+    if (!token) {
+      return { error: { message: "Sessão expirada. Entre novamente para criar logins com senha." } };
+    }
+
+    for (const account of accountsWithPassword) {
+      const response = await fetch("/api/admin-auth-user", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          barbershopSlug: cloudSlug || business.slug,
+          email: account.email.trim().toLowerCase(),
+          password: String(account.password || "").trim(),
+          role:
+            account.role === "Dono"
+              ? "owner"
+              : account.role === "Desenvolvedor"
+              ? "platform"
+              : "manager",
+          active: Boolean(account.active),
+        }),
+      });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok || result.ok === false) {
+        return {
+          error: {
+            message:
+              result.error ||
+              `Não foi possível criar o login para ${account.email}. Confira a senha e tente novamente.`,
+          },
+        };
+      }
+    }
+
+    return { error: null };
   }
 
   function saveFeatureFlagsToCloud() {
@@ -2134,10 +2225,11 @@ function CoreAgendaProApp() {
     setAccessAccounts((current) =>
       current.concat({
         id: makeId("access"),
-        email: "novo@email.com",
+        email: "",
         role: "Funcionário",
         active: true,
         fixed: false,
+        password: "",
       })
     );
   }
@@ -3706,8 +3798,24 @@ function CoreAgendaProApp() {
                   type="email"
                   value={account.email}
                   disabled={account.fixed}
+                  placeholder="funcionario@barbearia.com"
                   onChange={(event) => updateAccessAccount(index, "email", event.target.value)}
                 />
+
+                {!account.fixed && (
+                  <>
+                    <label>{isUuid(account.id) ? "Nova senha do acesso" : "Senha inicial do acesso"}</label>
+                    <input
+                      type="password"
+                      value={account.password || ""}
+                      placeholder="mínimo 6 caracteres"
+                      onChange={(event) => updateAccessAccount(index, "password", event.target.value)}
+                    />
+                    <p className="hint">
+                      A senha cria ou atualiza o login deste e-mail no Supabase Auth.
+                    </p>
+                  </>
+                )}
 
                 <div className="timePair">
                   <div>

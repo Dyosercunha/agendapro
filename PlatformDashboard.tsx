@@ -342,7 +342,7 @@ export default function PlatformDashboard() {
     }
   }
 
-  async function syncOwnerAuthUser({ slug, email, password, role = "owner" }) {
+  async function syncOwnerAuthUser({ id, slug, email, password, role = "owner" }) {
     if (!password) return { skipped: true };
 
     const { data: sessionData } = await supabase.auth.getSession();
@@ -359,6 +359,7 @@ export default function PlatformDashboard() {
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
+        barbershopId: id,
         barbershopSlug: slug,
         email,
         password,
@@ -418,6 +419,7 @@ export default function PlatformDashboard() {
       if (newShop.owner_password) {
         try {
           await syncOwnerAuthUser({
+            id: data?.barbershop_id,
             slug: newShop.slug || makeSlug(newShop.name),
             email: newShop.owner_email,
             password: newShop.owner_password,
@@ -470,6 +472,7 @@ export default function PlatformDashboard() {
       if (selectedShop.owner_password) {
         try {
           await syncOwnerAuthUser({
+            id: selectedShop.id,
             slug: selectedShop.slug,
             email: selectedShop.owner_email,
             password: selectedShop.owner_password,

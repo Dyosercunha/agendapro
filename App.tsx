@@ -1927,6 +1927,7 @@ function CoreAgendaProApp() {
       const missingPassword = activeAccounts.find(
         (account) => !account.fixed && !isUuid(account.id) && !String(account.password || "").trim()
       );
+      const targetSlug = cloudSlug || business.slug;
 
       if (invalidAccount) {
         return { error: { message: "Informe um e-mail válido em todos os acessos ativos." } };
@@ -1941,12 +1942,21 @@ function CoreAgendaProApp() {
         };
       }
 
+      if (!barbershopId && targetSlug === initialBusiness.slug) {
+        return {
+          error: {
+            message:
+              "A barbearia real ainda não carregou da nuvem. Abra o painel pelo link correto da barbearia e atualize a página antes de salvar acessos.",
+          },
+        };
+      }
+
       const authResult = await syncAccessAuthUsers(activeAccounts);
 
       if (authResult.error) return authResult;
 
       const result = await callCloudFunction("save_barbershop_accesses", {
-        target_slug: cloudSlug || business.slug,
+        target_slug: targetSlug,
         accesses_input: accessAccounts.map((account) => ({
           id: account.id || null,
           email: account.email.trim().toLowerCase(),
@@ -1990,6 +2000,7 @@ function CoreAgendaProApp() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
+          barbershopId,
           barbershopSlug: cloudSlug || business.slug,
           email: account.email.trim().toLowerCase(),
           password: String(account.password || "").trim(),

@@ -29,6 +29,12 @@ function normalizeRole(value = "") {
   return "manager";
 }
 
+function isUuid(value = "") {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    String(value || "")
+  );
+}
+
 async function findUserByEmail(adminClient, email) {
   for (let page = 1; page <= 20; page += 1) {
     const { data, error } = await adminClient.auth.admin.listUsers({ page, perPage: 1000 });
@@ -90,6 +96,7 @@ export default async function handler(request, response) {
   const email = cleanEmail(payload.email);
   const password = String(payload.password || "");
   const barbershopSlug = String(payload.barbershopSlug || payload.slug || "").trim();
+  const barbershopId = String(payload.barbershopId || payload.barbershop_id || "").trim();
   let role = normalizeRole(payload.role || "owner");
   const active = payload.active !== false;
 
@@ -101,15 +108,34 @@ export default async function handler(request, response) {
     return response.status(400).json({ ok: false, error: "A senha precisa ter pelo menos 6 caracteres." });
   }
 
-  if (!barbershopSlug) {
+  if (!barbershopSlug && !barbershopId) {
     return response.status(400).json({ ok: false, error: "Informe a barbearia vinculada ao login." });
   }
 
-  const { data: shop, error: shopError } = await adminClient
-    .from("barbershops")
-    .select("id, slug")
-    .eq("slug", barbershopSlug)
-    .maybeSingle();
+  let shop = null;
+  let shopError = null;
+
+  if (isUuid(barbershopId)) {
+    const result = await adminClient
+      .from("barbershops")
+      .select("id, slug")
+      .eq("id", barbershopId)
+      .maybeSingle();
+
+    shop = result.data || null;
+    shopError = result.error || null;
+  }
+
+  if (!shop && barbershopSlug) {
+    const result = await adminClient
+      .from("barbershops")
+      .select("id, slug")
+      .eq("slug", barbershopSlug.toLowerCase())
+      .maybeSingle();
+
+    shop = result.data || null;
+    shopError = result.error || null;
+  }
 
   if (shopError || !shop) {
     return response.status(404).json({ ok: false, error: "Barbearia não encontrada para vincular o login." });

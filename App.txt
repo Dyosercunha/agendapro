@@ -759,9 +759,28 @@ function CoreAgendaProApp() {
   const currentAdminAccount = accessAccounts.find(
     (account) => account.email.trim().toLowerCase() === normalizedAdminEmail
   );
+  const isPlatformAdminSession = adminContext?.access_type === "platform";
+  const isOwnerEmail = normalizedAdminEmail === normalizedOwnerEmail;
+  const currentAdminRole = isPlatformAdminSession
+    ? "desenvolvedor"
+    : isOwnerEmail
+    ? "dono"
+    : normalizeRole(currentAdminAccount?.role);
   const canManageBilling =
-    normalizedAdminEmail === normalizedOwnerEmail ||
-    normalizeRole(currentAdminAccount?.role) === "desenvolvedor";
+    isOwnerEmail || currentAdminRole === "desenvolvedor";
+  const canUseAdminTab = (tabId) => canAccessAdminTab(currentAdminRole, tabId, isOwnerEmail);
+  const visibleAdminTabs = adminTabs.filter((tab) => canUseAdminTab(tab.id));
+  const activeAdminTab = canUseAdminTab(adminTab) ? adminTab : "dashboard";
+
+  useEffect(() => {
+    if (adminLoggedIn && adminTab !== activeAdminTab) {
+      setAdminTab(activeAdminTab);
+    }
+
+    if (typeof window !== "undefined") {
+      window.__agendaProAdminTab = activeAdminTab;
+    }
+  }, [activeAdminTab, adminLoggedIn, adminTab]);
 
   function handleClearLocalCache() {
     removeSavedData();
@@ -799,13 +818,19 @@ function CoreAgendaProApp() {
     const context = Array.isArray(contextData) ? contextData[0] : contextData;
 
     if (!contextError && context?.access_type === "platform") {
+      const path = typeof window !== "undefined" ? window.location.pathname : "";
+      const parts = path.split("/").filter(Boolean);
+      const isPanelRoute = parts.includes("painel");
+
       setAdminContext(context);
       setAdminEmail(email);
       setAdminLoggedIn(true);
       setAdminLoginError("");
 
-      if (!window.location.pathname.toLowerCase().includes("/plataforma")) {
-        window.location.href = `${window.location.origin}/plataforma?platform=1`;
+      if (isPanelRoute) {
+        setAdminTab("dashboard");
+        setViewMode("admin");
+        window.scrollTo(0, 0);
       }
 
       return;
@@ -2831,10 +2856,10 @@ function CoreAgendaProApp() {
         </section>
 
         <section className="adminTabs">
-          {adminTabs.map((tab) => (
+          {visibleAdminTabs.map((tab) => (
             <button type="button"
               key={tab.id}
-              className={adminTab === tab.id ? "activeAdminTab" : ""}
+              className={activeAdminTab === tab.id ? "activeAdminTab" : ""}
               onClick={() => setAdminTab(tab.id)}
             >
               {tab.label}
@@ -2842,7 +2867,7 @@ function CoreAgendaProApp() {
           ))}
         </section>
 
-        {adminTab === "dashboard" && (
+        {activeAdminTab === "dashboard" && (
           <>
             <section className="adminStats">
               <div>
@@ -2900,16 +2925,18 @@ function CoreAgendaProApp() {
                 >
                   Novo profissional
                 </button>
-                <button type="button"
-                  disabled={!featureFlags.pix?.released}
-                  onClick={() => {
-                    setBusiness((current) => ({ ...current, pixEnabled: !current.pixEnabled }));
-                    updateFeatureFlag("pix", "enabled", !featureFlags.pix?.enabled);
-                    setAdminTab("payments");
-                  }}
-                >
-                  {pixAvailable ? "Desativar PIX" : "Ativar PIX"}
-                </button>
+                {canUseAdminTab("payments") && (
+                  <button type="button"
+                    disabled={!featureFlags.pix?.released}
+                    onClick={() => {
+                      setBusiness((current) => ({ ...current, pixEnabled: !current.pixEnabled }));
+                      updateFeatureFlag("pix", "enabled", !featureFlags.pix?.enabled);
+                      setAdminTab("payments");
+                    }}
+                  >
+                    {pixAvailable ? "Desativar PIX" : "Ativar PIX"}
+                  </button>
+                )}
                 <button type="button"
                   onClick={() => goToClientView()}
                 >
@@ -2929,7 +2956,7 @@ function CoreAgendaProApp() {
               </div>
 
               <div className="setupList">
-                {setupItems.map((item) => (
+                {setupItems.filter((item) => canUseAdminTab(item.tab)).map((item) => (
                   <button type="button"
                     className={item.done ? "setupItem setupDone" : "setupItem"}
                     key={item.label}
@@ -2943,6 +2970,7 @@ function CoreAgendaProApp() {
               </div>
             </section>
 
+            {canUseAdminTab("improvements") && (
             <section className="card resourceCard">
               <div className="sectionTitle">
                 <h2>Recursos do app</h2>
@@ -2977,6 +3005,7 @@ function CoreAgendaProApp() {
                 ))}
               </div>
             </section>
+            )}
 
             <section className="card storageCard">
               <div className="sectionTitle">
@@ -3048,7 +3077,7 @@ function CoreAgendaProApp() {
           </>
         )}
 
-        <section className={adminTab === "customers" ? "card customerCard" : "hiddenPanel"}>
+        <section className={activeAdminTab === "customers" ? "card customerCard" : "hiddenPanel"}>
           <div className="sectionTitle">
             <h2>Clientes</h2>
             <span>Histórico e recorrência</span>
@@ -3079,7 +3108,7 @@ function CoreAgendaProApp() {
                 ? "Use o histórico para oferecer vantagens aos clientes recorrentes."
                 : "Libere a fidelidade em Melhorias para transformar visitas em recompensas."}
             </p>
-            {!loyaltyFeatureEnabled && (
+            {!loyaltyFeatureEnabled && canUseAdminTab("improvements") && (
               <button type="button" onClick={() => setAdminTab("improvements")}>
                 Liberar fidelidade
               </button>
@@ -3121,7 +3150,7 @@ function CoreAgendaProApp() {
           </div>
         </section>
 
-        <section className={adminTab === "agenda" ? "card" : "hiddenPanel"}>
+        <section className={activeAdminTab === "agenda" ? "card" : "hiddenPanel"}>
           <div className="sectionTitle">
             <h2>Agenda real</h2>
             <span>Funcionamento</span>
@@ -3182,7 +3211,7 @@ function CoreAgendaProApp() {
           </div>
         </section>
 
-        <section className={adminTab === "agenda" ? "card" : "hiddenPanel"}>
+        <section className={activeAdminTab === "agenda" ? "card" : "hiddenPanel"}>
           <div className="sectionTitle">
             <h2>Intervalos</h2>
             <span>Almoço e pausas</span>
@@ -3215,7 +3244,7 @@ function CoreAgendaProApp() {
           </button>
         </section>
 
-        <section className={adminTab === "agenda" ? "card" : "hiddenPanel"}>
+        <section className={activeAdminTab === "agenda" ? "card" : "hiddenPanel"}>
           <div className="sectionTitle">
             <h2>Folgas</h2>
             <span>Dias fechados</span>
@@ -3238,7 +3267,7 @@ function CoreAgendaProApp() {
           </button>
         </section>
 
-        <section className={adminTab === "agenda" ? "card" : "hiddenPanel"}>
+        <section className={activeAdminTab === "agenda" ? "card" : "hiddenPanel"}>
           <div className="sectionTitle">
             <h2>Bloqueios</h2>
             <span>Imprevistos</span>
@@ -3284,7 +3313,7 @@ function CoreAgendaProApp() {
           </button>
         </section>
 
-        <section className={adminTab === "services" ? "card" : "hiddenPanel"}>
+        <section className={activeAdminTab === "services" ? "card" : "hiddenPanel"}>
           <h2>Serviços</h2>
           {services
             .map((service, index) => ({ ...service, originalIndex: index }))
@@ -3323,7 +3352,7 @@ function CoreAgendaProApp() {
           </button>
         </section>
 
-        <section className={adminTab === "services" ? "card" : "hiddenPanel"}>
+        <section className={activeAdminTab === "services" ? "card" : "hiddenPanel"}>
           <h2>Profissionais</h2>
           {professionals.map((item, index) => (
             <div className="adminItem barberItem" key={index}>
@@ -3375,7 +3404,7 @@ function CoreAgendaProApp() {
           </button>
         </section>
 
-        <section className={adminTab === "payments" ? "card" : "hiddenPanel"}>
+        <section className={activeAdminTab === "payments" ? "card" : "hiddenPanel"}>
           <h2>Pagamentos</h2>
           <button type="button"
             className={pixAvailable ? "selected" : ""}
@@ -3451,7 +3480,7 @@ function CoreAgendaProApp() {
           </button>
         </section>
 
-        <section className={adminTab === "improvements" ? "card" : "hiddenPanel"}>
+        <section className={activeAdminTab === "improvements" ? "card" : "hiddenPanel"}>
           <div className="sectionTitle">
             <h2>Melhorias</h2>
             <span>Liberação da plataforma</span>
@@ -3505,11 +3534,17 @@ function CoreAgendaProApp() {
                 </div>
 
                 <div className="featureActions">
-                  <button type="button"
-                    onClick={() => setFeatureRelease(feature.key, !featureState.released)}
-                  >
-                    {featureState.released ? "Bloquear recurso" : "Liberar recurso"}
-                  </button>
+                  {currentAdminRole === "desenvolvedor" ? (
+                    <button type="button"
+                      onClick={() => setFeatureRelease(feature.key, !featureState.released)}
+                    >
+                      {featureState.released ? "Bloquear recurso" : "Liberar recurso"}
+                    </button>
+                  ) : (
+                    <button type="button" disabled>
+                      {featureState.released ? "Liberado pela plataforma" : "Bloqueado pela plataforma"}
+                    </button>
+                  )}
 
                   <button type="button"
                     disabled={
@@ -3581,7 +3616,7 @@ function CoreAgendaProApp() {
           </button>
         </section>
 
-        <section className={adminTab === "account" ? "card accountCard" : "hiddenPanel"}>
+        <section className={activeAdminTab === "account" ? "card accountCard" : "hiddenPanel"}>
           <div className="sectionTitle">
             <h2>Conta</h2>
             <span>{canManageBilling ? "Mensalidade e link" : "Renovação e link"}</span>
@@ -3776,7 +3811,7 @@ function CoreAgendaProApp() {
           )}
         </section>
 
-        <section className={adminTab === "appearance" ? "card" : "hiddenPanel"}>
+        <section className={activeAdminTab === "appearance" ? "card" : "hiddenPanel"}>
           <h2>Aparência</h2>
 
           <label>Nome do estabelecimento</label>
@@ -3913,7 +3948,7 @@ function CoreAgendaProApp() {
           </button>
         </section>
 
-        <section className={adminTab === "agenda" || adminTab === "dashboard" ? "card" : "hiddenPanel"}>
+        <section className={activeAdminTab === "agenda" || activeAdminTab === "dashboard" ? "card" : "hiddenPanel"}>
           <h2>Agenda confirmada</h2>
           {appointments.length === 0 && <p className="hint">Ainda não há agendamentos confirmados.</p>}
 
@@ -3952,7 +3987,7 @@ function CoreAgendaProApp() {
           ))}
         </section>
 
-        <section className={adminTab === "agenda" || adminTab === "dashboard" ? "card" : "hiddenPanel"}>
+        <section className={activeAdminTab === "agenda" || activeAdminTab === "dashboard" ? "card" : "hiddenPanel"}>
           <div className="sectionTitle">
             <h2>Lista de espera</h2>
             <span>{waitlist.length} pedidos</span>
@@ -4577,7 +4612,7 @@ function AppProFeatures(){
  async function del(s){if(!window.confirm('Excluir o serviço "'+s.name+'"? O histórico antigo será mantido.'))return;setSaving('d'+s.id);setMsg("");try{const{error}=await supabase.rpc("soft_delete_service_by_name",{target_slug:slug,service_name_input:s.name});if(error)throw error;setServices(a=>a.filter(x=>x.id!==s.id));setMsg("Serviço excluído com segurança.");}catch(e){setMsg(e?.message||"Não foi possível excluir o serviço.");}finally{setSaving("");}}
  async function saveBg(){setSaving("bg");setMsg("");try{const{error}=await supabase.rpc("save_background_settings",{target_slug:slug,client_background_url_input:bg.client_background_url||"",admin_background_url_input:bg.admin_background_url||"",client_background_opacity_input:Number(bg.client_background_opacity||.18),admin_background_opacity_input:Number(bg.admin_background_opacity||.12)});if(error)throw error;setMsg("Backplate salvo.");await loadPro();}catch(e){setMsg(e?.message||"Não foi possível salvar o backplate.");}finally{setSaving("");}}
  async function saveMedia(){setSaving("media");setMsg("");try{const{error}=await supabase.rpc("save_appearance_media",{target_slug:slug,before_image_url_input:media.before_image_url||"",process_image_url_input:media.process_image_url||"",final_image_url_input:media.final_image_url||"",before_image_label_input:media.before_image_label||"Antes",process_image_label_input:media.process_image_label||"Processo",final_image_label_input:media.final_image_label||"Finalizado"});if(error)throw error;setMsg("Fotos Antes, Processo e Finalizado salvas.");await loadPro();}catch(e){setMsg(e?.message||"Não foi possível salvar as fotos.");}finally{setSaving("");}}
- async function saveGrowth(){setSaving("growth");setMsg("");try{const{error}=await supabase.from("barbershops").update({promotion_active:!!growth.promotion_active,promotion_title:growth.promotion_title||"Promoção online",promotion_description:growth.promotion_description||"",promotion_discount:Number(growth.promotion_discount||0),promotion_start_date:growth.promotion_start_date||null,promotion_end_date:growth.promotion_end_date||null,loyalty_enabled:!!growth.loyalty_enabled,loyalty_reward_description:growth.loyalty_reward_description||"",loyalty_visit_goal:Number(growth.loyalty_visit_goal||5),loyalty_discount:Number(growth.loyalty_discount||0),instagram_url:growth.instagram_url||null,google_client_login_enabled:!!growth.google_client_login_enabled}).eq("slug",slug);if(error)throw error;setMsg("Configurações salvas. A liberação dos módulos PRO continua no Painel Plataforma.");await loadPro();}catch(e){setMsg(e?.message||"Não foi possível salvar as configurações.");}finally{setSaving("");}}
+ async function saveGrowth(){setSaving("growth");setMsg("");try{const{error}=await supabase.rpc("save_growth_settings",{target_slug:slug,promotion_active_input:!!growth.promotion_active,promotion_title_input:growth.promotion_title||"Promoção online",promotion_description_input:growth.promotion_description||"",promotion_discount_input:Number(growth.promotion_discount||0),promotion_start_date_input:growth.promotion_start_date||null,promotion_end_date_input:growth.promotion_end_date||null,loyalty_enabled_input:!!growth.loyalty_enabled,loyalty_reward_description_input:growth.loyalty_reward_description||"",loyalty_visit_goal_input:Number(growth.loyalty_visit_goal||5),loyalty_discount_input:Number(growth.loyalty_discount||0),instagram_url_input:growth.instagram_url||null,google_client_login_enabled_input:!!growth.google_client_login_enabled});if(error)throw error;setMsg("Configurações salvas. A liberação dos módulos PRO continua no Painel Plataforma.");await loadPro();}catch(e){setMsg(e?.message||"Não foi possível salvar as configurações.");}finally{setSaving("");}}
  const imgs=[['before_image_url','before_image_label'],['process_image_url','process_image_label'],['final_image_url','final_image_label']].map(([u,l])=>({url:directImage(media[u]),label:media[l]})).filter(x=>x.url);
  if(proClient()){const show=promoOk(growth);return <>{growth.pro_appearance_media_enabled&&imgs.length?<section className="portfolio proImageGallery">{imgs.map((i,idx)=><div key={idx} style={{backgroundImage:'linear-gradient(180deg,rgba(0,0,0,.02),rgba(0,0,0,.56)), url('+i.url+')'}}><span>{i.label}</span></div>)}</section>:null}{(show||(growth.pro_loyalty_enabled&&growth.loyalty_enabled)||(growth.pro_instagram_enabled&&growth.instagram_url)||(growth.pro_google_client_enabled&&growth.google_client_login_enabled))?<section className="safeFeatureClientBanner">{show?<div><strong>{growth.promotion_title}</strong><p>{growth.promotion_description}</p>{Number(growth.promotion_discount)>0?<span>{growth.promotion_discount}% de desconto</span>:null}</div>:null}{growth.pro_loyalty_enabled&&growth.loyalty_enabled?<p>Fidelidade: {growth.loyalty_reward_description}</p>:null}<div className="safeFeatureActions">{growth.pro_instagram_enabled&&growth.instagram_url?<a href={growth.instagram_url} target="_blank" rel="noreferrer">Abrir Instagram</a>:null}{growth.pro_google_client_enabled&&growth.google_client_login_enabled?<span>Login Google do cliente ativo</span>:null}</div></section>:null}</>}
  if(!ctx.admin)return null;

@@ -453,6 +453,42 @@ export default function PlatformDashboard() {
     }
   }
 
+  async function purgeArchivedShops() {
+    const archivedCount = Number(dashboard.stats?.archived || 0);
+    if (!archivedCount) {
+      setMessage("Não há barbearias arquivadas para limpar.");
+      return;
+    }
+
+    const confirmation = window.prompt(
+      `Esta ação apaga definitivamente ${archivedCount} barbearia(s) arquivada(s) e seus dados vinculados. Digite LIMPAR para confirmar.`
+    );
+
+    if (confirmation !== "LIMPAR") {
+      setMessage("Limpeza definitiva cancelada.");
+      return;
+    }
+
+    setSaving("purge-archived");
+    setMessage("");
+
+    try {
+      const { data, error } = await supabase.rpc("purge_archived_barbershops");
+      if (error) throw error;
+
+      const result = Array.isArray(data) ? data[0] : data;
+      setSelectedShop(null);
+      setMessage(
+        `Limpeza concluída. ${result?.deleted_barbershops || 0} barbearia(s), ${result?.deleted_appointments || 0} agendamento(s) e ${result?.deleted_clients || 0} cliente(s) foram removidos.`
+      );
+      await loadDashboard();
+    } catch (error) {
+      setMessage(errorText(error));
+    } finally {
+      setSaving("");
+    }
+  }
+
   async function saveFeatures() {
     if (!selectedShop) return;
     setSaving("features");
@@ -599,6 +635,7 @@ export default function PlatformDashboard() {
         <div className="platformHeroActions">
           <button type="button" className="platformSecondary" onClick={loadDashboard}>Atualizar</button>
           <button type="button" className="platformSecondary" disabled={saving === "reminders"} onClick={sendBillingReminders}>{saving === "reminders" ? "Enviando..." : "Enviar avisos de vencimento"}</button>
+          <button type="button" className="platformDangerGhost" disabled={saving === "purge-archived" || !Number(dashboard.stats?.archived || 0)} onClick={purgeArchivedShops}>{saving === "purge-archived" ? "Limpando..." : `Limpar arquivadas (${dashboard.stats?.archived || 0})`}</button>
           <button type="button" className="platformSecondary" onClick={logout}>Sair</button>
         </div>
       </header>
@@ -610,6 +647,7 @@ export default function PlatformDashboard() {
         <StatCard label="Em atraso" value={money(dashboard.stats?.overdue_revenue || 0)} hint={`${dashboard.stats?.overdue || 0} barbearia(s)`} />
         <StatCard label="Ativas" value={dashboard.stats?.active || 0} hint={`${dashboard.stats?.trial || 0} em teste`} />
         <StatCard label="Desativadas" value={dashboard.stats?.blocked || 0} hint={`Próximo: ${dateText(dashboard.stats?.next_billing)}`} />
+        <StatCard label="Arquivadas" value={dashboard.stats?.archived || 0} hint="fora da lista principal" />
       </section>
 
       <section className="platformFilters">

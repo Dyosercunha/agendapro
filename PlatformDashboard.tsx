@@ -65,6 +65,17 @@ function dateText(value) {
   return new Date(year, month - 1, day).toLocaleDateString("pt-BR");
 }
 
+function withTimeout(promise, label, timeoutMs = 9000) {
+  let timeoutId;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = window.setTimeout(() => {
+      reject(new Error(`${label} demorou para responder. Atualize a pagina e tente novamente.`));
+    }, timeoutMs);
+  });
+
+  return Promise.race([promise, timeout]).finally(() => window.clearTimeout(timeoutId));
+}
+
 function buildCepAddress(cepData, number) {
   const street = cepData?.logradouro || "";
   const neighborhood = cepData?.bairro || "";
@@ -174,16 +185,37 @@ export default function PlatformDashboard() {
 
     async function boot() {
       setChecking(true);
-      const { data } = await supabase.auth.getSession();
-      if (!mounted) return;
-      setSession(data?.session || null);
-      await checkDeveloper(data?.session || null);
-      setChecking(false);
+      try {
+        const { data } = await withTimeout(supabase.auth.getSession(), "A sessao");
+        if (!mounted) return;
+        setSession(data?.session || null);
+        await checkDeveloper(data?.session || null);
+      } catch (error) {
+        if (!mounted) return;
+        setIsDeveloper(false);
+        setLoading(false);
+        setMessage("Nao foi possivel carregar sua sessao: " + errorText(error));
+      } finally {
+        if (mounted) setChecking(false);
+      }
     }
 
-    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, nextSession) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      if (event === "INITIAL_SESSION") return;
+      if (!mounted) return;
+
       setSession(nextSession || null);
-      await checkDeveloper(nextSession || null);
+
+      window.setTimeout(async () => {
+        if (!mounted) return;
+
+        setChecking(true);
+        try {
+          await checkDeveloper(nextSession || null);
+        } finally {
+          if (mounted) setChecking(false);
+        }
+      }, 0);
     });
 
     boot();
@@ -195,6 +227,7 @@ export default function PlatformDashboard() {
   }, []);
 
   async function checkDeveloper(currentSession = session) {
+    try {
     if (!currentSession?.user?.email) {
       setIsDeveloper(false);
       setLoading(false);
@@ -202,7 +235,7 @@ export default function PlatformDashboard() {
       return;
     }
 
-    const { data, error } = await supabase.rpc("is_platform_admin");
+    const { data, error } = await withTimeout(supabase.rpc("is_platform_admin"), "A verificacao do desenvolvedor");
     if (error || data !== true) {
       setIsDeveloper(false);
       setLoading(false);
@@ -213,18 +246,28 @@ export default function PlatformDashboard() {
     setIsDeveloper(true);
     setMessage("");
     await loadDashboard();
+    } catch (error) {
+      setIsDeveloper(false);
+      setLoading(false);
+      setMessage("Nao foi possivel validar o acesso do desenvolvedor: " + errorText(error));
+    }
   }
 
   async function loadDashboard() {
     setLoading(true);
-    const { data, error } = await supabase.rpc("get_platform_dashboard");
+    try {
+    const { data, error } = await withTimeout(supabase.rpc("get_platform_dashboard"), "O painel da plataforma");
     if (error) {
       setMessage("Não foi possível puxar dados da nuvem: " + errorText(error));
-      setLoading(false);
       return;
     }
     setDashboard(data || { stats: {}, barbershops: [] });
+    } catch (error) {
+      setMessage("Nao foi possivel puxar dados da nuvem: " + errorText(error));
+      setDashboard({ stats: {}, barbershops: [] });
+    } finally {
     setLoading(false);
+    }
   }
 
   async function login() {

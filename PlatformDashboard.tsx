@@ -43,6 +43,18 @@ function errorText(error) {
   return error.message || error.details || error.hint || String(error);
 }
 
+function isServiceRoleMissing(error) {
+  return errorText(error).includes("SUPABASE_SERVICE_ROLE");
+}
+
+function ownerLoginErrorText(error) {
+  if (isServiceRoleMissing(error)) {
+    return "Barbearia salva, mas o login do dono não foi criado porque falta configurar SUPABASE_SERVICE_ROLE_KEY no Vercel. Depois de configurar, edite a barbearia e preencha a nova senha do dono.";
+  }
+
+  return errorText(error);
+}
+
 function money(value) {
   return Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
@@ -342,21 +354,21 @@ export default function PlatformDashboard() {
 
       if (error) throw error;
 
-      try {
-        await supabase.rpc("update_platform_barbershop", {
-          target_slug: newShop.slug || makeSlug(newShop.name),
-          name_input: newShop.name,
-          whatsapp_input: onlyDigits(newShop.whatsapp),
-          owner_email_input: newShop.owner_email,
-          plan_input: newShop.plan,
-          monthly_status_input: newShop.monthly_status,
-          next_billing_date_input: newShop.next_billing_date || null,
-          address_input: newShop.address,
-          pix_key_input: newShop.pix_key,
-          theme_color_input: newShop.theme_color || "#22c55e",
-          plan_price_input: Number(newShop.plan_price || 0),
-        });
-      } catch (_syncPriceError) {}
+      const priceSync = await supabase.rpc("update_platform_barbershop", {
+        target_slug: newShop.slug || makeSlug(newShop.name),
+        name_input: newShop.name,
+        whatsapp_input: onlyDigits(newShop.whatsapp),
+        owner_email_input: newShop.owner_email,
+        plan_input: newShop.plan,
+        monthly_status_input: newShop.monthly_status,
+        next_billing_date_input: newShop.next_billing_date || null,
+        address_input: newShop.address,
+        pix_key_input: newShop.pix_key,
+        theme_color_input: newShop.theme_color || "#22c55e",
+        plan_price_input: Number(newShop.plan_price || 0),
+      });
+
+      if (priceSync.error) throw priceSync.error;
 
       let loginMessage = "";
 
@@ -370,7 +382,7 @@ export default function PlatformDashboard() {
           });
           loginMessage = " Login do dono criado.";
         } catch (authError) {
-          loginMessage = ` Login do dono não foi criado: ${errorText(authError)}`;
+          loginMessage = ` ${ownerLoginErrorText(authError)}`;
         }
       }
 
@@ -423,7 +435,7 @@ export default function PlatformDashboard() {
           updateSelected("owner_password", "");
           loginMessage = " Login do dono atualizado.";
         } catch (authError) {
-          loginMessage = ` Login do dono não foi atualizado: ${errorText(authError)}`;
+          loginMessage = ` ${ownerLoginErrorText(authError)}`;
         }
       }
 

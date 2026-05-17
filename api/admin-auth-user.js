@@ -7,6 +7,8 @@ const supabaseUrl =
 
 const serviceRoleKey =
   process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.SUPABASE_SERVICE_ROLE ||
+  process.env.VITE_SUPABASE_SERVICE_ROLE_KEY ||
   process.env.SUPABASE_SERVICE_KEY ||
   process.env.SUPABASE_SECRET_KEY;
 
@@ -43,7 +45,8 @@ export default async function handler(request, response) {
   if (!serviceRoleKey) {
     return response.status(501).json({
       ok: false,
-      error: "SUPABASE_SERVICE_ROLE_KEY ainda não está configurada no Vercel.",
+      error:
+        "SUPABASE_SERVICE_ROLE_KEY ainda não está configurada no Vercel. Sem essa chave, a barbearia salva, mas o login e a senha do dono não são criados no Supabase Auth.",
     });
   }
 

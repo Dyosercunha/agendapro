@@ -451,13 +451,13 @@ function shortTime(value) {
 }
 
 function currentSlugFromUrl() {
-  if (typeof window === "undefined") return initialBusiness.slug;
+  if (typeof window === "undefined") return "";
 
   const parts = window.location.pathname.split("/").filter(Boolean);
   const scheduleIndex = parts.indexOf("agendamento");
   const panelIndex = parts.indexOf("painel");
 
-  return parts[scheduleIndex + 1] || parts[panelIndex + 1] || initialBusiness.slug;
+  return parts[scheduleIndex + 1] || parts[panelIndex + 1] || "";
 }
 
 function initialViewModeFromUrl() {
@@ -1232,6 +1232,13 @@ function CoreAgendaProApp() {
     try {
       const slug = currentSlugFromUrl();
 
+      if (!slug) {
+        setBarbershopId("");
+        setCloudSlug("");
+        setCloudStatus("Abra o app pelo link da barbearia para carregar os dados da nuvem.");
+        return;
+      }
+
       const { data: businessData, error: businessError } = await supabase
         .from("barbershops")
         .select("*")
@@ -1927,7 +1934,7 @@ function CoreAgendaProApp() {
       const missingPassword = activeAccounts.find(
         (account) => !account.fixed && !isUuid(account.id) && !String(account.password || "").trim()
       );
-      const targetSlug = cloudSlug || business.slug;
+      const targetSlug = barbershopId ? cloudSlug : "";
 
       if (invalidAccount) {
         return { error: { message: "Informe um e-mail válido em todos os acessos ativos." } };
@@ -1942,7 +1949,7 @@ function CoreAgendaProApp() {
         };
       }
 
-      if (!barbershopId && targetSlug === initialBusiness.slug) {
+      if (!barbershopId || !targetSlug) {
         return {
           error: {
             message:
@@ -2001,7 +2008,7 @@ function CoreAgendaProApp() {
         },
         body: JSON.stringify({
           barbershopId,
-          barbershopSlug: cloudSlug || business.slug,
+          barbershopSlug: barbershopId ? cloudSlug : "",
           email: account.email.trim().toLowerCase(),
           password: String(account.password || "").trim(),
           role:

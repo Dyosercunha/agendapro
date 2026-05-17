@@ -414,13 +414,15 @@ export default function PlatformDashboard() {
 
       if (priceSync.error) throw priceSync.error;
 
+      const createdSlug = data?.slug || newShop.slug || makeSlug(newShop.name);
+      const createdPanelLink = data?.link_painel || `/painel/${createdSlug}`;
       let loginMessage = "";
 
       if (newShop.owner_password) {
         try {
           await syncOwnerAuthUser({
             id: data?.barbershop_id,
-            slug: newShop.slug || makeSlug(newShop.name),
+            slug: createdSlug,
             email: newShop.owner_email,
             password: newShop.owner_password,
             role: "owner",
@@ -432,11 +434,12 @@ export default function PlatformDashboard() {
       }
 
       setMessage(
-        `Barbearia cadastrada. Cliente: ${data?.link_cliente || ""} Painel: ${data?.link_painel || ""}${loginMessage}`
+        `Barbearia cadastrada. Cliente: ${data?.link_cliente || ""} Painel: ${createdPanelLink}${loginMessage} Abrindo o painel da barbearia...`
       );
       setNewShop(emptyForm());
       setSlugTouched(false);
       await loadDashboard();
+      window.location.assign(createdPanelLink);
     } catch (error) {
       setMessage(errorText(error));
     } finally {

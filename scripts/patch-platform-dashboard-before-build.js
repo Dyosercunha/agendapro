@@ -119,8 +119,8 @@ if (!source.includes("async function hideShopFromPlatform")) {
 
 if (!source.includes("Remover da lista")) {
   source = source.replace(
-    `<a href={\`/agendamento/\${shop.slug}\`} target="_blank" rel="noreferrer">Link cliente</a>`,
-    `<a href={\`/agendamento/\${shop.slug}\`} target="_blank" rel="noreferrer">Link cliente</a>
+    `<a href={\`/\${shop.slug}\`} target="_blank" rel="noreferrer">Link cliente</a>`,
+    `<a href={\`/\${shop.slug}\`} target="_blank" rel="noreferrer">Link cliente</a>
                   <button type="button" className="platformDanger" disabled={saving === "hide-" + shop.slug} onClick={() => hideShopFromPlatform(shop)}>{saving === "hide-" + shop.slug ? "Removendo..." : "Remover da lista"}</button>`
   );
 }

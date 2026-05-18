@@ -30,7 +30,7 @@ if (!source.includes("function goToClientView()")) {
     setWaitlistSent(false);
 
     if (typeof window !== "undefined") {
-      window.history.pushState({}, "", "/agendamento/" + slug);
+      window.history.pushState({}, "", "/" + slug);
       window.scrollTo(0, 0);
     }
 

@@ -44,8 +44,8 @@ if (!source.includes('async function archiveShop(')) {
   changed = true;
 }
 
-const oldActions = '<button type="button" onClick={() => setSelectedShop(JSON.parse(JSON.stringify(shop)))}>Editar</button>\n                  <a href={`/painel/${shop.slug}`} target="_blank" rel="noreferrer">Entrar no painel</a>\n                  <a href={`/agendamento/${shop.slug}`} target="_blank" rel="noreferrer">Link cliente</a>';
-const newActions = '<button type="button" onClick={() => setSelectedShop(JSON.parse(JSON.stringify(shop)))}>Editar</button>\n                  <button type="button" className="platformDanger" disabled={saving === \'archive-\' + shop.slug} onClick={() => archiveShop(shop)}>{saving === \'archive-\' + shop.slug ? \'Excluindo...\' : \'Excluir\'}</button>\n                  <a href={`/painel/${shop.slug}`} target="_blank" rel="noreferrer">Entrar no painel</a>\n                  <a href={`/agendamento/${shop.slug}`} target="_blank" rel="noreferrer">Link cliente</a>';
+const oldActions = '<button type="button" onClick={() => setSelectedShop(JSON.parse(JSON.stringify(shop)))}>Editar</button>\n                  <a href={`/painel/${shop.slug}`} target="_blank" rel="noreferrer">Entrar no painel</a>\n                  <a href={`/${shop.slug}`} target="_blank" rel="noreferrer">Link cliente</a>';
+const newActions = '<button type="button" onClick={() => setSelectedShop(JSON.parse(JSON.stringify(shop)))}>Editar</button>\n                  <button type="button" className="platformDanger" disabled={saving === \'archive-\' + shop.slug} onClick={() => archiveShop(shop)}>{saving === \'archive-\' + shop.slug ? \'Excluindo...\' : \'Excluir\'}</button>\n                  <a href={`/painel/${shop.slug}`} target="_blank" rel="noreferrer">Entrar no painel</a>\n                  <a href={`/${shop.slug}`} target="_blank" rel="noreferrer">Link cliente</a>';
 
 if (source.includes(oldActions)) {
   source = source.replace(oldActions, newActions);

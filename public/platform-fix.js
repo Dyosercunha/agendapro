@@ -145,7 +145,7 @@
   }
 
   function shopRow(shop) {
-    return `<article class="platformShop"><div><strong>${shop.name || 'Sem nome'}</strong><span>${shop.slug}</span><small>${shop.owner_email || 'Sem e-mail'} · ${shop.plan || 'sem plano'}</small></div><div class="platformShopActions">${statusBadge(shop.monthly_status)}<button type="button" data-edit-shop="${shop.slug}">Editar</button><a href="/painel/${shop.slug}" target="_blank">Entrar no painel</a><a href="/agendamento/${shop.slug}" target="_blank">Link cliente</a></div></article>`;
+    return `<article class="platformShop"><div><strong>${shop.name || 'Sem nome'}</strong><span>${shop.slug}</span><small>${shop.owner_email || 'Sem e-mail'} · ${shop.plan || 'sem plano'}</small></div><div class="platformShopActions">${statusBadge(shop.monthly_status)}<button type="button" data-edit-shop="${shop.slug}">Editar</button><a href="/painel/${shop.slug}" target="_blank">Entrar no painel</a><a href="/${shop.slug}" target="_blank">Link cliente</a></div></article>`;
   }
 
   function editForm(shop) {

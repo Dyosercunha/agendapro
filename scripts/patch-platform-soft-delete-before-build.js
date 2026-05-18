@@ -39,8 +39,8 @@ if (!source.includes('async function softDeleteShop(')) {
 }
 
 if (!source.includes('Excluir da lista')) {
-  const target = `                  <a href={\`/agendamento/\${shop.slug}\`} target="_blank" rel="noreferrer">Link cliente</a>`;
-  const replacement = `                  <a href={\`/agendamento/\${shop.slug}\`} target="_blank" rel="noreferrer">Link cliente</a>
+  const target = `                  <a href={\`/\${shop.slug}\`} target="_blank" rel="noreferrer">Link cliente</a>`;
+  const replacement = `                  <a href={\`/\${shop.slug}\`} target="_blank" rel="noreferrer">Link cliente</a>
                   <button type="button" className="platformDanger" disabled={saving === 'delete-' + shop.slug} onClick={() => softDeleteShop(shop)}>{saving === 'delete-' + shop.slug ? 'Excluindo...' : 'Excluir da lista'}</button>`;
   if (source.includes(target)) {
     source = source.replace(target, replacement);

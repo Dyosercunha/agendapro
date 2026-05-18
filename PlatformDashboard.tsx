@@ -904,7 +904,7 @@ export default function PlatformDashboard() {
                   {statusBadge(shop.monthly_status, shop.status_label)}
                   <button type="button" onClick={() => setSelectedShop(JSON.parse(JSON.stringify(shop)))}>Editar</button>
                   <a href={`/painel/${shop.slug}`} target="_blank" rel="noreferrer">Entrar no painel</a>
-                  <a href={`/agendamento/${shop.slug}`} target="_blank" rel="noreferrer">Link cliente</a>
+                  <a href={`/${shop.slug}`} target="_blank" rel="noreferrer">Link cliente</a>
                   <button type="button" className="platformDanger" disabled={saving === "hide-" + shop.slug} onClick={() => hideShopFromPlatform(shop)}>{saving === "hide-" + shop.slug ? "Removendo..." : "Remover da lista"}</button>
                 </div>
               </article>

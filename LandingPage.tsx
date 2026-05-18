@@ -15,7 +15,7 @@ export default function LandingPage() {
   const cleanSlug = normalizeSlug(slug) || "agenda-pro";
 
   function goTo(path: "agendamento" | "painel") {
-    window.location.href = `/${path}/${cleanSlug}`;
+    window.location.href = path === "painel" ? `/painel/${cleanSlug}` : `/${cleanSlug}`;
   }
 
   return (

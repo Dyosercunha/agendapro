@@ -450,14 +450,43 @@ function shortTime(value) {
   return String(value || "").slice(0, 5);
 }
 
+function slugFromPathname(pathname) {
+  const parts = String(pathname || "")
+    .split("/")
+    .map((part) => {
+      try {
+        return decodeURIComponent(part);
+      } catch {
+        return part;
+      }
+    })
+    .filter(Boolean);
+
+  const route = String(parts[0] || "").toLowerCase();
+  const routePrefixes = ["painel", "agendamento", "barbearia"];
+  const reservedRoutes = [
+    ...routePrefixes,
+    "plataforma",
+    "painel-plataforma",
+    "api",
+    "assets",
+  ];
+
+  if (routePrefixes.includes(route)) {
+    return makeSlug(parts[1] || "");
+  }
+
+  if (!route || reservedRoutes.includes(route)) {
+    return "";
+  }
+
+  return makeSlug(parts[0] || "");
+}
+
 function currentSlugFromUrl() {
   if (typeof window === "undefined") return "";
 
-  const parts = window.location.pathname.split("/").filter(Boolean);
-  const scheduleIndex = parts.indexOf("agendamento");
-  const panelIndex = parts.indexOf("painel");
-
-  return parts[scheduleIndex + 1] || parts[panelIndex + 1] || "";
+  return slugFromPathname(window.location.pathname);
 }
 
 function initialViewModeFromUrl() {
@@ -4792,7 +4821,7 @@ function CoreAgendaProApp() {
   );
 }
 
-function proSlug(){const p=window.location.pathname.split("/").filter(Boolean);return p[p.indexOf("painel")+1]||p[p.indexOf("agendamento")+1]||"master-barbearia";}
+function proSlug(){return typeof window==="undefined"?"":slugFromPathname(window.location.pathname);}
 function proClient(){return window.location.pathname.includes("/agendamento/");}
 function todayIsoPro(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 function promoOk(s){const t=todayIsoPro();return !!s.pro_promotions_enabled&&!!s.promotion_active&&(!s.promotion_start_date||t>=s.promotion_start_date)&&(!s.promotion_end_date||t<=s.promotion_end_date);}
@@ -4808,6 +4837,7 @@ function AppProFeatures(){
  useEffect(()=>{const tick=()=>setCtx({tab:window.__agendaProAdminTab||"",admin:window.__agendaProViewMode==="admin"&&window.__agendaProAdminLoggedIn===true});tick();const id=setInterval(tick,400);return()=>clearInterval(id);},[]);
  function goTab(target){try{window.__agendaProAdminTab=target;const labels={services:"Serviços",appearance:"Aparência",improvements:"Melhorias"};const button=[...document.querySelectorAll("button")].find((b)=>(b.textContent||"").trim().toLowerCase()===String(labels[target]||target).toLowerCase());if(button)button.click();window.scrollTo({top:0,behavior:"smooth"});}catch(_e){}}
  async function loadPro(){
+  if(!slug)return;
   const columns="logo_url,theme_color,client_background_url,admin_background_url,client_background_opacity,admin_background_opacity,before_image_url,process_image_url,final_image_url,before_image_label,process_image_label,final_image_label,pro_service_delete_enabled,pro_backplate_enabled,pro_appearance_media_enabled,pro_promotions_enabled,pro_loyalty_enabled,pro_waitlist_enabled,pro_instagram_enabled,pro_google_client_enabled,promotion_active,promotion_title,promotion_description,promotion_discount,promotion_start_date,promotion_end_date,loyalty_enabled,loyalty_reward_description,loyalty_visit_goal,loyalty_discount,instagram_url,google_client_login_enabled";
   const shopReq=supabase.from("barbershops").select(columns).eq("slug",slug).single();
   const servReq=supabase.from("services").select("id,name,price,duration,deleted_at").is("deleted_at",null).order("sort_order",{ascending:true});

@@ -9,10 +9,51 @@
     return location.pathname.includes('/painel/');
   }
 
+  function normalizeSlug(value) {
+    return String(value || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 48);
+  }
+
+  function slugFromPathname(pathname) {
+    const parts = String(pathname || '')
+      .split('/')
+      .map((part) => {
+        try {
+          return decodeURIComponent(part);
+        } catch (_error) {
+          return part;
+        }
+      })
+      .filter(Boolean);
+
+    const first = String(parts[0] || '').toLowerCase();
+    const routePrefixes = ['painel', 'agendamento', 'barbearia'];
+    const reservedRoutes = new Set([
+      ...routePrefixes,
+      'plataforma',
+      'painel-plataforma',
+      'api',
+      'assets',
+    ]);
+
+    if (routePrefixes.includes(first)) {
+      return normalizeSlug(parts[1] || '');
+    }
+
+    if (!first || reservedRoutes.has(first)) {
+      return '';
+    }
+
+    return normalizeSlug(parts[0] || '');
+  }
+
   function slugFromUrl() {
-    const parts = location.pathname.split('/').filter(Boolean);
-    const index = parts.indexOf('painel');
-    return parts[index + 1] || 'master-barbearia';
+    return slugFromPathname(location.pathname);
   }
 
   function client() {
@@ -40,7 +81,10 @@
       currentEmail = sessionResult?.data?.session?.user?.email || '';
       if (!currentEmail) return;
 
-      const { data, error } = await api.rpc('get_barbershop_accesses', { target_slug: slugFromUrl() });
+      const slug = slugFromUrl();
+      if (!slug) return;
+
+      const { data, error } = await api.rpc('get_barbershop_accesses', { target_slug: slug });
       if (error) return;
       const account = (data || []).find((item) => String(item.email || '').toLowerCase() === currentEmail.toLowerCase());
       currentRole = normalizeRole(account?.role);

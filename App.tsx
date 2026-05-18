@@ -733,6 +733,7 @@ function CoreAgendaProApp() {
   const [dataSavedAt, setDataSavedAt] = useState("");
   const [barbershopId, setBarbershopId] = useState("");
   const [cloudSlug, setCloudSlug] = useState(currentSlugFromUrl());
+  const [cloudLoadState, setCloudLoadState] = useState("loading");
   const [cloudStatus, setCloudStatus] = useState("Conectando à nuvem...");
   const [cloudSaving,setRawCloudSaving]=useState("");
   function setCloudSaving(value){setRawCloudSaving(value);if(value&&typeof window!=="undefined"){window.setTimeout(()=>setRawCloudSaving(c=>c===value?"":c),12000);}}
@@ -848,7 +849,7 @@ function CoreAgendaProApp() {
     if (!contextError && context?.access_type === "barbershop" && context?.slug) {
       setAdminContext(context);
 
-      if (context.slug !== (cloudSlug || business.slug)) {
+      if (context.slug !== currentSlugFromUrl()) {
         window.location.href = `${window.location.origin}/painel/${context.slug}`;
         return;
       }
@@ -887,6 +888,35 @@ function CoreAgendaProApp() {
         minute: "2-digit",
       })
     );
+  }
+
+  function loadedCloudSlug() {
+    return barbershopId && cloudSlug ? cloudSlug : "";
+  }
+
+  function missingLoadedBarbershopResult() {
+    return {
+      error: {
+        message:
+          "A barbearia real ainda nao carregou da nuvem. Abra pelo link correto, como /painel/slug-da-barbearia, atualize a pagina e tente salvar novamente.",
+      },
+    };
+  }
+
+  function requireLoadedBarbershop() {
+    const targetSlug = loadedCloudSlug();
+
+    if (!targetSlug) {
+      return {
+        targetSlug: "",
+        result: missingLoadedBarbershopResult(),
+      };
+    }
+
+    return {
+      targetSlug,
+      result: null,
+    };
   }
 
   useEffect(() => {
@@ -955,7 +985,9 @@ function CoreAgendaProApp() {
   }, []);
 
   useEffect(() => {
-    if (cleanWhatsapp.length < 8 || !business.slug) {
+    const targetSlug = loadedCloudSlug();
+
+    if (cleanWhatsapp.length < 8 || !targetSlug) {
       setCloudHistory(null);
       return;
     }
@@ -964,7 +996,7 @@ function CoreAgendaProApp() {
 
     async function loadClientHistory() {
       const { data, error } = await supabase.rpc("get_client_history", {
-        target_slug: business.slug,
+        target_slug: targetSlug,
         target_whatsapp: cleanWhatsapp,
       });
 
@@ -988,7 +1020,7 @@ function CoreAgendaProApp() {
     return () => {
       active = false;
     };
-  }, [cleanWhatsapp, business.slug]);
+  }, [cleanWhatsapp, barbershopId, cloudSlug]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -1230,11 +1262,13 @@ function CoreAgendaProApp() {
 
   async function loadCloudData() {
     try {
+      setCloudLoadState("loading");
       const slug = currentSlugFromUrl();
 
       if (!slug) {
         setBarbershopId("");
         setCloudSlug("");
+        setCloudLoadState("missing-slug");
         setCloudStatus("Abra o app pelo link da barbearia para carregar os dados da nuvem.");
         return;
       }
@@ -1246,12 +1280,16 @@ function CoreAgendaProApp() {
         .single();
 
       if (businessError || !businessData) {
+        setBarbershopId("");
+        setCloudSlug(slug);
+        setCloudLoadState("not-found");
         setCloudStatus("Usando fallback local de emergência. A barbearia ainda não foi encontrada na nuvem.");
         return;
       }
 
       setBarbershopId(businessData.id);
       setCloudSlug(businessData.slug);
+      setCloudLoadState("loaded");
 
       const [
         accountResult,
@@ -1343,6 +1381,7 @@ function CoreAgendaProApp() {
       setCloudStatus("Conectado à nuvem");
     } catch (error) {
       console.error(error);
+      setCloudLoadState("error");
       setCloudStatus("Usando fallback local de emergência. Não foi possível conectar à nuvem.");
     }
   }
@@ -1561,8 +1600,10 @@ function CoreAgendaProApp() {
   }
 
   async function refreshCloudAppointments() {
-    const targetSlug = cloudSlug || business.slug;
-    if (!targetSlug) return null;
+    const targetSlug = loadedCloudSlug();
+    if (!targetSlug) {
+      throw new Error(missingLoadedBarbershopResult().error.message);
+    }
 
     const shopId =
       barbershopId ||
@@ -1768,7 +1809,9 @@ function CoreAgendaProApp() {
   }
 
   async function saveAppointmentToCloud(appointmentData, finalProfessional) {
-    if (!business.slug) {
+    const targetSlug = loadedCloudSlug();
+
+    if (!targetSlug) {
       showNotice("Não foi possível identificar a barbearia para salvar online.");
       setCloudStatus("A barbearia não foi identificada para salvar online.");
       return "";
@@ -1777,7 +1820,7 @@ function CoreAgendaProApp() {
     setCloudStatus("Reservando horário online...");
 
     const { data, error } = await callCloudFunction("book_appointment", {
-      target_slug: business.slug,
+      target_slug: targetSlug,
       client_name_input: appointmentData.clientName,
       whatsapp_input: appointmentData.whatsapp,
       professional_name_input: finalProfessional,
@@ -1839,6 +1882,10 @@ function CoreAgendaProApp() {
   }
 
   async function callCloudFunction(functionName, payload) {
+    if (payload && Object.prototype.hasOwnProperty.call(payload, "target_slug") && !payload.target_slug) {
+      return missingLoadedBarbershopResult();
+    }
+
     const result = await supabase.rpc(functionName, payload);
 
     if (!result.error) return result;
@@ -1883,11 +1930,14 @@ function CoreAgendaProApp() {
 
   function saveBusinessToCloud() {
     return runCloudSave("business", "Dados da barbearia salvos online", async () => {
-      const targetSlug = cloudSlug || business.slug;
+      const { targetSlug, result: missingBarbershop } = requireLoadedBarbershop();
+      if (missingBarbershop) return missingBarbershop;
+
+      const nextSlug = business.slug || makeSlug(business.name);
       const result = await callCloudFunction("save_business_settings", {
         target_slug: targetSlug,
         name_input: business.name,
-        slug_input: business.slug || makeSlug(business.name),
+        slug_input: nextSlug,
         owner_email_input: business.ownerEmail || "",
         plan_input: business.plan || "professional",
         monthly_status_input: business.monthlyStatus || "active",
@@ -1913,13 +1963,20 @@ function CoreAgendaProApp() {
       });
 
       if (!result.error) {
-        setCloudSlug(business.slug || makeSlug(business.name));
+        setCloudSlug(nextSlug);
+        if (typeof window !== "undefined" && nextSlug && nextSlug !== targetSlug) {
+          const parts = window.location.pathname.split("/").filter(Boolean);
+          const panelIndex = parts.indexOf("painel");
+          const scheduleIndex = parts.indexOf("agendamento");
+          if (panelIndex !== -1) window.history.replaceState(null, "", `/painel/${nextSlug}`);
+          if (scheduleIndex !== -1) window.history.replaceState(null, "", `/agendamento/${nextSlug}`);
+        }
       }
 
       if (result.error) return result;
 
       return callCloudFunction("save_promotion_settings", {
-        target_slug: business.slug || makeSlug(business.name),
+        target_slug: nextSlug,
         promotion_title_input: business.promotionTitle || "",
         promotion_description_input: business.promotionDescription || "",
         promotion_discount_input: Number(business.promotionDiscount || 0),
@@ -2040,7 +2097,7 @@ function CoreAgendaProApp() {
   function saveFeatureFlagsToCloud() {
     return runCloudSave("features", "Melhorias salvas online", () =>
       callCloudFunction("save_feature_flags", {
-        target_slug: cloudSlug || business.slug,
+        target_slug: loadedCloudSlug(),
         features_input: platformFeatures.map((feature) => ({
           feature_key: feature.key,
           enabled: Boolean(featureFlags[feature.key]?.enabled),
@@ -2053,7 +2110,7 @@ function CoreAgendaProApp() {
   function saveServicesToCloud() {
     return runCloudSave("services", "Serviços salvos online", () =>
       callCloudFunction("save_services", {
-        target_slug: cloudSlug || business.slug,
+        target_slug: loadedCloudSlug(),
         services_input: services
           .filter((service) => !isServiceDeleted(service))
           .map((service, index) => ({
@@ -2071,7 +2128,7 @@ function CoreAgendaProApp() {
   function saveProfessionalsToCloud() {
     return runCloudSave("professionals", "Profissionais salvos online", () =>
       callCloudFunction("save_professionals", {
-        target_slug: cloudSlug || business.slug,
+        target_slug: loadedCloudSlug(),
         professionals_input: professionals.map((item) => ({
           id: item.id || null,
           name: item.fixed ? "Primeiro disponível" : item.name,
@@ -2085,7 +2142,7 @@ function CoreAgendaProApp() {
   function saveScheduleToCloud() {
     return runCloudSave("schedule", "Agenda salva online", () =>
       callCloudFunction("save_schedule_settings", {
-        target_slug: cloudSlug || business.slug,
+        target_slug: loadedCloudSlug(),
         slot_interval_input: Number(schedule.slotInterval || 30),
         working_hours_input: weekDays.map((day) => ({
           week_day: weekMap.indexOf(day.key),
@@ -2117,7 +2174,7 @@ function CoreAgendaProApp() {
     if (!isUuid(id)) return;
 
     const { error } = await callCloudFunction("update_appointment_action", {
-      target_slug: cloudSlug || business.slug,
+      target_slug: loadedCloudSlug(),
       appointment_id_input: id,
       paid_input: patch.paid ?? null,
       status_input: patch.status ?? null,
@@ -2159,7 +2216,7 @@ function CoreAgendaProApp() {
     setCloudStatus("Pedido adicionado à lista de espera localmente.");
 
     const { data, error } = await callCloudFunction("join_waitlist", {
-      target_slug: cloudSlug || business.slug,
+      target_slug: loadedCloudSlug(),
       client_name_input: clientName,
       whatsapp_input: whatsapp,
       preferred_date_input: selectedDate,
@@ -2193,7 +2250,7 @@ function CoreAgendaProApp() {
     if (!isUuid(id)) return;
 
     const { error } = await callCloudFunction("update_waitlist_status", {
-      target_slug: cloudSlug || business.slug,
+      target_slug: loadedCloudSlug(),
       waitlist_id_input: id,
       status_input: status,
     });
@@ -2394,7 +2451,7 @@ function CoreAgendaProApp() {
 
     setCloudSaving("services");
     const { error } = await callCloudFunction("soft_delete_service", {
-      target_slug: cloudSlug || business.slug,
+      target_slug: loadedCloudSlug(),
       service_id_input: service.id,
     });
     setCloudSaving("");
@@ -2631,7 +2688,10 @@ function CoreAgendaProApp() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: adminPanelLink,
+          redirectTo:
+            typeof window !== "undefined"
+              ? `${window.location.origin}${window.location.pathname}`
+              : adminPanelLink,
         },
       });
 
@@ -2802,6 +2862,30 @@ function CoreAgendaProApp() {
           </div>
         )}
       </>
+    );
+  }
+
+  if (cloudLoadState === "missing-slug" || cloudLoadState === "not-found") {
+    const slug = currentSlugFromUrl();
+
+    return withNotice(
+      <main className="app">
+        <section className="card loginCard">
+          <div className="loginBadge">AgendaPro</div>
+          <h1>{cloudLoadState === "missing-slug" ? "Link da barbearia incompleto" : "Barbearia nao encontrada"}</h1>
+          <p className="hint">
+            {cloudLoadState === "missing-slug"
+              ? "Abra pelo link completo da barbearia, por exemplo /painel/master ou /agendamento/master."
+              : `Nao encontrei a barbearia "${slug}" ativa na nuvem. Confira o slug no Painel Plataforma ou restaure a barbearia se ela foi arquivada.`}
+          </p>
+          <a className="greenLink full" href="/plataforma?platform=1">
+            Abrir Painel Plataforma
+          </a>
+          <a className="outlineLink full" href="/">
+            Voltar para inicio
+          </a>
+        </section>
+      </main>
     );
   }
 

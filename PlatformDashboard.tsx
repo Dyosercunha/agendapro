@@ -148,6 +148,46 @@ function statusBadge(status, label) {
   return <b className="statusActive">Ativo</b>;
 }
 
+function planLabel(plan) {
+  return planLabels[plan] || plan || "Sem plano";
+}
+
+function statusLabel(status) {
+  return statusOptions.find((item) => item.value === status)?.label || "Ativo";
+}
+
+function normalizeAuditShop(shop = {}) {
+  return {
+    ...shop,
+    plan_label: shop.plan_label || planLabel(shop.plan),
+    status_label: shop.status_label || statusLabel(shop.monthly_status),
+    days_to_billing:
+      typeof shop.days_to_billing === "number"
+        ? shop.days_to_billing
+        : shop.next_billing_date
+        ? Math.ceil((new Date(shop.next_billing_date).getTime() - Date.now()) / 86400000)
+        : null,
+    source: shop.source || "diagnostics",
+  };
+}
+
+function mergeShopLists(primary = [], fallback = []) {
+  const map = new Map();
+
+  fallback.forEach((shop) => {
+    if (shop?.id || shop?.slug) map.set(shop.id || shop.slug, normalizeAuditShop(shop));
+  });
+
+  primary.forEach((shop) => {
+    if (shop?.id || shop?.slug) {
+      const key = shop.id || shop.slug;
+      map.set(key, normalizeAuditShop({ ...(map.get(key) || {}), ...shop, source: "dashboard" }));
+    }
+  });
+
+  return Array.from(map.values());
+}
+
 function StatCard({ label, value, hint }) {
   return (
     <div className="platformStat">
@@ -171,8 +211,20 @@ export default function PlatformDashboard() {
   const [slugTouched, setSlugTouched] = useState(false);
   const [filter, setFilter] = useState("all");
   const [platformLogin, setPlatformLogin] = useState({ email: "dyoser2@gmail.com", password: "" });
+  const [cloudAudit, setCloudAudit] = useState({ barbershops: [] });
 
-  const shops = dashboard?.barbershops || [];
+  const auditActiveShops = useMemo(
+    () => (cloudAudit?.barbershops || []).filter((shop) => !shop.archived_at).map(normalizeAuditShop),
+    [cloudAudit]
+  );
+  const archivedShops = useMemo(
+    () => (cloudAudit?.barbershops || []).filter((shop) => shop.archived_at).map(normalizeAuditShop),
+    [cloudAudit]
+  );
+  const shops = useMemo(
+    () => mergeShopLists(dashboard?.barbershops || [], auditActiveShops),
+    [dashboard?.barbershops, auditActiveShops]
+  );
 
   const filteredShops = useMemo(() => {
     return [...shops]
@@ -262,11 +314,83 @@ export default function PlatformDashboard() {
       return;
     }
     setDashboard(data || { stats: {}, barbershops: [] });
+    await loadCloudAudit().catch(() => null);
     } catch (error) {
       setMessage("Nao foi possivel puxar dados da nuvem: " + errorText(error));
       setDashboard({ stats: {}, barbershops: [] });
+      await loadCloudAudit({ allowDashboardFallback: true }).catch(() => null);
     } finally {
     setLoading(false);
+    }
+  }
+
+  async function callPlatformMaintenance(payload) {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData?.session?.access_token;
+
+    if (!token) {
+      throw new Error("Sessao da plataforma expirada. Entre novamente para consultar a nuvem.");
+    }
+
+    const response = await fetch("/api/platform-shop-maintenance", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok || result.ok === false) {
+      throw new Error(result.error || "Nao foi possivel consultar a manutencao da plataforma.");
+    }
+
+    return result;
+  }
+
+  async function loadCloudAudit(options = {}) {
+    const result = await callPlatformMaintenance({ action: "diagnostics" });
+    const nextAudit = { barbershops: result.barbershops || [] };
+    setCloudAudit(nextAudit);
+
+    if (options.allowDashboardFallback && result.barbershops?.length) {
+      const active = result.barbershops.filter((shop) => !shop.archived_at).map(normalizeAuditShop);
+      setDashboard((current) => ({
+        ...(current || {}),
+        barbershops: active,
+        stats: {
+          ...(current?.stats || {}),
+          total: active.length,
+          archived: result.barbershops.filter((shop) => shop.archived_at).length,
+        },
+      }));
+    }
+
+    return nextAudit;
+  }
+
+  async function restoreArchivedShop(shop) {
+    if (!shop?.id && !shop?.slug) return;
+
+    setSaving("restore-" + (shop.id || shop.slug));
+    setMessage("");
+
+    try {
+      const result = await callPlatformMaintenance({
+        action: "restore",
+        id: shop.id,
+        slug: shop.slug,
+      });
+
+      setCloudAudit({ barbershops: result.barbershops || [] });
+      setMessage(`Barbearia ${shop.name || shop.slug} restaurada. Agora ela volta para a lista principal.`);
+      await loadDashboard();
+    } catch (error) {
+      setMessage("Nao foi possivel restaurar a barbearia: " + errorText(error));
+    } finally {
+      setSaving("");
     }
   }
 
@@ -764,7 +888,11 @@ export default function PlatformDashboard() {
                 <div>
                   <strong>{shop.name || "Sem nome"}</strong>
                   <span>{shop.slug}</span>
-                  <small>{shop.owner_email || "Sem e-mail"}</small>
+                  <small>
+                    {shop.owner_email || "Sem e-mail"}
+                    {typeof shop.admin_count === "number" ? ` · ${shop.admin_count} acesso(s)` : ""}
+                    {typeof shop.service_count === "number" ? ` · ${shop.service_count} servico(s)` : ""}
+                  </small>
                   <div className="platformShopMeta">
                     <b>{shop.plan_label || planLabels[shop.plan] || shop.plan || "Sem plano"}</b>
                     <span>{money(shop.plan_price || 0)}/mês</span>
@@ -782,6 +910,40 @@ export default function PlatformDashboard() {
               </article>
             )) : <p className="platformMuted">Nenhuma barbearia encontrada nesse filtro.</p>}
           </div>
+          {archivedShops.length ? (
+            <div className="platformArchiveBox">
+              <div className="platformTitle">
+                <div>
+                  <span>Diagnostico da nuvem</span>
+                  <h3>Barbearias arquivadas</h3>
+                </div>
+              </div>
+              <p className="platformMuted">
+                Essas barbearias existem no banco, mas ficam escondidas da lista principal. Restaure para voltar a testar e editar.
+              </p>
+              <div className="platformShopList">
+                {archivedShops.map((shop) => (
+                  <article className="platformShop platformShopArchived" key={shop.id || shop.slug}>
+                    <div>
+                      <strong>{shop.name || "Sem nome"}</strong>
+                      <span>{shop.slug}</span>
+                      <small>{shop.owner_email || "Sem e-mail"} · {shop.admin_count || 0} acesso(s) · {shop.service_count || 0} servico(s)</small>
+                    </div>
+                    <div className="platformShopActions">
+                      <b className="statusBlocked">Arquivada</b>
+                      <button
+                        type="button"
+                        disabled={saving === "restore-" + (shop.id || shop.slug)}
+                        onClick={() => restoreArchivedShop(shop)}
+                      >
+                        {saving === "restore-" + (shop.id || shop.slug) ? "Restaurando..." : "Restaurar"}
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
       </section>
 

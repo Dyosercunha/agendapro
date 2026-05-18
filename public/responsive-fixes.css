@@ -815,3 +815,27 @@ input[type="time"] {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 }
+
+.platformArchiveBox {
+  border-top: 1px solid rgba(255,255,255,.08);
+  margin-top: 18px;
+  padding-top: 18px;
+}
+
+.platformShopArchived {
+  background: rgba(245,158,11,.06);
+  border-color: rgba(245,158,11,.35);
+}
+
+.outlineLink {
+  align-items: center;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 999px;
+  color: var(--text, #f9fafb);
+  display: inline-flex;
+  font-weight: 900;
+  justify-content: center;
+  min-height: 48px;
+  padding: 13px 16px;
+  text-decoration: none;
+}

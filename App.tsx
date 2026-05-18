@@ -43,6 +43,8 @@ const initialAccessAccounts = [
     role: "Dono",
     active: true,
     fixed: true,
+    password: "",
+    passwordConfirm: "",
   },
 ];
 
@@ -390,7 +392,9 @@ function hexToRgba(hex, opacity) {
 
 function safeImageUrl(value) {
   const url = String(value || "").trim();
-  return url.startsWith("https://") || url.startsWith("http://") ? url : "";
+  return url.startsWith("https://") || url.startsWith("http://") || url.startsWith("data:image/")
+    ? url
+    : "";
 }
 
 const storagePrefix = "agendaProV3";
@@ -560,6 +564,7 @@ function mapAccessAccountsFromCloud(rows, ownerEmail) {
     active: item.active !== false,
     fixed: normalizeRole(item.role) === "dono",
     password: "",
+    passwordConfirm: "",
   }));
 
   if (cloudAccounts.length) return cloudAccounts;
@@ -572,6 +577,7 @@ function mapAccessAccountsFromCloud(rows, ownerEmail) {
       active: true,
       fixed: true,
       password: "",
+      passwordConfirm: "",
     },
   ]);
 }
@@ -721,6 +727,7 @@ function CoreAgendaProApp() {
   const [passwordForm, setPasswordForm] = useState({ next: "", confirm: "" });
   const [passwordSaving, setPasswordSaving] = useState("");
   const [passwordMessage, setPasswordMessage] = useState("");
+  const [passwordEditorOpen, setPasswordEditorOpen] = useState({});
   const [barberGateWhatsapp, setBarberGateWhatsapp] = useState("");
   const [barberGateName, setBarberGateName] = useState("");
   const [barberGateError, setBarberGateError] = useState("");
@@ -776,8 +783,11 @@ function CoreAgendaProApp() {
   const history = cloudHistory || clientHistory[cleanWhatsapp];
   const currentPlan = planOptions.find((plan) => plan.id === business.plan) || planOptions[0];
   const appOrigin = typeof window !== "undefined" ? window.location.origin : "https://agenda.app";
-  const publicScheduleLink = `${appOrigin}/agendamento/${business.slug || "barbearia"}`;
-  const adminPanelLink = `${appOrigin}/painel/${business.slug || "barbearia"}`;
+  const routeSlug = makeSlug(
+    loadedCloudSlug() || business.slug || cloudSlug || currentSlugFromUrl() || initialBusiness.slug
+  );
+  const publicScheduleLink = `${appOrigin}/agendamento/${routeSlug || "barbearia"}`;
+  const adminPanelLink = `${appOrigin}/painel/${routeSlug || "barbearia"}`;
   const scheduleBlocked = business.monthlyStatus === "blocked";
   const pixFeatureEnabled = featureFlags.pix?.released && featureFlags.pix?.enabled;
   const autoConfirmationFeatureEnabled =
@@ -921,6 +931,27 @@ function CoreAgendaProApp() {
 
   function loadedCloudSlug() {
     return barbershopId && cloudSlug ? cloudSlug : "";
+  }
+
+  function goToClientView() {
+    const slug = makeSlug(
+      loadedCloudSlug() || routeSlug || business.slug || cloudSlug || currentSlugFromUrl()
+    );
+
+    setScreen("home");
+    setBarberGateError("");
+    setAdminLoginError("");
+    setSelectedTime("");
+    setPayment("");
+    setConfirmedId("");
+    setConfirmationSent(false);
+    setWaitlistSent(false);
+    setViewMode("client");
+
+    if (typeof window !== "undefined") {
+      window.history.pushState({}, "", slug ? `/agendamento/${slug}` : "/");
+      window.scrollTo(0, 0);
+    }
   }
 
   function missingLoadedBarbershopResult() {
@@ -2020,6 +2051,16 @@ function CoreAgendaProApp() {
       const missingPassword = activeAccounts.find(
         (account) => !account.fixed && !isUuid(account.id) && !String(account.password || "").trim()
       );
+      const weakPassword = activeAccounts.find(
+        (account) =>
+          String(account.password || "").trim() &&
+          String(account.password || "").trim().length < 6
+      );
+      const mismatchedPassword = activeAccounts.find(
+        (account) =>
+          String(account.password || "").trim() &&
+          String(account.password || "").trim() !== String(account.passwordConfirm || "").trim()
+      );
       const targetSlug = barbershopId ? cloudSlug : "";
 
       if (invalidAccount) {
@@ -2031,6 +2072,22 @@ function CoreAgendaProApp() {
           error: {
             message:
               "Informe a senha inicial do novo acesso antes de salvar. A senha cria o login no Supabase Auth.",
+          },
+        };
+      }
+
+      if (weakPassword) {
+        return {
+          error: {
+            message: `A senha de ${weakPassword.email || "um acesso"} precisa ter pelo menos 6 caracteres.`,
+          },
+        };
+      }
+
+      if (mismatchedPassword) {
+        return {
+          error: {
+            message: `A confirmação da senha de ${mismatchedPassword.email || "um acesso"} não confere.`,
           },
         };
       }
@@ -2064,7 +2121,10 @@ function CoreAgendaProApp() {
       });
 
       if (!result.error) {
-        setAccessAccounts((current) => current.map((account) => ({ ...account, password: "" })));
+        setAccessAccounts((current) =>
+          current.map((account) => ({ ...account, password: "", passwordConfirm: "" }))
+        );
+        setPasswordEditorOpen({});
         await loadCloudData();
         setAdminTab("account");
       }
@@ -2310,6 +2370,36 @@ function CoreAgendaProApp() {
     reader.readAsDataURL(file);
   }
 
+  function handleBackgroundUpload(field, event) {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setBusiness((current) => ({ ...current, [field]: String(reader.result) }));
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function saveBackgroundsToCloud() {
+    return runCloudSave("backgrounds", "Planos de fundo salvos online", async () => {
+      const targetSlug = loadedCloudSlug();
+
+      if (!targetSlug) {
+        return missingLoadedBarbershopResult();
+      }
+
+      return callCloudFunction("save_background_settings", {
+        target_slug: targetSlug,
+        client_background_url_input: business.clientBackgroundUrl || "",
+        admin_background_url_input: business.adminBackgroundUrl || "",
+        client_background_opacity_input: Number(business.clientBackgroundOpacity || 0.18),
+        admin_background_opacity_input: Number(business.adminBackgroundOpacity || 0.12),
+      });
+    });
+  }
+
   function updateBusinessName(value) {
     const oldAutoSlug = makeSlug(business.name);
     const shouldUpdateSlug = !business.slug || business.slug === oldAutoSlug;
@@ -2334,8 +2424,27 @@ function CoreAgendaProApp() {
         active: true,
         fixed: false,
         password: "",
+        passwordConfirm: "",
       })
     );
+  }
+
+  function accessEditorKey(account, index) {
+    return String(account.id || `access-${index}`);
+  }
+
+  function setAccessPasswordEditor(index, account, open) {
+    const key = accessEditorKey(account, index);
+
+    setPasswordEditorOpen((current) => ({ ...current, [key]: open }));
+
+    if (!open) {
+      setAccessAccounts((current) =>
+        current.map((item, itemIndex) =>
+          itemIndex === index ? { ...item, password: "", passwordConfirm: "" } : item
+        )
+      );
+    }
   }
 
   function updateAccessAccount(index, field, value) {
@@ -3854,37 +3963,6 @@ function CoreAgendaProApp() {
             </p>
           </div>
 
-          <div className="passwordPanel">
-            <h3>Alterar senha de acesso</h3>
-            <p className="hint">
-              Esta senha é do login da barbearia no Supabase Auth. Ela vale para o e-mail
-              que está conectado neste painel.
-            </p>
-            <label>Nova senha</label>
-            <input
-              type="password"
-              value={passwordForm.next}
-              onChange={(event) => setPasswordForm({ ...passwordForm, next: event.target.value })}
-              placeholder="mínimo 6 caracteres"
-            />
-            <label>Confirmar nova senha</label>
-            <input
-              type="password"
-              value={passwordForm.confirm}
-              onChange={(event) => setPasswordForm({ ...passwordForm, confirm: event.target.value })}
-              placeholder="repita a nova senha"
-            />
-            {passwordMessage && <p className="adminNote">{passwordMessage}</p>}
-            <button
-              type="button"
-              className="black"
-              disabled={passwordSaving === "password"}
-              onClick={updateOwnPassword}
-            >
-              {passwordSaving === "password" ? "Alterando senha..." : "Alterar minha senha"}
-            </button>
-          </div>
-
           <label>E-mail responsável</label>
           <input
             type="email"
@@ -3922,68 +4000,101 @@ function CoreAgendaProApp() {
           </div>
 
           <div className="accessList">
-            {accessAccounts.map((account, index) => (
-              <div className="accessItem" key={account.id || index}>
-                <label>E-mail de acesso</label>
-                <input
-                  type="email"
-                  value={account.email}
-                  disabled={account.fixed}
-                  placeholder="funcionario@barbearia.com"
-                  onChange={(event) => updateAccessAccount(index, "email", event.target.value)}
-                />
+            {accessAccounts.map((account, index) => {
+              const editorKey = accessEditorKey(account, index);
+              const needsInitialPassword = !account.fixed && !isUuid(account.id);
+              const isPasswordOpen = Boolean(passwordEditorOpen[editorKey]) || needsInitialPassword;
+              const passwordLabel = needsInitialPassword
+                ? "Senha inicial deste acesso"
+                : "Nova senha deste acesso";
 
-                {!account.fixed && (
-                  <>
-                    <label>{isUuid(account.id) ? "Nova senha do acesso" : "Senha inicial do acesso"}</label>
-                    <input
-                      type="password"
-                      value={account.password || ""}
-                      placeholder="mínimo 6 caracteres"
-                      onChange={(event) => updateAccessAccount(index, "password", event.target.value)}
-                    />
-                    <p className="hint">
-                      A senha cria ou atualiza o login deste e-mail no Supabase Auth.
-                    </p>
-                  </>
-                )}
+              return (
+                <div className="accessItem" key={account.id || index}>
+                  <label>E-mail de acesso</label>
+                  <input
+                    type="email"
+                    value={account.email}
+                    disabled={account.fixed}
+                    placeholder="funcionario@barbearia.com"
+                    onChange={(event) => updateAccessAccount(index, "email", event.target.value)}
+                  />
 
-                <div className="timePair">
-                  <div>
-                    <label>Função</label>
-                    <select
-                      value={account.role}
-                      disabled={account.fixed}
-                      onChange={(event) => updateAccessAccount(index, "role", event.target.value)}
-                    >
-                      <option value="Dono">Dono</option>
-                      <option value="Funcionário">Funcionário</option>
-                      <option value="Desenvolvedor">Desenvolvedor</option>
-                    </select>
+                  {!needsInitialPassword && (
+                    <div className="accessPasswordActions">
+                      <button
+                        type="button"
+                        className="outline"
+                        onClick={() => setAccessPasswordEditor(index, account, !isPasswordOpen)}
+                      >
+                        {isPasswordOpen ? "Cancelar alteração de senha" : "Alterar senha deste e-mail"}
+                      </button>
+                    </div>
+                  )}
+
+                  {isPasswordOpen && (
+                    <div className="accessPasswordBox">
+                      <label>{passwordLabel}</label>
+                      <input
+                        type="password"
+                        value={account.password || ""}
+                        placeholder="mínimo 6 caracteres"
+                        onChange={(event) => updateAccessAccount(index, "password", event.target.value)}
+                      />
+
+                      <label>Confirmar senha</label>
+                      <input
+                        type="password"
+                        value={account.passwordConfirm || ""}
+                        placeholder="repita a senha"
+                        onChange={(event) =>
+                          updateAccessAccount(index, "passwordConfirm", event.target.value)
+                        }
+                      />
+
+                      <p className="hint">
+                        Esta senha será aplicada somente ao e-mail {account.email || "deste acesso"} ao
+                        salvar os acessos.
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="timePair">
+                    <div>
+                      <label>Função</label>
+                      <select
+                        value={account.role}
+                        disabled={account.fixed}
+                        onChange={(event) => updateAccessAccount(index, "role", event.target.value)}
+                      >
+                        <option value="Dono">Dono</option>
+                        <option value="Funcionário">Funcionário</option>
+                        <option value="Desenvolvedor">Desenvolvedor</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label>Status</label>
+                      <button type="button"
+                        className={account.active ? "selected" : ""}
+                        disabled={account.fixed}
+                        onClick={() => updateAccessAccount(index, "active", !account.active)}
+                      >
+                        {account.active ? "Ativo" : "Inativo"}
+                      </button>
+                    </div>
                   </div>
-                  <div>
-                    <label>Status</label>
-                    <button type="button"
-                      className={account.active ? "selected" : ""}
-                      disabled={account.fixed}
-                      onClick={() => updateAccessAccount(index, "active", !account.active)}
-                    >
-                      {account.active ? "Ativo" : "Inativo"}
+
+                  {account.fixed && (
+                    <p className="hint">Acesso principal protegido para esta barbearia.</p>
+                  )}
+
+                  {!account.fixed && (
+                    <button type="button" className="dangerButton" onClick={() => removeAccessAccount(index)}>
+                      Remover acesso
                     </button>
-                  </div>
+                  )}
                 </div>
-
-                {account.fixed && (
-                  <p className="hint">Acesso principal protegido para esta barbearia.</p>
-                )}
-
-                {!account.fixed && (
-                  <button type="button" className="dangerButton" onClick={() => removeAccessAccount(index)}>
-                    Remover acesso
-                  </button>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <button type="button" className="green" onClick={saveAccessAccountsToCloud}>
@@ -4113,6 +4224,12 @@ function CoreAgendaProApp() {
               }
               placeholder="https://site.com/fundo-cliente.jpg"
             />
+            <label>Subir imagem de fundo do cliente</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(event) => handleBackgroundUpload("clientBackgroundUrl", event)}
+            />
             <label>Opacidade do fundo do cliente</label>
             <input
               type="number"
@@ -4139,6 +4256,12 @@ function CoreAgendaProApp() {
               }
               placeholder="https://site.com/fundo-painel.jpg"
             />
+            <label>Subir imagem de fundo do painel</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(event) => handleBackgroundUpload("adminBackgroundUrl", event)}
+            />
             <label>Opacidade do fundo do painel</label>
             <input
               type="number"
@@ -4155,6 +4278,10 @@ function CoreAgendaProApp() {
               onClick={() => setBusiness({ ...business, adminBackgroundUrl: "" })}
             >
               Excluir fundo do painel
+            </button>
+
+            <button type="button" className="black" onClick={saveBackgroundsToCloud}>
+              {cloudSaving === "backgrounds" ? "Salvando fundos..." : "Salvar planos de fundo"}
             </button>
           </div>
 
@@ -4825,7 +4952,7 @@ function proSlug(){return typeof window==="undefined"?"":slugFromPathname(window
 function proClient(){return window.location.pathname.includes("/agendamento/");}
 function todayIsoPro(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 function promoOk(s){const t=todayIsoPro();return !!s.pro_promotions_enabled&&!!s.promotion_active&&(!s.promotion_start_date||t>=s.promotion_start_date)&&(!s.promotion_end_date||t<=s.promotion_end_date);}
-function directImage(url){const u=String(url||"").trim();return u&&(u.startsWith("http://")||u.startsWith("https://"))?u:"";}
+function directImage(url){const u=String(url||"").trim();return u&&(u.startsWith("http://")||u.startsWith("https://")||u.startsWith("data:image/"))?u:"";}
 function AppProFeatures(){
  const slug=proSlug();
  const[ctx,setCtx]=useState({tab:"",admin:false});
@@ -4848,7 +4975,7 @@ function AppProFeatures(){
   setServices((rows||[]).filter(x=>x.name));setWaitlist(w||[]);setClients(c||[]);
  }
  useEffect(()=>{loadPro();},[slug]);
- useEffect(()=>{let layer=document.getElementById("agendaProBackgroundLayer");if(!layer){layer=document.createElement("div");layer.id="agendaProBackgroundLayer";Object.assign(layer.style,{position:"fixed",inset:"0",zIndex:"0",pointerEvents:"none",backgroundSize:"cover",backgroundPosition:"center"});document.body.prepend(layer);document.body.style.position="relative";}const url=growth.pro_backplate_enabled?(ctx.admin?bg.admin_background_url:bg.client_background_url):"";const op=Number(ctx.admin?bg.admin_background_opacity:bg.client_background_opacity)||0;if(!directImage(url)){layer.style.opacity="0";layer.style.backgroundImage="none";return;}layer.style.opacity=String(Math.max(0,Math.min(op,.7)));layer.style.backgroundImage="linear-gradient(rgba(7,10,13,.72),rgba(7,10,13,.72)), url('"+String(url).replace(/'/g,"%27")+"')";},[bg,growth.pro_backplate_enabled,ctx.admin]);
+ useEffect(()=>{let layer=document.getElementById("agendaProBackgroundLayer");if(!layer){layer=document.createElement("div");layer.id="agendaProBackgroundLayer";Object.assign(layer.style,{position:"fixed",inset:"0",zIndex:"0",pointerEvents:"none",backgroundSize:"cover",backgroundPosition:"center"});document.body.prepend(layer);document.body.style.position="relative";}const url=growth.pro_backplate_enabled?(ctx.admin?bg.admin_background_url:bg.client_background_url):"";const op=Number(ctx.admin?bg.admin_background_opacity:bg.client_background_opacity)||0;if(!directImage(url))return;layer.style.opacity=String(Math.max(0,Math.min(op,.7)));layer.style.backgroundImage="linear-gradient(rgba(7,10,13,.72),rgba(7,10,13,.72)), url('"+String(url).replace(/'/g,"%27")+"')";},[bg,growth.pro_backplate_enabled,ctx.admin]);
  async function del(s){if(!window.confirm('Excluir o serviço "'+s.name+'"? O histórico antigo será mantido.'))return;setSaving('d'+s.id);setMsg("");try{const{error}=await supabase.rpc("soft_delete_service_by_name",{target_slug:slug,service_name_input:s.name});if(error)throw error;setServices(a=>a.filter(x=>x.id!==s.id));setMsg("Serviço excluído com segurança.");}catch(e){setMsg(e?.message||"Não foi possível excluir o serviço.");}finally{setSaving("");}}
  async function saveBg(){setSaving("bg");setMsg("");try{const{error}=await supabase.rpc("save_background_settings",{target_slug:slug,client_background_url_input:bg.client_background_url||"",admin_background_url_input:bg.admin_background_url||"",client_background_opacity_input:Number(bg.client_background_opacity||.18),admin_background_opacity_input:Number(bg.admin_background_opacity||.12)});if(error)throw error;setMsg("Backplate salvo.");await loadPro();}catch(e){setMsg(e?.message||"Não foi possível salvar o backplate.");}finally{setSaving("");}}
  async function saveMedia(){setSaving("media");setMsg("");try{const{error}=await supabase.rpc("save_appearance_media",{target_slug:slug,before_image_url_input:media.before_image_url||"",process_image_url_input:media.process_image_url||"",final_image_url_input:media.final_image_url||"",before_image_label_input:media.before_image_label||"Antes",process_image_label_input:media.process_image_label||"Processo",final_image_label_input:media.final_image_label||"Finalizado"});if(error)throw error;setMsg("Fotos Antes, Processo e Finalizado salvas.");await loadPro();}catch(e){setMsg(e?.message||"Não foi possível salvar as fotos.");}finally{setSaving("");}}

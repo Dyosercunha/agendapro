@@ -2297,6 +2297,22 @@ button:disabled {
   padding: 14px;
 }
 
+.accessPasswordActions {
+  margin: 10px 0 12px;
+}
+
+.accessPasswordActions .outline {
+  width: 100%;
+}
+
+.accessPasswordBox {
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.22);
+  border-radius: 18px;
+  margin: 0 0 12px;
+  padding: 12px;
+}
+
 .accessItem button.selected {
   width: 100%;
   border-radius: 999px;

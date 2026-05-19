@@ -12,6 +12,8 @@ const serviceRoleKey =
   process.env.SUPABASE_SERVICE_KEY ||
   process.env.SUPABASE_SECRET_KEY;
 
+const platformDeveloperEmail = "dyoser2@gmail.com";
+
 function cleanEmail(value = "") {
   return String(value).trim().toLowerCase();
 }
@@ -168,6 +170,13 @@ export default async function handler(request, response) {
 
   if (!platformAdmin && role === "platform") {
     role = "manager";
+  }
+
+  if (!platformAdmin && email === platformDeveloperEmail) {
+    return response.status(403).json({
+      ok: false,
+      error: "Apenas o desenvolvedor da plataforma pode alterar este acesso protegido.",
+    });
   }
 
   let authUser = null;

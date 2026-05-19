@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase, supabaseAnonKey, supabaseUrl } from "./supabaseClient";
 import "./styles.css";
 
+const platformDeveloperEmail = "dyoser2@gmail.com";
+
 const fallbackProfessionalName = "Profissional disponível";
 
 const initialBusiness = {
@@ -39,8 +41,8 @@ const initialBusiness = {
 const initialAccessAccounts = [
   {
     id: "access-1",
-    email: "dyoser2@gmail.com",
-    role: "Dono",
+    email: platformDeveloperEmail,
+    role: "Desenvolvedor",
     active: true,
     fixed: true,
     password: "",
@@ -50,7 +52,8 @@ const initialAccessAccounts = [
 
 function normalizeRole(value){const r=String(value||"").trim().toLowerCase();if(["desenvolvedor","developer","platform","plataforma"].includes(r))return"desenvolvedor";if(["dono","owner"].includes(r))return"dono";return"funcionario";}
 function roleLabel(value){const r=normalizeRole(value);return r==="desenvolvedor"?"Desenvolvedor":r==="dono"?"Dono":"Funcionário";}
-function canAccessAdminTab(roleValue,tabId,isOwnerEmail=false){const r=normalizeRole(roleValue);if(r==="desenvolvedor")return true;if(r==="dono"||isOwnerEmail)return true;return["dashboard","agenda","customers","services","appearance"].includes(tabId);}
+function cloudRoleFromLabel(value){const r=normalizeRole(value);if(r==="desenvolvedor")return"platform";if(r==="dono")return"owner";return"manager";}
+function canAccessAdminTab(roleValue,tabId,isOwnerEmail=false){const r=normalizeRole(roleValue);if(r==="desenvolvedor")return true;if(r==="dono"||isOwnerEmail)return true;return["dashboard","agenda","customers"].includes(tabId);}
 
 const initialServices = [
   { name: "Corte de cabelo", duration: 30, price: 35, active: true },
@@ -560,26 +563,52 @@ function mapAccessAccountsFromCloud(rows, ownerEmail) {
   const cloudAccounts = (rows || []).map((item) => ({
     id: item.id,
     email: item.email,
-    role: roleLabel(item.role),
+    role: String(item.email || "").trim().toLowerCase() === platformDeveloperEmail ? "Desenvolvedor" : roleLabel(item.role),
     active: item.active !== false,
-    fixed: normalizeRole(item.role) === "dono",
+    fixed:
+      String(item.email || "").trim().toLowerCase() === platformDeveloperEmail ||
+      normalizeRole(item.role) === "desenvolvedor",
     password: "",
     passwordConfirm: "",
   }));
 
-  if (cloudAccounts.length) return cloudAccounts;
+  if (cloudAccounts.length) {
+    const hasDeveloper = cloudAccounts.some(
+      (account) => String(account.email || "").trim().toLowerCase() === platformDeveloperEmail
+    );
 
-  return mergeWithDefault(initialAccessAccounts, [
-    {
+    if (hasDeveloper) return cloudAccounts;
+
+    return [
+      {
+        id: "developer-local",
+        email: platformDeveloperEmail,
+        role: "Desenvolvedor",
+        active: true,
+        fixed: true,
+        password: "",
+        passwordConfirm: "",
+      },
+      ...cloudAccounts,
+    ];
+  }
+
+  const fallbackOwnerEmail = String(ownerEmail || "").trim().toLowerCase();
+  const fallbackAccounts = [...initialAccessAccounts];
+
+  if (fallbackOwnerEmail && fallbackOwnerEmail !== platformDeveloperEmail) {
+    fallbackAccounts.push({
       id: "owner-local",
-      email: ownerEmail || initialBusiness.ownerEmail,
+      email: fallbackOwnerEmail,
       role: "Dono",
       active: true,
-      fixed: true,
+      fixed: false,
       password: "",
       passwordConfirm: "",
-    },
-  ]);
+    });
+  }
+
+  return fallbackAccounts;
 }
 
 function mapFeatureFlagsFromCloud(rows) {
@@ -808,8 +837,11 @@ function CoreAgendaProApp() {
     : isOwnerEmail
     ? "dono"
     : normalizeRole(currentAdminAccount?.role);
-  const canManageBilling =
-    isOwnerEmail || currentAdminRole === "desenvolvedor";
+  const isDeveloperRole = currentAdminRole === "desenvolvedor";
+  const isOwnerRole = currentAdminRole === "dono" || isOwnerEmail;
+  const canManageBilling = isDeveloperRole;
+  const canManageAccessAccounts = isDeveloperRole || isOwnerRole;
+  const canManageBusinessSettings = isDeveloperRole || isOwnerRole;
   const canUseAdminTab = (tabId) => canAccessAdminTab(currentAdminRole, tabId, isOwnerEmail);
   const visibleAdminTabs = adminTabs.filter((tab) => canUseAdminTab(tab.id));
   const activeAdminTab = canUseAdminTab(adminTab) ? adminTab : "dashboard";
@@ -2110,12 +2142,7 @@ function CoreAgendaProApp() {
         accesses_input: accessAccounts.map((account) => ({
           id: account.id || null,
           email: account.email.trim().toLowerCase(),
-          role:
-            account.role === "Dono"
-              ? "owner"
-              : account.role === "Desenvolvedor"
-              ? "platform"
-              : "manager",
+          role: cloudRoleFromLabel(account.role),
           active: Boolean(account.active),
         })),
       });
@@ -2157,12 +2184,7 @@ function CoreAgendaProApp() {
           barbershopSlug: barbershopId ? cloudSlug : "",
           email: account.email.trim().toLowerCase(),
           password: String(account.password || "").trim(),
-          role:
-            account.role === "Dono"
-              ? "owner"
-              : account.role === "Desenvolvedor"
-              ? "platform"
-              : "manager",
+          role: cloudRoleFromLabel(account.role),
           active: Boolean(account.active),
         }),
       });
@@ -3238,9 +3260,15 @@ function CoreAgendaProApp() {
               <div className="commandGrid">
                 <button type="button" onClick={() => setAdminTab("agenda")}>Ver agenda</button>
                 <button type="button" onClick={() => setAdminTab("customers")}>Ver clientes</button>
+                {canManageBusinessSettings && (
+                  <>
                 <button type="button" onClick={blockNextAvailableTime}>Bloquear próximo horário</button>
                 <button type="button" onClick={closeToday}>Fechar hoje</button>
                 <button type="button" onClick={openToday}>Liberar hoje</button>
+                  </>
+                )}
+                {canUseAdminTab("services") && (
+                  <>
                 <button type="button"
                   onClick={() => {
                     addService();
@@ -3257,6 +3285,8 @@ function CoreAgendaProApp() {
                 >
                   Novo profissional
                 </button>
+                  </>
+                )}
                 {canUseAdminTab("payments") && (
                   <button type="button"
                     disabled={!featureFlags.pix?.released}
@@ -3277,6 +3307,7 @@ function CoreAgendaProApp() {
               </div>
             </section>
 
+            {canManageBusinessSettings && (
             <section className="card setupCard">
               <div className="sectionTitle">
                 <h2>Checklist do app</h2>
@@ -3301,6 +3332,7 @@ function CoreAgendaProApp() {
                 ))}
               </div>
             </section>
+            )}
 
             {canUseAdminTab("improvements") && (
             <section className="card resourceCard">
@@ -3482,7 +3514,7 @@ function CoreAgendaProApp() {
           </div>
         </section>
 
-        <section className={activeAdminTab === "agenda" ? "card" : "hiddenPanel"}>
+        <section className={activeAdminTab === "agenda" && canManageBusinessSettings ? "card" : "hiddenPanel"}>
           <div className="sectionTitle">
             <h2>Agenda real</h2>
             <span>Funcionamento</span>
@@ -3543,7 +3575,7 @@ function CoreAgendaProApp() {
           </div>
         </section>
 
-        <section className={activeAdminTab === "agenda" ? "card" : "hiddenPanel"}>
+        <section className={activeAdminTab === "agenda" && canManageBusinessSettings ? "card" : "hiddenPanel"}>
           <div className="sectionTitle">
             <h2>Intervalos</h2>
             <span>Almoço e pausas</span>
@@ -3576,7 +3608,7 @@ function CoreAgendaProApp() {
           </button>
         </section>
 
-        <section className={activeAdminTab === "agenda" ? "card" : "hiddenPanel"}>
+        <section className={activeAdminTab === "agenda" && canManageBusinessSettings ? "card" : "hiddenPanel"}>
           <div className="sectionTitle">
             <h2>Folgas</h2>
             <span>Dias fechados</span>
@@ -3599,7 +3631,7 @@ function CoreAgendaProApp() {
           </button>
         </section>
 
-        <section className={activeAdminTab === "agenda" ? "card" : "hiddenPanel"}>
+        <section className={activeAdminTab === "agenda" && canManageBusinessSettings ? "card" : "hiddenPanel"}>
           <div className="sectionTitle">
             <h2>Bloqueios</h2>
             <span>Imprevistos</span>
@@ -3967,12 +3999,14 @@ function CoreAgendaProApp() {
           <input
             type="email"
             value={business.ownerEmail || ""}
+            disabled={!isDeveloperRole}
             onChange={(event) => setBusiness({ ...business, ownerEmail: event.target.value })}
           />
 
           <label>Identificador do link</label>
           <input
             value={business.slug || ""}
+            disabled={!isDeveloperRole}
             onChange={(event) => updateBusinessSlug(event.target.value)}
             placeholder="agenda-pro"
           />
@@ -3996,7 +4030,9 @@ function CoreAgendaProApp() {
               <span>Acessos ao painel</span>
               <strong>{accessAccounts.filter((account) => account.active).length} ativos</strong>
             </div>
-            <button type="button" onClick={addAccessAccount}>Adicionar</button>
+            {canManageAccessAccounts && (
+              <button type="button" onClick={addAccessAccount}>Adicionar</button>
+            )}
           </div>
 
           <div className="accessList">
@@ -4068,7 +4104,9 @@ function CoreAgendaProApp() {
                       >
                         <option value="Dono">Dono</option>
                         <option value="Funcionário">Funcionário</option>
-                        <option value="Desenvolvedor">Desenvolvedor</option>
+                        {(isDeveloperRole || normalizeRole(account.role) === "desenvolvedor") && (
+                          <option value="Desenvolvedor">Desenvolvedor</option>
+                        )}
                       </select>
                     </div>
                     <div>
@@ -4097,9 +4135,11 @@ function CoreAgendaProApp() {
             })}
           </div>
 
-          <button type="button" className="green" onClick={saveAccessAccountsToCloud}>
-            {cloudSaving === "access" ? "Salvando acessos..." : "Salvar acessos"}
-          </button>
+          {canManageAccessAccounts && (
+            <button type="button" className="green" onClick={saveAccessAccountsToCloud}>
+              {cloudSaving === "access" ? "Salvando acessos..." : "Salvar acessos"}
+            </button>
+          )}
 
           {canManageBilling ? (
             <>

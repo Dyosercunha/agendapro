@@ -1522,11 +1522,18 @@ button:disabled {
 }
 
 .adminTabs {
+  background: rgba(7, 10, 13, 0.78);
+  backdrop-filter: blur(18px);
+  border: 1px solid var(--border-soft);
+  border-radius: 24px;
   display: flex;
   gap: 8px;
   margin-bottom: 14px;
   overflow-x: auto;
-  padding: 2px 2px 8px;
+  padding: 8px;
+  position: sticky;
+  top: 8px;
+  z-index: 20;
 }
 
 .adminTabs::-webkit-scrollbar {
@@ -1539,9 +1546,10 @@ button:disabled {
   border: 1px solid var(--border);
   border-radius: 999px;
   min-width: max-content;
-  padding: 11px 14px;
+  padding: 11px 15px;
   font-size: 13px;
   font-weight: 900;
+  scroll-snap-align: start;
 }
 
 .adminTabs .activeAdminTab {
@@ -2371,11 +2379,12 @@ button:disabled {
     margin-right: -2px;
     padding-left: 2px;
     padding-right: 2px;
+    top: 6px;
   }
 
   .adminTabs button {
     font-size: 12px;
-    padding: 10px 12px;
+    padding: 10px 13px;
   }
 
   .adminStats {

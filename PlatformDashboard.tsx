@@ -65,6 +65,12 @@ function dateText(value) {
   return new Date(year, month - 1, day).toLocaleDateString("pt-BR");
 }
 
+function futureDateText(days = 30) {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
 function withTimeout(promise, label, timeoutMs = 9000) {
   let timeoutId;
   const timeout = new Promise((_, reject) => {
@@ -639,7 +645,7 @@ export default function PlatformDashboard() {
   }
 
   async function purgeArchivedShops() {
-    const archivedCount = Number(dashboard.stats?.archived || 0);
+    const archivedCount = archivedShops.length || Number(dashboard.stats?.archived || 0);
     if (!archivedCount) {
       setMessage("Não há barbearias arquivadas para limpar.");
       return;
@@ -820,7 +826,7 @@ export default function PlatformDashboard() {
         <div className="platformHeroActions">
           <button type="button" className="platformSecondary" onClick={loadDashboard}>Atualizar</button>
           <button type="button" className="platformSecondary" disabled={saving === "reminders"} onClick={sendBillingReminders}>{saving === "reminders" ? "Enviando..." : "Enviar avisos de vencimento"}</button>
-          <button type="button" className="platformDangerGhost" disabled={saving === "purge-archived" || !Number(dashboard.stats?.archived || 0)} onClick={purgeArchivedShops}>{saving === "purge-archived" ? "Limpando..." : `Limpar arquivadas (${dashboard.stats?.archived || 0})`}</button>
+          <button type="button" className="platformDangerGhost" disabled={saving === "purge-archived" || !(archivedShops.length || Number(dashboard.stats?.archived || 0))} onClick={purgeArchivedShops}>{saving === "purge-archived" ? "Limpando..." : `Limpar arquivadas (${archivedShops.length || dashboard.stats?.archived || 0})`}</button>
           <button type="button" className="platformSecondary" onClick={logout}>Sair</button>
         </div>
       </header>
@@ -917,6 +923,14 @@ export default function PlatformDashboard() {
                   <span>Diagnostico da nuvem</span>
                   <h3>Barbearias arquivadas</h3>
                 </div>
+                <button
+                  type="button"
+                  className="platformDangerGhost"
+                  disabled={saving === "purge-archived"}
+                  onClick={purgeArchivedShops}
+                >
+                  {saving === "purge-archived" ? "Limpando..." : "Apagar arquivadas"}
+                </button>
               </div>
               <p className="platformMuted">
                 Essas barbearias existem no banco, mas ficam escondidas da lista principal. Restaure para voltar a testar e editar.
@@ -951,11 +965,28 @@ export default function PlatformDashboard() {
         {!selectedShop ? <p className="platformMuted">Selecione uma barbearia para editar plano, status e funções.</p> : (
           <>
             <div className="platformTitle"><div><span>Edição</span><h2>{selectedShop.name}</h2></div><button type="button" className="platformSecondary" onClick={() => setSelectedShop(null)}>Fechar</button></div>
+            <div className="platformEditorHero">
+              <div><span>Plano</span><strong>{planLabel(selectedShop.plan)}</strong><small>{money(selectedShop.plan_price || 0)}/mês</small></div>
+              <div><span>Status</span><strong>{statusLabel(selectedShop.monthly_status)}</strong><small>{typeof selectedShop.days_to_billing === "number" ? `${selectedShop.days_to_billing} dia(s)` : "sem alerta"}</small></div>
+              <div><span>Vencimento</span><strong>{dateText(selectedShop.next_billing_date)}</strong><small>renovação da assinatura</small></div>
+              <div><span>Recursos</span><strong>{Object.values(selectedShop.features || {}).filter((item) => item?.released).length}</strong><small>liberados no plano</small></div>
+            </div>
+            <div className="platformQuickActions">
+              <button type="button" onClick={() => updateSelected("monthly_status", "active")}>Marcar ativo</button>
+              <button type="button" onClick={() => updateSelected("monthly_status", "overdue")}>Marcar atraso</button>
+              <button type="button" onClick={() => updateSelected("monthly_status", "blocked")}>Bloquear</button>
+              <button type="button" onClick={() => updateSelected("next_billing_date", futureDateText(30))}>Renovar +30 dias</button>
+            </div>
             <form className="platformForm" onSubmit={saveShop}>
+              <div className="platformEditorSection">
+                <h3>Dados principais</h3>
               <label>Nome</label><input value={selectedShop.name || ""} onChange={(event) => updateSelected("name", event.target.value)} />
               <label>WhatsApp</label><input value={selectedShop.whatsapp || ""} onChange={(event) => updateSelected("whatsapp", event.target.value)} />
               <label>E-mail do dono</label><input value={selectedShop.owner_email || ""} onChange={(event) => updateSelected("owner_email", event.target.value)} type="email" />
               <label>Nova senha do dono</label><input value={selectedShop.owner_password || ""} onChange={(event) => updateSelected("owner_password", event.target.value)} type="password" placeholder="preencha apenas se quiser alterar" />
+              </div>
+              <div className="platformEditorSection">
+                <h3>Assinatura</h3>
               <div className="platformTwoCols">
                 <span><label>Plano</label><select value={selectedShop.plan || "professional"} onChange={(event) => updateSelected("plan", event.target.value)}><option value="starter">Inicial</option><option value="professional">Profissional</option><option value="premium">Premium</option></select></span>
                 <span><label>Status</label><select value={selectedShop.monthly_status || "active"} onChange={(event) => updateSelected("monthly_status", event.target.value)}>{statusOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></span>
@@ -964,6 +995,9 @@ export default function PlatformDashboard() {
                 <span><label>Vencimento</label><input value={selectedShop.next_billing_date || ""} onChange={(event) => updateSelected("next_billing_date", event.target.value)} type="date" /></span>
                 <span><label>Valor mensal</label><input value={selectedShop.plan_price ?? ""} onChange={(event) => updateSelected("plan_price", event.target.value)} type="number" min="0" step="1" placeholder="89" /></span>
               </div>
+              </div>
+              <div className="platformEditorSection">
+                <h3>Endereço e identidade</h3>
               <div className="platformTwoCols">
                 <span><label>CEP</label><input value={selectedShop.cep || ""} onChange={(event) => updateSelected("cep", event.target.value)} placeholder="00000000" inputMode="numeric" /></span>
                 <span><label>Número do comércio</label><input value={selectedShop.address_number || ""} onChange={(event) => updateSelected("address_number", event.target.value)} placeholder="123" /></span>
@@ -972,6 +1006,7 @@ export default function PlatformDashboard() {
               <label>Endereço</label><input value={selectedShop.address || ""} onChange={(event) => updateSelected("address", event.target.value)} />
               <label>Chave PIX</label><input value={selectedShop.pix_key || ""} onChange={(event) => updateSelected("pix_key", event.target.value)} />
               <label>Cor principal</label><input value={selectedShop.theme_color || "#22c55e"} onChange={(event) => updateSelected("theme_color", event.target.value)} type="color" />
+              </div>
               <button type="submit" className="platformPrimary" disabled={saving === "shop"}>{saving === "shop" ? "Salvando..." : "Salvar dados da barbearia"}</button>
             </form>
             <div className="platformFeatures">

@@ -115,6 +115,7 @@ const adminTabs = [
   { id: "agenda", label: "Agenda" },
   { id: "customers", label: "Clientes" },
   { id: "services", label: "Serviços" },
+  { id: "professionals", label: "Profissionais" },
   { id: "payments", label: "Pagamentos" },
   { id: "appearance", label: "Aparência" },
   { id: "improvements", label: "Melhorias" },
@@ -1299,7 +1300,7 @@ function CoreAgendaProApp() {
       label: "Profissionais",
       description: "Equipe ativa",
       done: professionals.some((item) => item.active && !item.fixed),
-      tab: "services",
+      tab: "professionals",
     },
     {
       label: "Agenda",
@@ -3277,12 +3278,12 @@ function CoreAgendaProApp() {
                 >
                   Novo serviço
                 </button>
-                <button type="button"
-                  onClick={() => {
-                    addProfessional();
-                    setAdminTab("services");
-                  }}
-                >
+                    <button type="button"
+                      onClick={() => {
+                        addProfessional();
+                        setAdminTab("professionals");
+                      }}
+                    >
                   Novo profissional
                 </button>
                   </>
@@ -3716,7 +3717,7 @@ function CoreAgendaProApp() {
           </button>
         </section>
 
-        <section className={activeAdminTab === "services" ? "card" : "hiddenPanel"}>
+        <section className={activeAdminTab === "professionals" ? "card" : "hiddenPanel"}>
           <h2>Profissionais</h2>
           {professionals.map((item, index) => (
             <div className="adminItem barberItem" key={index}>
@@ -4354,7 +4355,7 @@ function CoreAgendaProApp() {
           </button>
         </section>
 
-        <section className={activeAdminTab === "agenda" || activeAdminTab === "dashboard" ? "card" : "hiddenPanel"}>
+        <section className={activeAdminTab === "agenda" ? "card" : "hiddenPanel"}>
           <h2>Agenda confirmada</h2>
           {appointments.length === 0 && <p className="hint">Ainda não há agendamentos confirmados.</p>}
 
@@ -4393,7 +4394,7 @@ function CoreAgendaProApp() {
           ))}
         </section>
 
-        <section className={activeAdminTab === "agenda" || activeAdminTab === "dashboard" ? "card" : "hiddenPanel"}>
+        <section className={activeAdminTab === "agenda" ? "card" : "hiddenPanel"}>
           <div className="sectionTitle">
             <h2>Lista de espera</h2>
             <span>{waitlist.length} pedidos</span>

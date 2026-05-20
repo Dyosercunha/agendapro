@@ -75,7 +75,7 @@ function withTimeout(promise, label, timeoutMs = 9000) {
   let timeoutId;
   const timeout = new Promise((_, reject) => {
     timeoutId = window.setTimeout(() => {
-      reject(new Error(`${label} demorou para responder. Atualize a pagina e tente novamente.`));
+      reject(new Error(`${label} demorou para responder. Atualize a página e tente novamente.`));
     }, timeoutMs);
   });
 
@@ -244,7 +244,7 @@ export default function PlatformDashboard() {
     async function boot() {
       setChecking(true);
       try {
-        const { data } = await withTimeout(supabase.auth.getSession(), "A sessao");
+        const { data } = await withTimeout(supabase.auth.getSession(), "A sessão");
         if (!mounted) return;
         setSession(data?.session || null);
         await checkDeveloper(data?.session || null);
@@ -252,7 +252,7 @@ export default function PlatformDashboard() {
         if (!mounted) return;
         setIsDeveloper(false);
         setLoading(false);
-        setMessage("Nao foi possivel carregar sua sessao: " + errorText(error));
+        setMessage("Não foi possível carregar sua sessão: " + errorText(error));
       } finally {
         if (mounted) setChecking(false);
       }
@@ -293,7 +293,7 @@ export default function PlatformDashboard() {
       return;
     }
 
-    const { data, error } = await withTimeout(supabase.rpc("is_platform_admin"), "A verificacao do desenvolvedor");
+    const { data, error } = await withTimeout(supabase.rpc("is_platform_admin"), "A verificação do desenvolvedor");
     if (error || data !== true) {
       setIsDeveloper(false);
       setLoading(false);
@@ -307,7 +307,7 @@ export default function PlatformDashboard() {
     } catch (error) {
       setIsDeveloper(false);
       setLoading(false);
-      setMessage("Nao foi possivel validar o acesso do desenvolvedor: " + errorText(error));
+      setMessage("Não foi possível validar o acesso do desenvolvedor: " + errorText(error));
     }
   }
 
@@ -322,7 +322,7 @@ export default function PlatformDashboard() {
     setDashboard(data || { stats: {}, barbershops: [] });
     await loadCloudAudit().catch(() => null);
     } catch (error) {
-      setMessage("Nao foi possivel puxar dados da nuvem: " + errorText(error));
+      setMessage("Não foi possível puxar dados da nuvem: " + errorText(error));
       setDashboard({ stats: {}, barbershops: [] });
       await loadCloudAudit({ allowDashboardFallback: true }).catch(() => null);
     } finally {
@@ -335,7 +335,7 @@ export default function PlatformDashboard() {
     const token = sessionData?.session?.access_token;
 
     if (!token) {
-      throw new Error("Sessao da plataforma expirada. Entre novamente para consultar a nuvem.");
+      throw new Error("Sessão da plataforma expirada. Entre novamente para consultar a nuvem.");
     }
 
     const response = await fetch("/api/platform-shop-maintenance", {
@@ -350,7 +350,7 @@ export default function PlatformDashboard() {
     const result = await response.json().catch(() => ({}));
 
     if (!response.ok || result.ok === false) {
-      throw new Error(result.error || "Nao foi possivel consultar a manutencao da plataforma.");
+      throw new Error(result.error || "Não foi possível consultar a manutenção da plataforma.");
     }
 
     return result;
@@ -394,7 +394,7 @@ export default function PlatformDashboard() {
       setMessage(`Barbearia ${shop.name || shop.slug} restaurada. Agora ela volta para a lista principal.`);
       await loadDashboard();
     } catch (error) {
-      setMessage("Nao foi possivel restaurar a barbearia: " + errorText(error));
+      setMessage("Não foi possível restaurar a barbearia: " + errorText(error));
     } finally {
       setSaving("");
     }
@@ -897,7 +897,7 @@ export default function PlatformDashboard() {
                   <small>
                     {shop.owner_email || "Sem e-mail"}
                     {typeof shop.admin_count === "number" ? ` · ${shop.admin_count} acesso(s)` : ""}
-                    {typeof shop.service_count === "number" ? ` · ${shop.service_count} servico(s)` : ""}
+                    {typeof shop.service_count === "number" ? ` · ${shop.service_count} serviço(s)` : ""}
                   </small>
                   <div className="platformShopMeta">
                     <b>{shop.plan_label || planLabels[shop.plan] || shop.plan || "Sem plano"}</b>
@@ -920,7 +920,7 @@ export default function PlatformDashboard() {
             <div className="platformArchiveBox">
               <div className="platformTitle">
                 <div>
-                  <span>Diagnostico da nuvem</span>
+                  <span>Diagnóstico da nuvem</span>
                   <h3>Barbearias arquivadas</h3>
                 </div>
                 <button
@@ -941,7 +941,7 @@ export default function PlatformDashboard() {
                     <div>
                       <strong>{shop.name || "Sem nome"}</strong>
                       <span>{shop.slug}</span>
-                      <small>{shop.owner_email || "Sem e-mail"} · {shop.admin_count || 0} acesso(s) · {shop.service_count || 0} servico(s)</small>
+                      <small>{shop.owner_email || "Sem e-mail"} · {shop.admin_count || 0} acesso(s) · {shop.service_count || 0} serviço(s)</small>
                     </div>
                     <div className="platformShopActions">
                       <b className="statusBlocked">Arquivada</b>

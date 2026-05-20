@@ -658,6 +658,8 @@ function mapAppointmentsFromCloud(appointmentRows, professionalRows) {
     paid: Boolean(item.paid),
     status: item.status || "confirmed",
     rescheduleRequested: Boolean(item.reschedule_requested),
+    publicToken: item.public_token || "",
+    note: item.customer_note || "",
   }));
 }
 
@@ -794,8 +796,13 @@ function CoreAgendaProApp() {
   const [selectedDate, setSelectedDate] = useState(getDateAfterDays(0));
   const [selectedTime, setSelectedTime] = useState("");
   const [payment, setPayment] = useState("");
+  const [appointmentNote, setAppointmentNote] = useState("");
   const [confirmationSent, setConfirmationSent] = useState(false);
   const [confirmedId, setConfirmedId] = useState("");
+  const [confirmedToken, setConfirmedToken] = useState("");
+  const [publicAppointment, setPublicAppointment] = useState(null);
+  const [publicAppointmentToken, setPublicAppointmentToken] = useState("");
+  const [publicActionSaving, setPublicActionSaving] = useState("");
   const [dataSavedAt, setDataSavedAt] = useState("");
   const [barbershopId, setBarbershopId] = useState("");
   const [cloudSlug, setCloudSlug] = useState(currentSlugFromUrl());
@@ -818,6 +825,9 @@ function CoreAgendaProApp() {
   );
   const publicScheduleLink = `${appOrigin}/${routeSlug || "barbearia"}`;
   const adminPanelLink = `${appOrigin}/painel/${routeSlug || "barbearia"}`;
+  const appointmentManagementLink = confirmedToken
+    ? `${publicScheduleLink}?agendamento=${encodeURIComponent(confirmedToken)}`
+    : "";
   const scheduleBlocked = business.monthlyStatus === "blocked";
   const pixFeatureEnabled = featureFlags.pix?.released && featureFlags.pix?.enabled;
   const autoConfirmationFeatureEnabled =
@@ -976,7 +986,9 @@ function CoreAgendaProApp() {
     setAdminLoginError("");
     setSelectedTime("");
     setPayment("");
+    setAppointmentNote("");
     setConfirmedId("");
+    setConfirmedToken("");
     setConfirmationSent(false);
     setWaitlistSent(false);
     setViewMode("client");
@@ -1055,6 +1067,20 @@ function CoreAgendaProApp() {
   useEffect(() => {
     loadCloudData();
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const token =
+      new URLSearchParams(window.location.search).get("agendamento") ||
+      new URLSearchParams(window.location.search).get("codigo");
+
+    if (!token || !loadedCloudSlug()) return;
+
+    setPublicAppointmentToken(token);
+    setScreen("manage");
+    loadPublicAppointment(token);
+  }, [barbershopId, cloudSlug]);
 
   useEffect(() => {
     let active = true;
@@ -1506,10 +1532,35 @@ function CoreAgendaProApp() {
     return !["cancelled", "canceled", "cancelado"].includes(String(item.status || "").toLowerCase());
   }
 
-  function appointmentConflict(dateText, startTime, duration, appointmentSource = appointments) {
+  function appointmentProfessionalMatches(item, professionalName) {
+    const selectedProfessional = String(professionalName || "").trim();
+    const appointmentProfessional = String(item.professional || "").trim();
+
+    if (!selectedProfessional) return true;
+    if (!appointmentProfessional) return true;
+    if (appointmentProfessional === selectedProfessional) return true;
+
+    const unknownProfessionalLabels = [
+      "Primeiro disponível",
+      "Primeiro disponivel",
+      "Profissional disponível",
+      "Profissional disponivel",
+    ];
+
+    return unknownProfessionalLabels.includes(appointmentProfessional);
+  }
+
+  function appointmentConflict(
+    dateText,
+    startTime,
+    duration,
+    appointmentSource = appointments,
+    professionalName = ""
+  ) {
     return appointmentSource.some((item) => {
       if (item.date !== dateText) return false;
       if (!appointmentBlocksSlot(item)) return false;
+      if (!appointmentProfessionalMatches(item, professionalName)) return false;
 
       const startA = timeToMinutes(startTime);
       const endA = startA + duration;
@@ -1548,7 +1599,9 @@ function CoreAgendaProApp() {
   ) {
     if (baseReason(dateText, startTime, duration)) return false;
     if (blockConflict(professionalName, dateText, startTime, duration)) return false;
-    if (appointmentConflict(dateText, startTime, duration, appointmentSource)) return false;
+    if (appointmentConflict(dateText, startTime, duration, appointmentSource, professionalName)) {
+      return false;
+    }
     return true;
   }
 
@@ -1601,7 +1654,7 @@ function CoreAgendaProApp() {
           continue;
         }
 
-        if (appointmentConflict(dateText, time, duration, appointmentSource)) {
+        if (appointmentConflict(dateText, time, duration, appointmentSource, professional)) {
           result.push({ time, status: "busy", label: "Ocupado", available: false });
           continue;
         }
@@ -1794,12 +1847,13 @@ function CoreAgendaProApp() {
       paid: finalPayment === "pix",
       status: "confirmed",
       rescheduleRequested: false,
+      note: appointmentNote.trim(),
     };
 
-    let cloudId = "";
+    let cloudBooking = { id: "", token: "" };
 
     try {
-      cloudId = await saveAppointmentToCloud(appointmentData, finalProfessional);
+      cloudBooking = await saveAppointmentToCloud(appointmentData, finalProfessional);
     } catch (error) {
       const detail = cloudErrorText(error);
       console.error(error);
@@ -1809,21 +1863,26 @@ function CoreAgendaProApp() {
       return;
     }
 
-    if (!cloudId) {
+    if (!cloudBooking.id) {
       setCloudSaving("");
       return;
     }
 
-    const savedAppointment = { ...appointmentData, id: cloudId };
+    const savedAppointment = {
+      ...appointmentData,
+      id: cloudBooking.id,
+      publicToken: cloudBooking.token,
+    };
 
     setAppointments((current) =>
       current.some((item) => item.id === savedAppointment.id)
         ? current
         : current.concat(savedAppointment)
     );
-    setConfirmedId(cloudId);
+    setConfirmedId(cloudBooking.id);
+    setConfirmedToken(cloudBooking.token);
     setProfessional(finalProfessional);
-    const notificationSent = await sendBarberConfirmation(savedAppointment, cloudId);
+    const notificationSent = await sendBarberConfirmation(savedAppointment, cloudBooking.id);
     setConfirmationSent(notificationSent);
     setScreen("success");
     setCloudSaving("");
@@ -1837,6 +1896,9 @@ function CoreAgendaProApp() {
       appointmentData.payment === "pix"
         ? "PIX selecionado no app. Conferir comprovante."
         : "Pagamento pendente para o atendimento.";
+    const managementLink = appointmentData.publicToken
+      ? `${publicScheduleLink}?agendamento=${encodeURIComponent(appointmentData.publicToken)}`
+      : "";
 
     return [
       "Novo agendamento confirmado",
@@ -1850,11 +1912,13 @@ function CoreAgendaProApp() {
       `Horário: ${appointmentData.time}`,
       `Profissional: ${appointmentData.professional}`,
       `Tempo previsto: ${appointmentData.duration} min`,
+      `Observação: ${appointmentData.note || "Sem observação"}`,
       "",
       `Total: ${money(appointmentData.total)}`,
       `Forma de pagamento: ${paymentLabel}`,
       `Status do pagamento: ${paymentStatus}`,
       appointmentId ? `Código do agendamento: ${appointmentId}` : "",
+      managementLink ? `Link do cliente: ${managementLink}` : "",
     ]
       .filter(Boolean)
       .join("\n");
@@ -1901,18 +1965,47 @@ function CoreAgendaProApp() {
     }
   }
 
+  function normalizeBookingResponse(data) {
+    if (!data) return { id: "", token: "" };
+
+    if (typeof data === "string") {
+      return { id: data, token: "" };
+    }
+
+    if (Array.isArray(data)) {
+      return normalizeBookingResponse(data[0]);
+    }
+
+    return {
+      id: String(data.id || data.appointment_id || data.appointmentId || ""),
+      token: String(data.public_token || data.publicToken || data.token || ""),
+    };
+  }
+
+  function shouldFallbackToLegacyBooking(error) {
+    const text = cloudErrorText(error).toLowerCase();
+
+    return (
+      text.includes("book_appointment_v2") ||
+      text.includes("function") ||
+      text.includes("schema cache") ||
+      text.includes("404") ||
+      text.includes("pgrst202")
+    );
+  }
+
   async function saveAppointmentToCloud(appointmentData, finalProfessional) {
     const targetSlug = loadedCloudSlug();
 
     if (!targetSlug) {
       showNotice("Não foi possível identificar a barbearia para salvar online.");
       setCloudStatus("A barbearia não foi identificada para salvar online.");
-      return "";
+      return { id: "", token: "" };
     }
 
     setCloudStatus("Reservando horário online...");
 
-    const { data, error } = await callCloudFunction("book_appointment", {
+    const payload = {
       target_slug: targetSlug,
       client_name_input: appointmentData.clientName,
       whatsapp_input: appointmentData.whatsapp,
@@ -1924,24 +2017,130 @@ function CoreAgendaProApp() {
       total_input: appointmentData.total,
       payment_method_input: appointmentData.payment,
       paid_input: appointmentData.paid,
-    });
+      note_input: appointmentData.note || "",
+    };
+
+    let { data, error } = await callCloudFunction("book_appointment_v2", payload);
+
+    if (error && shouldFallbackToLegacyBooking(error)) {
+      const legacyPayload = { ...payload };
+      delete legacyPayload.note_input;
+      const legacyResult = await callCloudFunction("book_appointment", legacyPayload);
+      data = legacyResult.data;
+      error = legacyResult.error;
+    }
 
     if (error) {
       const detail = cloudErrorText(error);
       console.error("Erro ao salvar online:", error);
       setCloudStatus(`O horário não foi reservado: ${detail}`);
       showNotice(`Não foi possível confirmar este horário.\n\n${detail}`);
-      return "";
+      return { id: "", token: "" };
     }
 
     if (!data) {
       setCloudStatus("A nuvem não retornou o código do agendamento.");
       showNotice("Não foi possível confirmar este horário. Tente novamente.");
-      return "";
+      return { id: "", token: "" };
+    }
+
+    const booking = normalizeBookingResponse(data);
+
+    if (!booking.id) {
+      setCloudStatus("A nuvem não retornou o código do agendamento.");
+      showNotice("Não foi possível confirmar este horário. Tente novamente.");
+      return { id: "", token: "" };
     }
 
     setCloudStatus("Agendamento salvo na nuvem");
-    return String(data);
+    return booking;
+  }
+
+  function mapPublicAppointment(row) {
+    if (!row) return null;
+    const item = Array.isArray(row) ? row[0] : row;
+    if (!item) return null;
+
+    return {
+      token: item.public_token || item.publicToken || publicAppointmentToken,
+      clientName: item.client_name || item.clientName || "",
+      whatsapp: item.whatsapp || "",
+      services: item.service_text || item.services || "",
+      professional: item.professional_name || item.professional || "Profissional disponível",
+      date: item.appointment_date || item.date || "",
+      time: shortTime(item.appointment_time || item.time || ""),
+      duration: Number(item.duration || 0),
+      total: Number(item.total || 0),
+      payment: item.payment_method || item.payment || "local",
+      paid: Boolean(item.paid),
+      status: item.status || "confirmed",
+      rescheduleRequested: Boolean(item.reschedule_requested || item.rescheduleRequested),
+      note: item.customer_note || item.note || "",
+    };
+  }
+
+  async function loadPublicAppointment(token = publicAppointmentToken) {
+    const targetSlug = loadedCloudSlug();
+    const cleanToken = String(token || "").trim();
+
+    if (!targetSlug || !cleanToken) return;
+
+    setPublicActionSaving("load");
+
+    const { data, error } = await callCloudFunction("get_public_appointment", {
+      target_slug: targetSlug,
+      public_token_input: cleanToken,
+    });
+
+    setPublicActionSaving("");
+
+    if (error) {
+      setPublicAppointment(null);
+      showNotice("Não foi possível carregar este agendamento. Confira o link ou fale com a barbearia.");
+      return;
+    }
+
+    const nextAppointment = mapPublicAppointment(data);
+
+    if (!nextAppointment) {
+      setPublicAppointment(null);
+      showNotice("Agendamento não encontrado para este link.");
+      return;
+    }
+
+    setPublicAppointment(nextAppointment);
+  }
+
+  async function updatePublicAppointment(action) {
+    const targetSlug = loadedCloudSlug();
+    const token = publicAppointment?.token || publicAppointmentToken;
+
+    if (!targetSlug || !token) return;
+
+    const isCancel = action === "cancel";
+    setPublicActionSaving(action);
+
+    const functionName = isCancel
+      ? "cancel_appointment_public"
+      : "request_appointment_reschedule";
+
+    const { error } = await callCloudFunction(functionName, {
+      target_slug: targetSlug,
+      public_token_input: token,
+    });
+
+    setPublicActionSaving("");
+
+    if (error) {
+      showNotice(
+        `Não foi possível atualizar o agendamento online.\n\nDetalhe: ${cloudErrorText(error)}`
+      );
+      return;
+    }
+
+    showNotice(isCancel ? "Agendamento cancelado." : "Pedido de remarcação enviado.");
+    await loadPublicAppointment(token);
+    await refreshCloudAppointments().catch(() => null);
   }
 
   async function runCloudSave(kind, successMessage, action) {
@@ -2562,10 +2761,17 @@ function CoreAgendaProApp() {
     setSelectedServices([]);
     setSelectedTime("");
     setPayment("");
+    setAppointmentNote("");
     setConfirmedId("");
+    setConfirmedToken("");
+    setPublicAppointment(null);
+    setPublicAppointmentToken("");
     setConfirmationSent(false);
     setBarberConfirmationMessage("");
     setWaitlistSent(false);
+    if (typeof window !== "undefined") {
+      window.history.pushState({}, "", publicScheduleLink);
+    }
     window.scrollTo(0, 0);
   }
 
@@ -4373,6 +4579,7 @@ function CoreAgendaProApp() {
               <p>
                 {money(appointment.total)} - {appointment.paid ? "Pago" : "Pagamento pendente"}
               </p>
+              {appointment.note && <p>Observação: {appointment.note}</p>}
               {appointment.rescheduleRequested && (
                 <p className="rescheduleNotice">Remarcação solicitada</p>
               )}
@@ -4447,6 +4654,81 @@ function CoreAgendaProApp() {
     );
   }
 
+  if (screen === "manage") {
+    return withNotice(
+      <main className="app">
+        <section className="card success">
+          <div className="badge">Agendamento</div>
+          <h1>Gerenciar horário</h1>
+          {publicActionSaving === "load" && <p>Carregando dados do agendamento...</p>}
+
+          {!publicActionSaving && !publicAppointment && (
+            <>
+              <p>Não encontramos um agendamento ativo para este link.</p>
+              <a
+                className="black linkButton"
+                href={`https://wa.me/${business.whatsapp}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Falar com a barbearia
+              </a>
+            </>
+          )}
+
+          {publicAppointment && (
+            <>
+              <p>
+                <strong>{formatDate(publicAppointment.date)} às {publicAppointment.time}</strong>
+              </p>
+              <p>{publicAppointment.services}</p>
+              <p>Profissional: {publicAppointment.professional}</p>
+              <p>Status: {publicAppointment.status === "cancelled" ? "Cancelado" : "Confirmado"}</p>
+              {publicAppointment.rescheduleRequested && (
+                <p className="rescheduleNotice">Remarcação solicitada para a barbearia.</p>
+              )}
+
+              <button
+                type="button"
+                className="black"
+                disabled={publicActionSaving === "reschedule" || publicAppointment.status === "cancelled"}
+                onClick={() => updatePublicAppointment("reschedule")}
+              >
+                {publicActionSaving === "reschedule" ? "Enviando..." : "Solicitar remarcação"}
+              </button>
+
+              <button
+                type="button"
+                className="dangerAction fullButton"
+                disabled={publicActionSaving === "cancel" || publicAppointment.status === "cancelled"}
+                onClick={() => updatePublicAppointment("cancel")}
+              >
+                {publicActionSaving === "cancel" ? "Cancelando..." : "Cancelar agendamento"}
+              </button>
+
+              <a
+                className="outline linkButton"
+                href={`https://wa.me/${business.whatsapp}?text=${encodeURIComponent(
+                  `Olá! Preciso falar sobre meu agendamento de ${formatDateForMessage(
+                    publicAppointment.date
+                  )} às ${publicAppointment.time}.`
+                )}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Falar com a barbearia
+              </a>
+            </>
+          )}
+
+          <button type="button" className="outline" onClick={startNewSchedule}>
+            Novo agendamento
+          </button>
+        </section>
+      </main>
+    );
+  }
+
   if (screen === "success") {
     return withNotice(
       <main className="app">
@@ -4471,6 +4753,16 @@ function CoreAgendaProApp() {
           <p className="hint">
             Em caso de cancelamento ou reagendamento, entre em contato com a barbearia.
           </p>
+          {appointmentManagementLink && (
+            <a
+              className="outline linkButton"
+              href={appointmentManagementLink}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Abrir link do meu agendamento
+            </a>
+          )}
           {!confirmationSent && barberConfirmationMessage && (
             <a
               className="black linkButton"
@@ -4608,6 +4900,13 @@ function CoreAgendaProApp() {
               </button>
             </div>
           )}
+
+          <label>Observação para a barbearia</label>
+          <textarea
+            value={appointmentNote}
+            onChange={(event) => setAppointmentNote(event.target.value)}
+            placeholder="Exemplo: corte mais baixo nas laterais, preferência de atendimento ou aviso importante."
+          />
         </section>
 
         <section className="checkoutActions">

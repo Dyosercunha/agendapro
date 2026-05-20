@@ -366,7 +366,8 @@ label {
 }
 
 input,
-select {
+select,
+textarea {
   width: 100%;
   border: 1px solid var(--border);
   background: var(--surface);
@@ -379,9 +380,15 @@ select {
 }
 
 input:focus,
-select:focus {
+select:focus,
+textarea:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 4px var(--primary-soft);
+}
+
+textarea {
+  min-height: 104px;
+  resize: vertical;
 }
 
 input:disabled {
@@ -1818,6 +1825,17 @@ button:disabled {
   background: rgba(239, 68, 68, 0.12);
   border-color: rgba(239, 68, 68, 0.26);
   color: #fca5a5;
+}
+
+.dangerAction.fullButton {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.28);
+  border-radius: 999px;
+  color: #fca5a5;
+  font-weight: 900;
+  margin-top: 10px;
+  padding: 15px;
+  width: 100%;
 }
 
 .rescheduleNotice {

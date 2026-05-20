@@ -1,5 +1,8 @@
 // @ts-nocheck
 import React from "react";
+import AgendaPanel from "./AgendaPanel";
+import AppearancePanel from "./AppearancePanel";
+import ServicesPanel from "./ServicesPanel";
 
 export default function BarberDashboard({ model }) {
   const {
@@ -7,331 +10,81 @@ export default function BarberDashboard({ model }) {
     accessEditorKey,
     activeAdminTab,
     activeFeatureCount,
-    activeServices,
     addAccessAccount,
-    addBlock,
-    addBreak,
-    addDayOff,
     addProfessional,
     addService,
-    adminContext,
-    adminEmail,
     adminLoggedIn,
-    adminLoginError,
     adminPanelLink,
-    adminPassword,
-    adminTab,
     adminTabs,
     agendaStatus,
-    App,
-    appointmentBlocksSlot,
-    appointmentConflict,
-    appointmentManagementLink,
-    appointmentNote,
-    appointmentProfessionalMatches,
-    appointments,
-    appOrigin,
-    AppProFeatures,
     autoConfirmationFeatureEnabled,
-    barberConfirmationMessage,
-    barberGateError,
-    barberGateName,
-    barberGateWhatsapp,
-    barbershopId,
-    baseReason,
-    blockConflict,
     blockNextAvailableTime,
-    buildBarberConfirmationMessage,
-    buildSlotsForDate,
     business,
-    callCloudFunction,
-    canAccessAdminTab,
-    cancelAppointment,
-    canContinue,
     canManageAccessAccounts,
     canManageBilling,
     canManageBusinessSettings,
     canUseAdminTab,
-    chosenServices,
     clampPercentage,
-    cleanWhatsapp,
-    clientHistory,
     clientName,
-    clientProfessionals,
-    closeNotice,
     closeToday,
-    cloudErrorText,
-    cloudHistory,
-    cloudLoadState,
-    cloudRoleFromLabel,
     cloudSaving,
-    cloudSlug,
     cloudStatus,
     completedSetupItems,
-    confirmAppointmentPayment,
-    confirmationSent,
-    confirmedId,
-    confirmedToken,
     copyText,
-    currentAdminAccount,
     currentAdminRole,
     currentPlan,
-    currentSlot,
-    currentSlugFromUrl,
     customerProfiles,
     dataSavedAt,
-    dateCount,
-    dateOptions,
-    dateParts,
-    enterAdminWithEmail,
-    fallbackProfessionalName,
     featureFlags,
     featureShortcut,
     featureStatusCards,
-    findAvailableProfessional,
-    finishSchedule,
     formatDate,
-    formatDateForMessage,
     formatDateOnly,
-    formatPhone,
-    getDateAfterDays,
-    getDateAvailability,
-    getWorkingDay,
-    goCheckout,
     goToClientView,
-    handleAuthSession,
-    handleBackgroundUpload,
-    handleClearLocalCache,
-    handleLogoUpload,
-    hasChosenService,
-    hexToRgba,
-    history,
-    initialAccessAccounts,
-    initialAppointments,
-    initialBusiness,
-    initialFeatureFlags,
-    initialProfessionals,
-    initialSchedule,
-    initialServices,
-    initialViewModeFromUrl,
-    initialWaitlist,
-    intervalOverlaps,
-    isAdminEmailAllowed,
-    isDayOff,
     isDeveloperRole,
     isFutureOnlyFeature,
-    isOwnerEmail,
-    isOwnerRole,
-    isPlainObject,
-    isPlatformAdminSession,
-    isServiceDeleted,
     isUuid,
-    joinWaitlist,
-    loadCloudData,
-    loadedCloudSlug,
-    loadPublicAppointment,
-    loginAdmin,
-    loginWithGoogle,
     logoutAdmin,
     loyaltyFeatureEnabled,
-    makeId,
-    makeSlug,
-    mapAccessAccountsFromCloud,
-    mapAppointmentsFromCloud,
-    mapBusinessFromCloud,
-    mapFeatureFlagsFromCloud,
-    mapPublicAppointment,
-    mapScheduleFromCloud,
-    mapServicesFromCloud,
-    mapWaitlistFromCloud,
-    markDataSaved,
-    mergeWithDefault,
-    minutesToTime,
-    missingLoadedBarbershopResult,
     money,
-    nameMatchesBusiness,
-    nextTodaySlot,
-    normalizeAccessText,
-    normalizeBookingResponse,
-    normalizeBusiness,
-    normalizedAdminEmail,
-    normalizedOwnerEmail,
     normalizeRole,
-    notice,
-    openAdminArea,
     openToday,
-    pad,
     passwordEditorOpen,
-    passwordForm,
-    passwordMessage,
-    passwordSaving,
-    payment,
-    phoneMatchesBusiness,
     pixAvailable,
     pixDiscount,
-    pixDiscountValue,
-    pixFeatureEnabled,
-    pixPrice,
     planOptions,
-    platformDeveloperEmail,
     platformFeatures,
     professional,
-    professionalAvailable,
     professionals,
-    promotionalTotal,
     promotionAvailable,
     promotionDiscount,
-    promotionValue,
-    publicActionSaving,
-    publicAppointment,
-    publicAppointmentToken,
     publicScheduleLink,
-    range,
-    rangesOverlap,
-    React,
-    readSavedData,
-    realProfessionals,
-    recommendedTime,
-    refreshCloudAppointments,
     removeAccessAccount,
-    removeBlock,
-    removeBreak,
-    removeDayOff,
     removeProfessional,
-    removeSavedData,
-    removeService,
-    repairText,
-    repeatLastService,
-    requireLoadedBarbershop,
-    rescheduleAppointment,
     resetDemoData,
     returningCustomers,
-    roleLabel,
-    roundCurrency,
-    routeSlug,
-    runCloudSave,
-    safeImageUrl,
     saveAccessAccountsToCloud,
-    saveAppointmentToCloud,
-    saveBackgroundsToCloud,
     saveBusinessToCloud,
-    saveData,
     saveFeatureFlagsToCloud,
     saveProfessionalsToCloud,
-    saveScheduleToCloud,
-    saveServicesToCloud,
-    schedule,
-    scheduleBlocked,
-    screen,
-    selectedDate,
-    selectedPaymentTotal,
-    selectedServices,
-    selectedTime,
-    sendBarberConfirmation,
     services,
-    servicesText,
-    setAccessAccounts,
     setAccessPasswordEditor,
-    setAdminContext,
-    setAdminEmail,
-    setAdminLoggedIn,
-    setAdminLoginError,
-    setAdminPassword,
     setAdminTab,
-    setAppointmentNote,
-    setAppointments,
-    setBarberConfirmationMessage,
-    setBarberGateError,
-    setBarberGateName,
-    setBarberGateWhatsapp,
-    setBarbershopId,
     setBusiness,
-    setClientName,
-    setCloudHistory,
-    setCloudLoadState,
-    setCloudSaving,
-    setCloudSlug,
-    setCloudStatus,
-    setConfirmationSent,
-    setConfirmedId,
-    setConfirmedToken,
-    setDataSavedAt,
-    setFeatureFlags,
     setFeatureRelease,
-    setNotice,
-    setPasswordEditorOpen,
-    setPasswordForm,
-    setPasswordMessage,
-    setPasswordSaving,
-    setPayment,
-    setProfessional,
-    setProfessionals,
-    setPublicActionSaving,
-    setPublicAppointment,
-    setPublicAppointmentToken,
-    setRange,
-    setRawCloudSaving,
-    setSchedule,
-    setScreen,
-    setSelectedDate,
-    setSelectedServices,
-    setSelectedTime,
-    setServices,
     setupItems,
     setupProgress,
     setViewMode,
-    setWaitlist,
-    setWaitlistSent,
-    setWhatsapp,
-    shortTime,
-    shouldFallbackToLegacyBooking,
-    showNotice,
-    showProfessionalChoice,
-    slots,
-    slugFromPathname,
-    startNewSchedule,
-    storageKey,
-    storageKeys,
-    storagePrefix,
-    supabase,
-    supabaseAnonKey,
-    supabaseUrl,
-    syncAccessAuthUsers,
-    syncAppointmentAction,
-    timeToMinutes,
-    toDate,
-    today,
     todayAppointments,
     todayRevenue,
-    toggleService,
     topCustomer,
-    totalDuration,
-    totalPrice,
     upcomingAppointments,
     updateAccessAccount,
-    updateBlock,
-    updateBreak,
-    updateBusinessName,
     updateBusinessSlug,
-    updateDayOff,
     updateFeatureFlag,
-    updateOwnPassword,
     updateProfessional,
-    updatePublicAppointment,
-    updateService,
-    updateWaitlistStatus,
-    updateWorkingDay,
-    useEffect,
-    useMemo,
-    useState,
-    verifyBarberIdentity,
-    viewMode,
     visibleAdminTabs,
     waitlist,
-    waitlistAvailable,
-    waitlistSent,
-    weekDays,
-    weekMap,
     whatsapp,
     withNotice,
   } = model;
@@ -681,207 +434,9 @@ export default function BarberDashboard({ model }) {
           </div>
         </section>
 
-        <section className={activeAdminTab === "agenda" && canManageBusinessSettings ? "card" : "hiddenPanel"}>
-          <div className="sectionTitle">
-            <h2>Agenda real</h2>
-            <span>Funcionamento</span>
-          </div>
+        <AgendaPanel model={model} />
 
-          <label>Intervalo entre horários disponíveis</label>
-          <input
-            type="number"
-            min="10"
-            step="5"
-            value={schedule.slotInterval}
-            onChange={(event) =>
-              setSchedule({ ...schedule, slotInterval: Math.max(Number(event.target.value) || 30, 10) })
-            }
-          />
-
-          <button type="button" className="green" onClick={saveScheduleToCloud}>
-            {cloudSaving === "schedule" ? "Salvando agenda..." : "Salvar agenda"}
-          </button>
-
-          <div className="weeklyGrid">
-            {weekDays.map((day) => {
-              const config = schedule.workingHours[day.key];
-
-              return (
-                <div className={config.enabled ? "dayRow" : "dayRow closedDay"} key={day.key}>
-                  <button type="button"
-                    className={config.enabled ? "dayToggle activeDay" : "dayToggle"}
-                    onClick={() => updateWorkingDay(day.key, "enabled", !config.enabled)}
-                  >
-                    {day.short}
-                  </button>
-
-                  <div className="dayInfo">
-                    <strong>{day.label}</strong>
-                    <span>{config.enabled ? `${config.start} até ${config.end}` : "Fechado"}</span>
-                  </div>
-
-                  <div className="dayTimes">
-                    <input
-                      aria-label={`Abertura de ${day.label}`}
-                      type="time"
-                      value={config.start}
-                      disabled={!config.enabled}
-                      onChange={(event) => updateWorkingDay(day.key, "start", event.target.value)}
-                    />
-                    <input
-                      aria-label={`Fechamento de ${day.label}`}
-                      type="time"
-                      value={config.end}
-                      disabled={!config.enabled}
-                      onChange={(event) => updateWorkingDay(day.key, "end", event.target.value)}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
-        <section className={activeAdminTab === "agenda" && canManageBusinessSettings ? "card" : "hiddenPanel"}>
-          <div className="sectionTitle">
-            <h2>Intervalos</h2>
-            <span>Almoço e pausas</span>
-          </div>
-
-          {schedule.breaks.map((item, index) => (
-            <div className="adminItem" key={item.id}>
-              <label>Nome</label>
-              <input value={item.name} onChange={(event) => updateBreak(index, "name", event.target.value)} />
-
-              <div className="timePair">
-                <div>
-                  <label>Início</label>
-                  <input type="time" value={item.start} onChange={(event) => updateBreak(index, "start", event.target.value)} />
-                </div>
-                <div>
-                  <label>Fim</label>
-                  <input type="time" value={item.end} onChange={(event) => updateBreak(index, "end", event.target.value)} />
-                </div>
-              </div>
-
-              <button type="button" className="dangerButton" onClick={() => removeBreak(index)}>
-                Remover intervalo
-              </button>
-            </div>
-          ))}
-
-          <button type="button" className="black" onClick={addBreak}>
-            Adicionar intervalo
-          </button>
-        </section>
-
-        <section className={activeAdminTab === "agenda" && canManageBusinessSettings ? "card" : "hiddenPanel"}>
-          <div className="sectionTitle">
-            <h2>Folgas</h2>
-            <span>Dias fechados</span>
-          </div>
-
-          {schedule.daysOff.map((item, index) => (
-            <div className="adminItem" key={item.id}>
-              <label>Data</label>
-              <input type="date" value={item.date} onChange={(event) => updateDayOff(index, "date", event.target.value)} />
-              <label>Motivo</label>
-              <input value={item.reason} onChange={(event) => updateDayOff(index, "reason", event.target.value)} />
-              <button type="button" className="dangerButton" onClick={() => removeDayOff(index)}>
-                Remover folga
-              </button>
-            </div>
-          ))}
-
-          <button type="button" className="black" onClick={addDayOff}>
-            Adicionar folga
-          </button>
-        </section>
-
-        <section className={activeAdminTab === "agenda" && canManageBusinessSettings ? "card" : "hiddenPanel"}>
-          <div className="sectionTitle">
-            <h2>Bloqueios</h2>
-            <span>Imprevistos</span>
-          </div>
-
-          {schedule.blocks.map((item, index) => (
-            <div className="adminItem" key={item.id}>
-              <label>Data</label>
-              <input type="date" value={item.date} onChange={(event) => updateBlock(index, "date", event.target.value)} />
-
-              <div className="timePair">
-                <div>
-                  <label>Início</label>
-                  <input type="time" value={item.start} onChange={(event) => updateBlock(index, "start", event.target.value)} />
-                </div>
-                <div>
-                  <label>Fim</label>
-                  <input type="time" value={item.end} onChange={(event) => updateBlock(index, "end", event.target.value)} />
-                </div>
-              </div>
-
-              <label>Profissional</label>
-              <select value={item.professional} onChange={(event) => updateBlock(index, "professional", event.target.value)}>
-                <option value="Todos">Todos</option>
-                {realProfessionals().map((professionalItem) => (
-                  <option value={professionalItem} key={professionalItem}>
-                    {professionalItem}
-                  </option>
-                ))}
-              </select>
-
-              <label>Motivo</label>
-              <input value={item.reason} onChange={(event) => updateBlock(index, "reason", event.target.value)} />
-
-              <button type="button" className="dangerButton" onClick={() => removeBlock(index)}>
-                Remover bloqueio
-              </button>
-            </div>
-          ))}
-
-          <button type="button" className="black" onClick={addBlock}>
-            Adicionar bloqueio
-          </button>
-        </section>
-
-        <section className={activeAdminTab === "services" ? "card" : "hiddenPanel"}>
-          <h2>Serviços</h2>
-          {services
-            .map((service, index) => ({ ...service, originalIndex: index }))
-            .filter((service) => !isServiceDeleted(service))
-            .map((service) => (
-            <div className="adminItem" key={service.id || service.originalIndex}>
-              <label>Nome</label>
-              <input value={service.name} onChange={(event) => updateService(service.originalIndex, "name", event.target.value)} />
-
-              <div className="timePair">
-                <div>
-                  <label>Tempo</label>
-                  <input type="number" value={service.duration} onChange={(event) => updateService(service.originalIndex, "duration", event.target.value)} />
-                </div>
-                <div>
-                  <label>Preço</label>
-                  <input type="number" value={service.price} onChange={(event) => updateService(service.originalIndex, "price", event.target.value)} />
-                </div>
-              </div>
-
-              <button type="button" className={service.active ? "selected" : ""} onClick={() => updateService(service.originalIndex, "active", !service.active)}>
-                {service.active ? "Serviço ativo" : "Serviço inativo"}
-              </button>
-              <button type="button" className="dangerButton" onClick={() => removeService(service.originalIndex)}>
-                Excluir serviço
-              </button>
-            </div>
-          ))}
-
-          <button type="button" className="black" onClick={addService}>
-            Adicionar serviço
-          </button>
-
-          <button type="button" className="green" onClick={saveServicesToCloud}>
-            {cloudSaving === "services" ? "Salvando serviços..." : "Salvar serviços"}
-          </button>
-        </section>
+        <ServicesPanel model={model} />
 
         <section className={activeAdminTab === "professionals" ? "card" : "hiddenPanel"}>
           <h2>Profissionais</h2>
@@ -1368,248 +923,7 @@ export default function BarberDashboard({ model }) {
           )}
         </section>
 
-        <section className={activeAdminTab === "appearance" ? "card" : "hiddenPanel"}>
-          <h2>Aparência</h2>
-
-          <label>Nome do estabelecimento</label>
-          <input value={business.name} onChange={(event) => updateBusinessName(event.target.value)} />
-
-          <label>Logo/letra</label>
-          <input value={business.logo} onChange={(event) => setBusiness({ ...business, logo: event.target.value.slice(0, 2) })} />
-
-          <label>Subir logo em imagem</label>
-          <input type="file" accept="image/*" onChange={handleLogoUpload} />
-          {business.logoImage && (
-            <button type="button"
-              className="dangerButton"
-              onClick={() => setBusiness({ ...business, logoImage: "" })}
-            >
-              Remover logo enviada
-            </button>
-          )}
-
-          <div className="brandPreview">
-            <div className={business.logoImage ? "logo logoWithImage" : "logo"}>
-              {business.logoImage ? <img src={business.logoImage} alt="Logo" /> : business.logo}
-            </div>
-            <div>
-              <span>Prévia da marca</span>
-              <strong>{business.name}</strong>
-            </div>
-          </div>
-
-          <div className="colorGrid">
-            <div>
-              <label>Cor principal</label>
-              <input
-                className="colorInput"
-                type="color"
-                value={business.themeColor}
-                onChange={(event) => setBusiness({ ...business, themeColor: event.target.value })}
-              />
-            </div>
-            <div>
-              <label>Cor de apoio</label>
-              <input
-                className="colorInput"
-                type="color"
-                value={business.themeColorSecondary}
-                onChange={(event) =>
-                  setBusiness({ ...business, themeColorSecondary: event.target.value })
-                }
-              />
-            </div>
-          </div>
-
-          <div className="adminItem">
-            <h3>Plano de fundo</h3>
-            <label>Imagem de fundo do cliente</label>
-            <input
-              value={business.clientBackgroundUrl || ""}
-              onChange={(event) =>
-                setBusiness({ ...business, clientBackgroundUrl: event.target.value })
-              }
-              placeholder="https://site.com/fundo-cliente.jpg"
-            />
-            <label>Subir imagem de fundo do cliente</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(event) => handleBackgroundUpload("clientBackgroundUrl", event)}
-            />
-            <label>Opacidade do fundo do cliente</label>
-            <input
-              type="number"
-              min="0"
-              max="0.7"
-              step="0.05"
-              value={business.clientBackgroundOpacity}
-              onChange={(event) =>
-                setBusiness({ ...business, clientBackgroundOpacity: Number(event.target.value) })
-              }
-            />
-            <button type="button"
-              className="outline"
-              onClick={() => setBusiness({ ...business, clientBackgroundUrl: "" })}
-            >
-              Excluir fundo do cliente
-            </button>
-
-            <label>Imagem de fundo do painel</label>
-            <input
-              value={business.adminBackgroundUrl || ""}
-              onChange={(event) =>
-                setBusiness({ ...business, adminBackgroundUrl: event.target.value })
-              }
-              placeholder="https://site.com/fundo-painel.jpg"
-            />
-            <label>Subir imagem de fundo do painel</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(event) => handleBackgroundUpload("adminBackgroundUrl", event)}
-            />
-            <label>Opacidade do fundo do painel</label>
-            <input
-              type="number"
-              min="0"
-              max="0.7"
-              step="0.05"
-              value={business.adminBackgroundOpacity}
-              onChange={(event) =>
-                setBusiness({ ...business, adminBackgroundOpacity: Number(event.target.value) })
-              }
-            />
-            <button type="button"
-              className="outline"
-              onClick={() => setBusiness({ ...business, adminBackgroundUrl: "" })}
-            >
-              Excluir fundo do painel
-            </button>
-
-            <button type="button" className="black" onClick={saveBackgroundsToCloud}>
-              {cloudSaving === "backgrounds" ? "Salvando fundos..." : "Salvar planos de fundo"}
-            </button>
-          </div>
-
-          <label>WhatsApp</label>
-          <input value={business.whatsapp} onChange={(event) => setBusiness({ ...business, whatsapp: event.target.value })} />
-
-          <label>Endereço da barbearia</label>
-          <input
-            value={business.address}
-            onChange={(event) => setBusiness({ ...business, address: event.target.value })}
-          />
-
-          <label>Link do Google Maps</label>
-          <input
-            value={business.mapsUrl}
-            onChange={(event) => setBusiness({ ...business, mapsUrl: event.target.value })}
-          />
-
-          <label>Título da tela final</label>
-          <input value={business.successTitle} onChange={(event) => setBusiness({ ...business, successTitle: event.target.value })} />
-
-          <label>Mensagem principal</label>
-          <input value={business.successMessage} onChange={(event) => setBusiness({ ...business, successMessage: event.target.value })} />
-
-          <label>Mensagem final</label>
-          <input value={business.successFooter} onChange={(event) => setBusiness({ ...business, successFooter: event.target.value })} />
-
-          <button type="button" className="green" onClick={saveBusinessToCloud}>
-            {cloudSaving === "business" ? "Salvando aparência..." : "Salvar aparência"}
-          </button>
-        </section>
-
-        <section className={activeAdminTab === "agenda" ? "card" : "hiddenPanel"}>
-          <h2>Agenda confirmada</h2>
-          {appointments.length === 0 && <p className="hint">Ainda não há agendamentos confirmados.</p>}
-
-          {appointments.map((appointment) => (
-            <div className="adminItem" key={appointment.id}>
-              <strong>
-                {formatDate(appointment.date)} - {appointment.time}
-              </strong>
-              <p>
-                {appointment.clientName} com {appointment.professional}
-              </p>
-              <p>
-                {appointment.services} - {appointment.duration} min
-              </p>
-              <p>
-                {money(appointment.total)} - {appointment.paid ? "Pago" : "Pagamento pendente"}
-              </p>
-              {appointment.note && <p>Observação: {appointment.note}</p>}
-              {appointment.rescheduleRequested && (
-                <p className="rescheduleNotice">Remarcação solicitada</p>
-              )}
-
-              <div className="appointmentActions">
-                {!appointment.paid && (
-                  <button type="button" onClick={() => confirmAppointmentPayment(appointment.id)}>
-                    Confirmar pagamento
-                  </button>
-                )}
-                <button type="button" onClick={() => rescheduleAppointment(appointment.id)}>
-                  {appointment.rescheduleRequested ? "Remarcação marcada" : "Remarcar"}
-                </button>
-                <button type="button" className="dangerAction" onClick={() => cancelAppointment(appointment.id)}>
-                  Cancelar
-                </button>
-              </div>
-            </div>
-          ))}
-        </section>
-
-        <section className={activeAdminTab === "agenda" ? "card" : "hiddenPanel"}>
-          <div className="sectionTitle">
-            <h2>Lista de espera</h2>
-            <span>{waitlist.length} pedidos</span>
-          </div>
-
-          {!waitlistAvailable && (
-            <p className="hint">Libere e ative a lista de espera na aba Melhorias.</p>
-          )}
-
-          {waitlist.length === 0 && <p className="hint">Nenhum cliente aguardando encaixe.</p>}
-
-          {waitlist.map((item) => (
-            <div className="adminItem waitlistItem" key={item.id}>
-              <strong>
-                {item.clientName} - {formatDate(item.date)}
-              </strong>
-              <p>{item.services}</p>
-              <p>WhatsApp: {item.whatsapp}</p>
-              <p>Status: {item.status === "contacted" ? "Contatado" : "Aguardando contato"}</p>
-
-              <div className="appointmentActions">
-                <button type="button"
-                  onClick={() =>
-                    updateWaitlistStatus(
-                      item.id,
-                      item.status === "contacted" ? "waiting" : "contacted"
-                    )
-                  }
-                >
-                  {item.status === "contacted" ? "Marcar como aguardando" : "Marcar como contatado"}
-                </button>
-                <a
-                  className="whatsappAction"
-                  href={`https://wa.me/${business.whatsapp}?text=${encodeURIComponent(
-                    `Cliente na lista de espera: ${item.clientName} | WhatsApp: ${item.whatsapp} | Data: ${formatDate(item.date)} | Serviço: ${item.services}`
-                  )}`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Enviar para WhatsApp
-                </a>
-                <button type="button" className="dangerAction" onClick={() => updateWaitlistStatus(item.id, "removed")}>
-                  Remover
-                </button>
-              </div>
-            </div>
-          ))}
-        </section>
+        <AppearancePanel model={model} />
       </main>
     );
 }

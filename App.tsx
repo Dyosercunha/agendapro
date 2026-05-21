@@ -511,6 +511,7 @@ function safeImageUrl(value) {
 }
 
 const storagePrefix = "agendaProV3";
+const assetBucketName = "agendapro-assets";
 
 const storageKeys = {
   business: "business",
@@ -2133,6 +2134,7 @@ function CoreAgendaProApp() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          barbershopSlug: loadedCloudSlug() || routeSlug,
           to: business.whatsapp,
           message,
         }),
@@ -2782,28 +2784,104 @@ function CoreAgendaProApp() {
     showNotice("Copiado: " + text);
   }
 
-  function handleLogoUpload(event) {
-    const file = event.target.files?.[0];
-
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      setBusiness((current) => ({ ...current, logoImage: String(reader.result) }));
+  function assetExtension(file) {
+    const byType = {
+      "image/jpeg": "jpg",
+      "image/png": "png",
+      "image/webp": "webp",
+      "image/gif": "gif",
     };
-    reader.readAsDataURL(file);
+    const extension = String(file?.name || "").split(".").pop()?.toLowerCase();
+
+    return byType[file?.type] || (extension && extension.length <= 5 ? extension : "jpg");
   }
 
-  function handleBackgroundUpload(field, event) {
+  async function uploadBusinessAsset(file, folder) {
+    if (!file) throw new Error("Selecione uma imagem para enviar.");
+
+    if (!String(file.type || "").startsWith("image/")) {
+      throw new Error("Envie apenas arquivos de imagem.");
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      throw new Error("A imagem precisa ter até 5 MB.");
+    }
+
+    const targetSlug = makeSlug(loadedCloudSlug() || routeSlug || business.slug || cloudSlug);
+
+    if (!targetSlug) {
+      throw new Error("Não foi possível identificar a barbearia para enviar a imagem.");
+    }
+
+    const fileName = `${Date.now()}-${Math.round(Math.random() * 100000)}.${assetExtension(file)}`;
+    const filePath = `${targetSlug}/${folder}/${fileName}`;
+    const { error } = await supabase.storage
+      .from(assetBucketName)
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        contentType: file.type || "image/jpeg",
+        upsert: true,
+      });
+
+    if (error) {
+      throw new Error(
+        `${error.message}. Execute o SQL 18 para criar o bucket de imagens e tente novamente.`
+      );
+    }
+
+    const { data } = supabase.storage.from(assetBucketName).getPublicUrl(filePath);
+
+    if (!data?.publicUrl) {
+      throw new Error("A imagem subiu, mas não foi possível gerar o link público.");
+    }
+
+    return data.publicUrl;
+  }
+
+  async function handleLogoUpload(event) {
     const file = event.target.files?.[0];
 
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      setBusiness((current) => ({ ...current, [field]: String(reader.result) }));
-    };
-    reader.readAsDataURL(file);
+    setCloudSaving("asset-logo");
+
+    try {
+      const publicUrl = await uploadBusinessAsset(file, "logos");
+      setBusiness((current) => ({ ...current, logoImage: publicUrl }));
+      setCloudStatus("Logo enviada para o Supabase Storage. Salve a aparência para fixar no cadastro.");
+      showNotice("Logo enviada. Agora clique em Salvar aparência.");
+    } catch (error) {
+      const message = repairText(error?.message || "Não foi possível enviar a logo.");
+      setCloudStatus(message);
+      showNotice(message);
+    } finally {
+      event.target.value = "";
+      setCloudSaving("");
+    }
+  }
+
+  async function handleBackgroundUpload(field, event) {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    const folder = field === "adminBackgroundUrl" ? "admin-backgrounds" : "client-backgrounds";
+
+    setCloudSaving(field === "adminBackgroundUrl" ? "asset-admin-background" : "asset-client-background");
+
+    try {
+      const publicUrl = await uploadBusinessAsset(file, folder);
+      setBusiness((current) => ({ ...current, [field]: publicUrl }));
+      setCloudStatus("Plano de fundo enviado para o Supabase Storage. Salve os fundos para fixar no cadastro.");
+      showNotice("Imagem enviada. Agora clique em Salvar planos de fundo.");
+    } catch (error) {
+      const message = repairText(error?.message || "Não foi possível enviar o plano de fundo.");
+      setCloudStatus(message);
+      showNotice(message);
+    } finally {
+      event.target.value = "";
+      setCloudSaving("");
+    }
   }
 
   function saveBackgroundsToCloud() {

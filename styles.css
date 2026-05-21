@@ -848,7 +848,14 @@ button:disabled {
   background: rgba(16, 20, 24, 0.72);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 18px;
+  display: grid;
+  gap: 12px;
   padding: 13px;
+}
+
+.selectedPromoItem {
+  background: rgba(34, 197, 94, 0.12);
+  border-color: var(--primary);
 }
 
 .clientPromoItem p {
@@ -860,6 +867,21 @@ button:disabled {
   color: var(--success);
   font-size: 13px;
   font-weight: 900;
+}
+
+.clientPromoItem button {
+  background: var(--text);
+  border-radius: 999px;
+  color: var(--bg);
+  font-weight: 900;
+  padding: 11px 14px;
+  width: 100%;
+}
+
+.selectedPromoItem button {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.24);
+  color: #fca5a5;
 }
 
 .promoConfig {

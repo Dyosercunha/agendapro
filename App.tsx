@@ -44,6 +44,7 @@ const initialBusiness = {
       discountPercent: 10,
       discountValue: 0,
       promotionalPrice: 0,
+      duration: 30,
       active: true,
     },
   ],
@@ -438,6 +439,7 @@ function normalizePromotion(item, index = 0) {
         0
       )
     ),
+    duration: Math.max(Number(promotion.duration ?? promotion.minutes ?? fallback.duration ?? 30) || 30, 0),
     active: promotion.active !== false,
   };
 }
@@ -909,6 +911,7 @@ function CoreAgendaProApp() {
   const [whatsapp, setWhatsapp] = useState("");
   const [clientName, setClientName] = useState("");
   const [selectedServices, setSelectedServices] = useState([]);
+  const [selectedPromotions, setSelectedPromotions] = useState([]);
   const [professional, setProfessional] = useState("Primeiro disponível");
   const [range, setRange] = useState("today");
   const [selectedDate, setSelectedDate] = useState(getDateAfterDays(0));
@@ -1341,20 +1344,47 @@ function CoreAgendaProApp() {
     [services, selectedServices]
   );
 
-  const totalDuration = chosenServices.reduce((sum, service) => sum + service.duration, 0);
-  const totalPrice = chosenServices.reduce((sum, service) => sum + service.price, 0);
   const promotionAvailable = featureFlags.promotions?.released && featureFlags.promotions?.enabled;
   const activePromotions = promotionAvailable
     ? normalizePromotions(business.promotions, business).filter((promotion) => promotion.active)
     : [];
+  const selectedPromotionDetails = activePromotions.filter((promotion) =>
+    selectedPromotions.includes(promotion.id)
+  );
+  const selectedPromotionItems = selectedPromotionDetails.filter(
+    (promotion) => promotion.type === "price"
+  );
+  const selectedDiscountPromotions = selectedPromotionDetails.filter(
+    (promotion) => promotion.type !== "price"
+  );
+  const serviceDuration = chosenServices.reduce((sum, service) => sum + service.duration, 0);
+  const promotionDuration = selectedPromotionItems.reduce(
+    (sum, promotion) => sum + Math.max(Number(promotion.duration || 0), 0),
+    0
+  );
+  const totalDuration =
+    serviceDuration + promotionDuration || (selectedPromotionDetails.length > 0 ? schedule.slotInterval : 0);
+  const serviceTotal = chosenServices.reduce((sum, service) => sum + service.price, 0);
+  const promotionItemsTotal = selectedPromotionItems.reduce(
+    (sum, promotion) => sum + Number(promotion.promotionalPrice || 0),
+    0
+  );
+  const totalPrice = roundCurrency(serviceTotal + promotionItemsTotal);
   const promotionDetails = activePromotions.map((promotion) => ({
     ...promotion,
-    savings: roundCurrency(Math.min(totalPrice, promotionDiscountAmount(promotion, totalPrice))),
+    selected: selectedPromotions.includes(promotion.id),
+    savings:
+      promotion.type === "price"
+        ? 0
+        : roundCurrency(Math.min(totalPrice, promotionDiscountAmount(promotion, totalPrice))),
   }));
   const promotionValue = roundCurrency(
     Math.min(
       totalPrice,
-      promotionDetails.reduce((sum, promotion) => sum + promotion.savings, 0)
+      selectedDiscountPromotions.reduce(
+        (sum, promotion) => sum + promotionDiscountAmount(promotion, totalPrice),
+        0
+      )
     )
   );
   const promotionalTotal = roundCurrency(Math.max(totalPrice - promotionValue, 0));
@@ -1364,12 +1394,16 @@ function CoreAgendaProApp() {
   );
   const pixPrice = roundCurrency(Math.max(promotionalTotal - pixDiscountValue, 0));
   const selectedPaymentTotal = payment === "pix" && pixAvailable ? pixPrice : promotionalTotal;
-  const servicesText = chosenServices.map((service) => service.name).join(" + ");
+  const selectedPromotionText = selectedPromotionDetails.map((promotion) => promotion.title);
+  const servicesText = chosenServices
+    .map((service) => service.name)
+    .concat(selectedPromotionText)
+    .join(" + ");
 
   const dateCount = range === "today" ? 1 : range === "week" ? 7 : 60;
   const dateOptions = Array.from({ length: dateCount }, (_, index) => getDateAfterDays(index));
 
-  const hasChosenService = selectedServices.length > 0;
+  const hasChosenService = selectedServices.length > 0 || selectedPromotions.length > 0;
   const slots = hasChosenService ? buildSlotsForDate(selectedDate) : [];
   const recommendedTime = slots.find((slot) => slot.available)?.time || "";
   const currentSlot = slots.find((slot) => slot.time === selectedTime);
@@ -1378,7 +1412,7 @@ function CoreAgendaProApp() {
     !scheduleBlocked &&
     cleanWhatsapp.length >= 8 &&
     clientName.trim() !== "" &&
-    selectedServices.length > 0 &&
+    (selectedServices.length > 0 || selectedPromotions.length > 0) &&
     selectedTime !== "" &&
     currentSlot?.available;
 
@@ -1857,6 +1891,15 @@ function CoreAgendaProApp() {
     setSelectedTime("");
   }
 
+  function togglePromotion(promotionId) {
+    setSelectedPromotions((current) =>
+      current.includes(promotionId)
+        ? current.filter((item) => item !== promotionId)
+        : current.concat(promotionId)
+    );
+    setSelectedTime("");
+  }
+
   function repeatLastService() {
     if (!history) return;
 
@@ -1883,7 +1926,7 @@ function CoreAgendaProApp() {
     }
 
     if (!canContinue) {
-      showNotice("Informe o WhatsApp, o nome, o serviço e um horário disponível.");
+      showNotice("Informe o WhatsApp, o nome, escolha um serviço ou promoção e selecione um horário disponível.");
       return;
     }
 
@@ -2672,8 +2715,8 @@ function CoreAgendaProApp() {
       return;
     }
 
-    if (cleanWhatsapp.length < 8 || clientName.trim() === "" || selectedServices.length === 0) {
-      showNotice("Informe o WhatsApp, o nome e o serviço para entrar na lista de espera.");
+    if (cleanWhatsapp.length < 8 || clientName.trim() === "" || !hasChosenService) {
+      showNotice("Informe o WhatsApp, o nome e escolha um serviço ou promoção para entrar na lista de espera.");
       return;
     }
 
@@ -3657,6 +3700,8 @@ function CoreAgendaProApp() {
     screen,
     selectedDate,
     selectedPaymentTotal,
+    selectedPromotionDetails,
+    selectedPromotions,
     selectedServices,
     selectedTime,
     services,
@@ -3686,6 +3731,7 @@ function CoreAgendaProApp() {
     todayAppointments,
     todayRevenue,
     toggleService,
+    togglePromotion,
     topCustomer,
     totalDuration,
     totalPrice,

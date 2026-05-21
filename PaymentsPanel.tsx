@@ -36,6 +36,7 @@ export default function PaymentsPanel({ model }) {
         discountPercent: 0,
         discountValue: 0,
         promotionalPrice: 0,
+        duration: 30,
         active: true,
       }),
     });
@@ -136,21 +137,38 @@ export default function PaymentsPanel({ model }) {
 
                 {promotion.type === "price" ? (
                   <div>
-                    <label>Valor da promoção (R$)</label>
-                    <input
-                      disabled={!promotionsReleased}
-                      type="number"
-                      min="0"
-                      step="1"
-                      value={promotion.promotionalPrice || 0}
-                      onChange={(event) =>
-                        updatePromotion(
-                          index,
-                          "promotionalPrice",
-                          Math.max(Number(event.target.value) || 0, 0)
-                        )
-                      }
-                    />
+                    <div className="timePair">
+                      <div>
+                        <label>Valor da promoção (R$)</label>
+                        <input
+                          disabled={!promotionsReleased}
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={promotion.promotionalPrice || 0}
+                          onChange={(event) =>
+                            updatePromotion(
+                              index,
+                              "promotionalPrice",
+                              Math.max(Number(event.target.value) || 0, 0)
+                            )
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label>Tempo da promoção (min)</label>
+                        <input
+                          disabled={!promotionsReleased}
+                          type="number"
+                          min="0"
+                          step="5"
+                          value={promotion.duration || 30}
+                          onChange={(event) =>
+                            updatePromotion(index, "duration", Math.max(Number(event.target.value) || 0, 0))
+                          }
+                        />
+                      </div>
+                    </div>
                     <p className="hint">
                       Use quando a promoção tiver preço final. Exemplo: Corte por R$150.
                     </p>

@@ -51,6 +51,8 @@ export default function ClientBooking({ model }) {
     screen,
     selectedDate,
     selectedPaymentTotal,
+    selectedPromotionDetails,
+    selectedPromotions,
     selectedServices,
     selectedTime,
     services,
@@ -70,6 +72,7 @@ export default function ClientBooking({ model }) {
     startNewSchedule,
     today,
     toggleService,
+    togglePromotion,
     totalDuration,
     totalPrice,
     updatePublicAppointment,
@@ -253,10 +256,22 @@ export default function ClientBooking({ model }) {
           <p>
             <strong>Tempo:</strong> {totalDuration} min
           </p>
-          <h3>Serviços</h3>
-          {chosenServices.map((service) => (
-            <p key={service.name}>{service.name}</p>
-          ))}
+          {chosenServices.length > 0 && (
+            <>
+              <h3>Serviços</h3>
+              {chosenServices.map((service) => (
+                <p key={service.name}>{service.name}</p>
+              ))}
+            </>
+          )}
+          {selectedPromotionDetails.length > 0 && (
+            <>
+              <h3>Promoções</h3>
+              {selectedPromotionDetails.map((promotion) => (
+                <p key={promotion.id}>{promotion.title}</p>
+              ))}
+            </>
+          )}
           <div className="priceBreakdown">
             <div className="summaryLine">
               <span>Subtotal</span>
@@ -265,7 +280,7 @@ export default function ClientBooking({ model }) {
 
             {promotionAvailable &&
               promotionDetails
-                .filter((promotion) => promotion.savings > 0)
+                .filter((promotion) => promotion.selected && promotion.savings > 0)
                 .map((promotion) => (
                   <div className="summaryLine promoLine" key={promotion.id}>
                     <span>{promotion.title || "Promoção"}</span>
@@ -463,8 +478,8 @@ export default function ClientBooking({ model }) {
       </section>
 
       <section className="stepper">
-        <span className={selectedServices.length === 0 ? "activeStep" : ""}>1 Serviços</span>
-        <span className={selectedServices.length > 0 && selectedTime === "" ? "activeStep" : ""}>
+        <span className={!hasChosenService ? "activeStep" : ""}>1 Serviços</span>
+        <span className={hasChosenService && selectedTime === "" ? "activeStep" : ""}>
           2 Horário
         </span>
         <span>3 Pagamento</span>
@@ -550,20 +565,32 @@ export default function ClientBooking({ model }) {
           {promotionsOpen && (
             <div className="clientPromoList">
               {promotionDetails.map((promotion) => (
-                <div className="clientPromoItem" key={promotion.id}>
-                  <strong>{promotion.title || "Promoção"}</strong>
-                  {promotion.description && <p>{promotion.description}</p>}
-                  <span>
-                    {promotion.type === "price"
-                      ? `Valor promocional: ${money(promotion.promotionalPrice || 0)}`
-                      : [
-                          promotion.discountPercent > 0 ? `${promotion.discountPercent}%` : "",
-                          promotion.discountValue > 0 ? `${money(promotion.discountValue)}` : "",
-                        ]
-                          .filter(Boolean)
-                          .join(" + ")}
-                    {promotion.savings > 0 && ` de economia neste agendamento`}
-                  </span>
+                <div
+                  className={
+                    selectedPromotions.includes(promotion.id)
+                      ? "clientPromoItem selectedPromoItem"
+                      : "clientPromoItem"
+                  }
+                  key={promotion.id}
+                >
+                  <div>
+                    <strong>{promotion.title || "Promoção"}</strong>
+                    {promotion.description && <p>{promotion.description}</p>}
+                    <span>
+                      {promotion.type === "price"
+                        ? `Valor promocional: ${money(promotion.promotionalPrice || 0)}`
+                        : [
+                            promotion.discountPercent > 0 ? `${promotion.discountPercent}%` : "",
+                            promotion.discountValue > 0 ? `${money(promotion.discountValue)}` : "",
+                          ]
+                            .filter(Boolean)
+                            .join(" + ")}
+                      {promotion.savings > 0 && ` de economia neste agendamento`}
+                    </span>
+                  </div>
+                  <button type="button" onClick={() => togglePromotion(promotion.id)}>
+                    {selectedPromotions.includes(promotion.id) ? "Remover" : "Adicionar"}
+                  </button>
                 </div>
               ))}
             </div>
@@ -571,7 +598,7 @@ export default function ClientBooking({ model }) {
         </section>
       )}
 
-      {selectedServices.length > 0 && (
+      {hasChosenService && (
         <section className="recommendBox bestTimePanel">
           <span>Melhor opção para os serviços escolhidos</span>
           <strong>{recommendedTime || "Agenda cheia"}</strong>
@@ -682,7 +709,7 @@ export default function ClientBooking({ model }) {
           <div className="emptySchedule">
             <strong>Fechado nesta data</strong>
             <p>Escolha outro dia ou ajuste a agenda no painel.</p>
-            {waitlistAvailable && selectedServices.length > 0 && (
+            {waitlistAvailable && hasChosenService && (
               <button type="button" className="black" onClick={joinWaitlist}>
                 {waitlistSent ? "Você já está na lista de espera" : "Entrar na lista de espera"}
               </button>
@@ -741,7 +768,7 @@ export default function ClientBooking({ model }) {
           <strong className="bottomTotal">{hasChosenService ? money(promotionalTotal) : "A definir"}</strong>
         </div>
         <button type="button" className={canContinue ? "green" : "green disabled"} onClick={goCheckout}>
-          {hasChosenService ? "Continuar →" : "Escolha um serviço"}
+          {hasChosenService ? "Continuar →" : "Escolha serviço ou promo"}
         </button>
       </section>
     </main>

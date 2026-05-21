@@ -4,6 +4,7 @@ import React from "react";
 export default function ClientBooking({ model }) {
   const {
     activeServices,
+    activePromotions,
     appointmentManagementLink,
     appointmentNote,
     barberConfirmationMessage,
@@ -36,8 +37,9 @@ export default function ClientBooking({ model }) {
     professional,
     promotionalTotal,
     promotionAvailable,
-    promotionDiscount,
+    promotionDetails,
     promotionValue,
+    promotionsOpen,
     publicActionSaving,
     publicAppointment,
     range,
@@ -57,6 +59,7 @@ export default function ClientBooking({ model }) {
     setClientName,
     setPayment,
     setProfessional,
+    setPromotionsOpen,
     setRange,
     setScreen,
     setSelectedDate,
@@ -260,12 +263,15 @@ export default function ClientBooking({ model }) {
               <strong>{money(totalPrice)}</strong>
             </div>
 
-            {promotionAvailable && promotionValue > 0 && (
-              <div className="summaryLine promoLine">
-                <span>{business.promotionTitle || "Promoção"}</span>
-                <strong>-{money(promotionValue)}</strong>
-              </div>
-            )}
+            {promotionAvailable &&
+              promotionDetails
+                .filter((promotion) => promotion.savings > 0)
+                .map((promotion) => (
+                  <div className="summaryLine promoLine" key={promotion.id}>
+                    <span>{promotion.title || "Promoção"}</span>
+                    <strong>-{money(promotion.savings)}</strong>
+                  </div>
+                ))}
 
             <div className="summaryLine finalPriceLine">
               <span>{promotionValue > 0 ? "Total com desconto online" : "Total"}</span>
@@ -522,14 +528,41 @@ export default function ClientBooking({ model }) {
         ))}
       </section>
 
-      {promotionAvailable && promotionValue > 0 && (
-        <section className="promoBanner">
+      {promotionAvailable && activePromotions.length > 0 && (
+        <section className="promoBanner promoListBanner">
           <div>
-            <span>{business.promotionTitle || "Promoção ativa"}</span>
-            <strong>Você economiza {money(promotionValue)}</strong>
-            <small>{business.promotionDescription}</small>
+            <span>Promoções disponíveis</span>
+            <strong>
+              {promotionValue > 0
+                ? `Você economiza ${money(promotionValue)}`
+                : `${activePromotions.length} promoção disponível`}
+            </strong>
+            <small>Abra para ver as condições ativas desta barbearia.</small>
           </div>
-          <b>{promotionDiscount}%</b>
+          <button
+            type="button"
+            className="promoToggle"
+            onClick={() => setPromotionsOpen(!promotionsOpen)}
+          >
+            {promotionsOpen ? "Ocultar" : "Ver promos"}
+          </button>
+
+          {promotionsOpen && (
+            <div className="clientPromoList">
+              {promotionDetails.map((promotion) => (
+                <div className="clientPromoItem" key={promotion.id}>
+                  <strong>{promotion.title || "Promoção"}</strong>
+                  {promotion.description && <p>{promotion.description}</p>}
+                  <span>
+                    {promotion.discountPercent > 0 && `${promotion.discountPercent}%`}
+                    {promotion.discountPercent > 0 && promotion.discountValue > 0 && " + "}
+                    {promotion.discountValue > 0 && `${money(promotion.discountValue)}`}
+                    {promotion.savings > 0 && ` de economia neste agendamento`}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
       )}
 
@@ -694,7 +727,7 @@ export default function ClientBooking({ model }) {
         </div>
         {promotionAvailable && promotionValue > 0 && (
           <div className="summaryLine promoLine">
-            <span>Promoção</span>
+            <span>Promoções</span>
             <strong>-{money(promotionValue)}</strong>
           </div>
         )}

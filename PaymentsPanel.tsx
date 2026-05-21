@@ -15,6 +15,37 @@ export default function PaymentsPanel({ model }) {
     updateFeatureFlag,
   } = model;
 
+  const promotions = Array.isArray(business.promotions) ? business.promotions : [];
+  const promotionsReleased = Boolean(featureFlags.promotions?.released);
+
+  function updatePromotion(index, key, value) {
+    const nextPromotions = promotions.map((promotion, itemIndex) =>
+      itemIndex === index ? { ...promotion, [key]: value } : promotion
+    );
+    setBusiness({ ...business, promotions: nextPromotions });
+  }
+
+  function addPromotion() {
+    setBusiness({
+      ...business,
+      promotions: promotions.concat({
+        id: `promo-${Date.now()}`,
+        title: "Nova promoção",
+        description: "Descreva a condição da promoção.",
+        discountPercent: 0,
+        discountValue: 0,
+        active: true,
+      }),
+    });
+  }
+
+  function removePromotion(index) {
+    setBusiness({
+      ...business,
+      promotions: promotions.filter((_, itemIndex) => itemIndex !== index),
+    });
+  }
+
   return (
     <>
         <section className={activeAdminTab === "payments" ? "card" : "hiddenPanel"}>
@@ -50,42 +81,95 @@ export default function PaymentsPanel({ model }) {
             na aba Melhorias.
           </p>
 
-          <div className={featureFlags.promotions?.released ? "promoConfig" : "promoConfig lockedPromo"}>
+          <div className={promotionsReleased ? "promoConfig" : "promoConfig lockedPromo"}>
             <div className="sectionTitle">
               <h2>Promoções inteligentes</h2>
               <span>{promotionAvailable ? "Ativa" : "Inativa"}</span>
             </div>
             <p className="hint">
-              Libere em Melhorias, configure o desconto aqui e salve as alterações.
+              Libere em Melhorias, cadastre uma ou mais promoções e salve as alterações.
             </p>
 
-            <label>Nome da promoção</label>
-            <input
-              disabled={!featureFlags.promotions?.released}
-              value={business.promotionTitle || ""}
-              onChange={(event) => setBusiness({ ...business, promotionTitle: event.target.value })}
-            />
+            {promotions.length === 0 && (
+              <p className="hint">Nenhuma promoção cadastrada ainda.</p>
+            )}
 
-            <label>Descrição da promoção</label>
-            <input
-              disabled={!featureFlags.promotions?.released}
-              value={business.promotionDescription || ""}
-              onChange={(event) =>
-                setBusiness({ ...business, promotionDescription: event.target.value })
-              }
-            />
+            {promotions.map((promotion, index) => (
+              <div className="promotionEditor" key={promotion.id || index}>
+                <div className="sectionTitle">
+                  <h3>Promoção {index + 1}</h3>
+                  <button
+                    type="button"
+                    className={promotion.active ? "statusPill activeStatus" : "statusPill"}
+                    disabled={!promotionsReleased}
+                    onClick={() => updatePromotion(index, "active", !promotion.active)}
+                  >
+                    {promotion.active ? "Ativa" : "Inativa"}
+                  </button>
+                </div>
 
-            <label>Desconto da promoção (%)</label>
-            <input
-              disabled={!featureFlags.promotions?.released}
-              type="number"
-              min="0"
-              max="80"
-              value={business.promotionDiscount || 0}
-              onChange={(event) =>
-                setBusiness({ ...business, promotionDiscount: clampPercentage(event.target.value) })
-              }
-            />
+                <label>Nome da promoção</label>
+                <input
+                  disabled={!promotionsReleased}
+                  value={promotion.title || ""}
+                  onChange={(event) => updatePromotion(index, "title", event.target.value)}
+                />
+
+                <label>Descrição da promoção</label>
+                <input
+                  disabled={!promotionsReleased}
+                  value={promotion.description || ""}
+                  onChange={(event) => updatePromotion(index, "description", event.target.value)}
+                />
+
+                <div className="timePair">
+                  <div>
+                    <label>Desconto (%)</label>
+                    <input
+                      disabled={!promotionsReleased}
+                      type="number"
+                      min="0"
+                      max="80"
+                      value={promotion.discountPercent || 0}
+                      onChange={(event) =>
+                        updatePromotion(index, "discountPercent", clampPercentage(event.target.value))
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label>Valor de desconto (R$)</label>
+                    <input
+                      disabled={!promotionsReleased}
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={promotion.discountValue || 0}
+                      onChange={(event) =>
+                        updatePromotion(index, "discountValue", Math.max(Number(event.target.value) || 0, 0))
+                      }
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  className="dangerButton"
+                  disabled={!promotionsReleased}
+                  onClick={() => removePromotion(index)}
+                >
+                  Excluir promoção
+                </button>
+              </div>
+            ))}
+
+            <button
+              type="button"
+              className="black"
+              disabled={!promotionsReleased}
+              onClick={addPromotion}
+            >
+              Adicionar promoção
+            </button>
           </div>
 
           <button type="button" className="green" onClick={saveBusinessToCloud}>

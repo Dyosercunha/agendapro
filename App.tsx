@@ -35,6 +35,16 @@ const initialBusiness = {
   promotionTitle: "Promoção online",
   promotionDescription: "Desconto especial para agendamentos feitos pelo app.",
   promotionDiscount: 10,
+  promotions: [
+    {
+      id: "promo-online",
+      title: "Promoção online",
+      description: "Desconto especial para agendamentos feitos pelo app.",
+      discountPercent: 10,
+      discountValue: 0,
+      active: true,
+    },
+  ],
   automaticConfirmationEnabled: true,
   successTitle: "Agendamento confirmado!",
   successMessage: "Seu horário já está reservado.",
@@ -388,6 +398,77 @@ function clampPercentage(value, max = 80) {
   return Math.min(Math.max(number, 0), max);
 }
 
+function currentTimeMinutes() {
+  const now = new Date();
+  return now.getHours() * 60 + now.getMinutes();
+}
+
+function normalizePromotion(item, index = 0) {
+  const promotion = isPlainObject(item) ? item : {};
+  const fallback = initialBusiness.promotions[index] || initialBusiness.promotions[0];
+
+  return {
+    id: String(promotion.id || fallback.id || makeId("promo")),
+    title: repairText(promotion.title || promotion.name || fallback.title || "Promoção"),
+    description: repairText(
+      promotion.description || promotion.text || fallback.description || ""
+    ),
+    discountPercent: clampPercentage(
+      promotion.discountPercent ?? promotion.discount ?? promotion.percent ?? fallback.discountPercent ?? 0
+    ),
+    discountValue: roundCurrency(
+      Math.max(Number(promotion.discountValue ?? promotion.value ?? promotion.amount ?? fallback.discountValue ?? 0), 0)
+    ),
+    active: promotion.active !== false,
+  };
+}
+
+function normalizePromotions(value, legacy = {}) {
+  let list = value;
+
+  if (typeof list === "string") {
+    try {
+      list = JSON.parse(list);
+    } catch {
+      list = [];
+    }
+  }
+
+  if (Array.isArray(list) && list.length > 0) {
+    return list.map((item, index) => normalizePromotion(item, index));
+  }
+
+  const legacyTitle = legacy.promotionTitle || legacy.promotion_title || initialBusiness.promotionTitle;
+  const legacyDescription =
+    legacy.promotionDescription ||
+    legacy.promotion_description ||
+    initialBusiness.promotionDescription;
+  const legacyDiscount = Number(
+    legacy.promotionDiscount ?? legacy.promotion_discount ?? initialBusiness.promotionDiscount
+  );
+
+  if (legacyTitle || legacyDescription || legacyDiscount > 0) {
+    return [
+      normalizePromotion({
+        id: "promo-online",
+        title: legacyTitle,
+        description: legacyDescription,
+        discountPercent: legacyDiscount,
+        discountValue: legacy.promotionValue || legacy.promotion_value || 0,
+        active: true,
+      }),
+    ];
+  }
+
+  return initialBusiness.promotions.map((item, index) => normalizePromotion(item, index));
+}
+
+function promotionDiscountAmount(promotion, subtotal) {
+  const percentValue = (subtotal * clampPercentage(promotion.discountPercent)) / 100;
+  const fixedValue = Number(promotion.discountValue || 0);
+  return roundCurrency(Math.max(percentValue, 0) + Math.max(fixedValue, 0));
+}
+
 function hexToRgba(hex, opacity) {
   const cleanHex = hex.replace("#", "");
   const red = parseInt(cleanHex.substring(0, 2), 16);
@@ -540,6 +621,11 @@ function mapBusinessFromCloud(row, account) {
       row.promotion_description || initialBusiness.promotionDescription
     ),
     promotionDiscount: Number(row.promotion_discount || initialBusiness.promotionDiscount),
+    promotions: normalizePromotions(row.promotions, {
+      promotionTitle: row.promotion_title,
+      promotionDescription: row.promotion_description,
+      promotionDiscount: row.promotion_discount,
+    }),
     automaticConfirmationEnabled: Boolean(row.automatic_confirmation_enabled),
     successTitle: repairText(row.success_title || initialBusiness.successTitle),
     successMessage: repairText(row.success_message || initialBusiness.successMessage),
@@ -549,14 +635,18 @@ function mapBusinessFromCloud(row, account) {
 
 function normalizeBusiness(value) {
   const business = mergeWithDefault(initialBusiness, value || {});
+  const promotions = normalizePromotions(business.promotions, business);
+  const primaryPromotion = promotions[0] || initialBusiness.promotions[0];
 
   return {
     ...business,
     name: repairText(business.name),
     logo: repairText(business.logo),
     address: repairText(business.address),
-    promotionTitle: repairText(business.promotionTitle),
-    promotionDescription: repairText(business.promotionDescription),
+    promotions,
+    promotionTitle: repairText(primaryPromotion.title || business.promotionTitle),
+    promotionDescription: repairText(primaryPromotion.description || business.promotionDescription),
+    promotionDiscount: Number(primaryPromotion.discountPercent ?? business.promotionDiscount ?? 0),
     successTitle: repairText(business.successTitle),
     successMessage: repairText(business.successMessage),
     successFooter: repairText(business.successFooter),
@@ -800,6 +890,8 @@ function CoreAgendaProApp() {
   const [selectedTime, setSelectedTime] = useState("");
   const [payment, setPayment] = useState("");
   const [appointmentNote, setAppointmentNote] = useState("");
+  const [promotionsOpen, setPromotionsOpen] = useState(false);
+  const [clockTick, setClockTick] = useState(0);
   const [confirmationSent, setConfirmationSent] = useState(false);
   const [confirmedId, setConfirmedId] = useState("");
   const [confirmedToken, setConfirmedToken] = useState("");
@@ -1074,6 +1166,16 @@ function CoreAgendaProApp() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
+    const timer = window.setInterval(() => {
+      setClockTick((current) => current + 1);
+    }, 60000);
+
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
     const token =
       new URLSearchParams(window.location.search).get("agendamento") ||
       new URLSearchParams(window.location.search).get("codigo");
@@ -1217,9 +1319,18 @@ function CoreAgendaProApp() {
   const totalDuration = chosenServices.reduce((sum, service) => sum + service.duration, 0);
   const totalPrice = chosenServices.reduce((sum, service) => sum + service.price, 0);
   const promotionAvailable = featureFlags.promotions?.released && featureFlags.promotions?.enabled;
-  const promotionDiscount = promotionAvailable ? clampPercentage(business.promotionDiscount) : 0;
+  const activePromotions = promotionAvailable
+    ? normalizePromotions(business.promotions, business).filter((promotion) => promotion.active)
+    : [];
+  const promotionDetails = activePromotions.map((promotion) => ({
+    ...promotion,
+    savings: roundCurrency(Math.min(totalPrice, promotionDiscountAmount(promotion, totalPrice))),
+  }));
   const promotionValue = roundCurrency(
-    Math.min(totalPrice, (totalPrice * promotionDiscount) / 100)
+    Math.min(
+      totalPrice,
+      promotionDetails.reduce((sum, promotion) => sum + promotion.savings, 0)
+    )
   );
   const promotionalTotal = roundCurrency(Math.max(totalPrice - promotionValue, 0));
   const pixDiscount = pixAvailable ? clampPercentage(business.pixDiscount) : 0;
@@ -1633,10 +1744,17 @@ function CoreAgendaProApp() {
     const duration = totalDuration || interval;
     const start = timeToMinutes(workingDay.start);
     const end = timeToMinutes(workingDay.end);
+    const nowMinutes = dateText === today ? currentTimeMinutes() : -1;
     const result = [];
 
     for (let current = start; current + duration <= end; current += interval) {
       const time = minutesToTime(current);
+
+      if (dateText === today && current <= nowMinutes) {
+        result.push({ time, status: "past", label: "Encerrado", available: false });
+        continue;
+      }
+
       const blockedBase = baseReason(dateText, time, duration);
 
       if (blockedBase) {
@@ -1741,6 +1859,16 @@ function CoreAgendaProApp() {
 
     if (!canContinue) {
       showNotice("Informe o WhatsApp, o nome, o serviço e um horário disponível.");
+      return;
+    }
+
+    const freshCurrentSlot = buildSlotsForDate(selectedDate).find(
+      (slot) => slot.time === selectedTime
+    );
+
+    if (!freshCurrentSlot?.available) {
+      showNotice("Esse horário já passou ou ficou indisponível. Escolha outro horário.");
+      setSelectedTime("");
       return;
     }
 
@@ -2270,11 +2398,20 @@ function CoreAgendaProApp() {
 
       if (result.error) return result;
 
+      const promotions = normalizePromotions(business.promotions, business);
+      const primaryPromotion = promotions[0] || initialBusiness.promotions[0];
+      const multiPromotionResult = await callCloudFunction("save_promotions", {
+        target_slug: nextSlug,
+        promotions_input: promotions,
+      });
+
+      if (!multiPromotionResult.error) return multiPromotionResult;
+
       return callCloudFunction("save_promotion_settings", {
         target_slug: nextSlug,
-        promotion_title_input: business.promotionTitle || "",
-        promotion_description_input: business.promotionDescription || "",
-        promotion_discount_input: Number(business.promotionDiscount || 0),
+        promotion_title_input: primaryPromotion.title || "",
+        promotion_description_input: primaryPromotion.description || "",
+        promotion_discount_input: Number(primaryPromotion.discountPercent || 0),
       });
     });
   }
@@ -3383,6 +3520,7 @@ function CoreAgendaProApp() {
     accessEditorKey,
     activeAdminTab,
     activeFeatureCount,
+    activePromotions,
     activeServices,
     addAccessAccount,
     addBlock,
@@ -3462,8 +3600,9 @@ function CoreAgendaProApp() {
     professionals,
     promotionalTotal,
     promotionAvailable,
-    promotionDiscount,
+    promotionDetails,
     promotionValue,
+    promotionsOpen,
     publicActionSaving,
     publicAppointment,
     publicScheduleLink,
@@ -3505,6 +3644,7 @@ function CoreAgendaProApp() {
     setFeatureRelease,
     setPayment,
     setProfessional,
+    setPromotionsOpen,
     setRange,
     setSchedule,
     setScreen,

@@ -822,12 +822,68 @@ button:disabled {
   padding: 9px 11px;
 }
 
+.promoListBanner {
+  align-items: stretch;
+  flex-wrap: wrap;
+}
+
+.promoToggle {
+  align-self: center;
+  background: var(--text);
+  color: var(--bg);
+  flex: 0 0 auto;
+  width: auto;
+  border-radius: 999px;
+  padding: 11px 15px;
+  font-weight: 900;
+}
+
+.clientPromoList {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+}
+
+.clientPromoItem {
+  background: rgba(16, 20, 24, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  padding: 13px;
+}
+
+.clientPromoItem p {
+  color: var(--text-secondary);
+  margin: 5px 0 8px;
+}
+
+.clientPromoItem span {
+  color: var(--success);
+  font-size: 13px;
+  font-weight: 900;
+}
+
 .promoConfig {
   background: linear-gradient(180deg, rgba(34, 197, 94, 0.08), rgba(16, 20, 24, 0.92));
   border: 1px solid rgba(34, 197, 94, 0.22);
   border-radius: 24px;
   margin: 16px 0;
   padding: 16px;
+}
+
+.promotionEditor {
+  background: rgba(16, 20, 24, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 22px;
+  margin-top: 14px;
+  padding: 14px;
+}
+
+.promotionEditor .sectionTitle {
+  margin-bottom: 10px;
+}
+
+.promotionEditor h3 {
+  margin: 0;
 }
 
 .lockedPromo {
@@ -1170,7 +1226,8 @@ button:disabled {
 }
 
 .timeSlot.blocked,
-.timeSlot.busy {
+.timeSlot.busy,
+.timeSlot.past {
   opacity: 0.42;
 }
 

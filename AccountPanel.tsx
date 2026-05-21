@@ -1,6 +1,13 @@
 // @ts-nocheck
 import React from "react";
 
+const monthlyStatusLabels = {
+  active: "Ativa",
+  trial: "Em teste",
+  pending: "Pagamento pendente",
+  blocked: "Bloqueada",
+};
+
 export default function AccountPanel({ model }) {
   const {
     accessAccounts,
@@ -29,6 +36,24 @@ export default function AccountPanel({ model }) {
     updateAccessAccount,
     updateBusinessSlug,
   } = model;
+
+  const monthlyStatus = business.monthlyStatus || "active";
+  const monthlyStatusText = monthlyStatusLabels[monthlyStatus] || monthlyStatusLabels.active;
+
+  function handlePlanSelection(planId) {
+    if (canManageBilling) {
+      setBusiness({ ...business, plan: planId });
+      return;
+    }
+
+    if (business.plan === planId) return;
+
+    setBusiness({
+      ...business,
+      plan: planId,
+      monthlyStatus: "pending",
+    });
+  }
 
   return (
     <>
@@ -193,37 +218,37 @@ export default function AccountPanel({ model }) {
             </button>
           )}
 
+          <div className="planHeader">
+            <div>
+              <span>{monthlyStatus === "pending" && !canManageBilling ? "Plano solicitado" : "Plano atual"}</span>
+              <strong>{currentPlan.name}</strong>
+            </div>
+            <b>{currentPlan.price}</b>
+          </div>
+
+          <div className="planGrid">
+            {planOptions.map((plan) => (
+              <button type="button"
+                key={plan.id}
+                className={business.plan === plan.id ? "planCard activePlan" : "planCard"}
+                onClick={() => handlePlanSelection(plan.id)}
+              >
+                <span>{plan.name}</span>
+                <strong>{plan.price}</strong>
+                <small>{plan.description}</small>
+              </button>
+            ))}
+          </div>
+
           {canManageBilling ? (
             <>
-              <div className="planHeader">
-                <div>
-                  <span>Plano atual</span>
-                  <strong>{currentPlan.name}</strong>
-                </div>
-                <b>{currentPlan.price}</b>
-              </div>
-
-              <div className="planGrid">
-                {planOptions.map((plan) => (
-                  <button type="button"
-                    key={plan.id}
-                    className={business.plan === plan.id ? "planCard activePlan" : "planCard"}
-                    onClick={() => setBusiness({ ...business, plan: plan.id })}
-                  >
-                    <span>{plan.name}</span>
-                    <strong>{plan.price}</strong>
-                    <small>{plan.description}</small>
-                  </button>
-                ))}
-              </div>
-
               <label>Status da mensalidade</label>
               <select
                 value={business.monthlyStatus || "active"}
                 onChange={(event) => setBusiness({ ...business, monthlyStatus: event.target.value })}
               >
                 <option value="active">Ativa</option>
-                <option value="trial">Teste grátis</option>
+                <option value="trial">Em teste</option>
                 <option value="pending">Pagamento pendente</option>
                 <option value="blocked">Bloqueada</option>
               </select>
@@ -236,7 +261,7 @@ export default function AccountPanel({ model }) {
               />
 
               <p className="adminNote">
-                Esta área administrativa aparece apenas para o dono da conta.
+                Somente a plataforma altera status e vencimento da mensalidade.
               </p>
 
               <button type="button" className="green" onClick={saveBusinessToCloud}>
@@ -244,12 +269,27 @@ export default function AccountPanel({ model }) {
               </button>
             </>
           ) : (
-            <div className="planHeader renewalOnly">
-              <div>
-                <span>Renovação do acesso</span>
-                <strong>{formatDateOnly(business.nextBillingDate)}</strong>
+            <>
+              <div className="billingReadout">
+                <div>
+                  <span>Status da mensalidade</span>
+                  <strong>{monthlyStatusText}</strong>
+                </div>
+                <div>
+                  <span>Próxima cobrança</span>
+                  <strong>{formatDateOnly(business.nextBillingDate)}</strong>
+                </div>
               </div>
-            </div>
+
+              <p className="adminNote">
+                Você pode solicitar troca de plano. A alteração fica pendente até a aprovação da plataforma
+                ou confirmação do pagamento.
+              </p>
+
+              <button type="button" className="green" onClick={saveBusinessToCloud}>
+                {cloudSaving === "business" ? "Salvando solicitação..." : "Salvar solicitação de plano"}
+              </button>
+            </>
           )}
         </section>
 

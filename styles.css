@@ -2352,6 +2352,33 @@ button:disabled {
   color: #dfffe8;
 }
 
+.billingReadout {
+  display: grid;
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.billingReadout div {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 18px;
+  padding: 14px;
+}
+
+.billingReadout span {
+  color: var(--text-muted);
+  display: block;
+  font-size: 12px;
+  font-weight: 900;
+  margin-bottom: 5px;
+}
+
+.billingReadout strong {
+  color: var(--text);
+  display: block;
+  font-size: 18px;
+}
+
 .accessHeader {
   align-items: center;
   background: rgba(255, 255, 255, 0.04);

@@ -554,9 +554,14 @@ export default function ClientBooking({ model }) {
                   <strong>{promotion.title || "Promoção"}</strong>
                   {promotion.description && <p>{promotion.description}</p>}
                   <span>
-                    {promotion.discountPercent > 0 && `${promotion.discountPercent}%`}
-                    {promotion.discountPercent > 0 && promotion.discountValue > 0 && " + "}
-                    {promotion.discountValue > 0 && `${money(promotion.discountValue)}`}
+                    {promotion.type === "price"
+                      ? `Valor promocional: ${money(promotion.promotionalPrice || 0)}`
+                      : [
+                          promotion.discountPercent > 0 ? `${promotion.discountPercent}%` : "",
+                          promotion.discountValue > 0 ? `${money(promotion.discountValue)}` : "",
+                        ]
+                          .filter(Boolean)
+                          .join(" + ")}
                     {promotion.savings > 0 && ` de economia neste agendamento`}
                   </span>
                 </div>

@@ -40,8 +40,10 @@ const initialBusiness = {
       id: "promo-online",
       title: "Promoção online",
       description: "Desconto especial para agendamentos feitos pelo app.",
+      type: "discount",
       discountPercent: 10,
       discountValue: 0,
+      promotionalPrice: 0,
       active: true,
     },
   ],
@@ -413,11 +415,28 @@ function normalizePromotion(item, index = 0) {
     description: repairText(
       promotion.description || promotion.text || fallback.description || ""
     ),
+    type:
+      promotion.type === "price" || promotion.kind === "price" || promotion.mode === "price"
+        ? "price"
+        : "discount",
     discountPercent: clampPercentage(
       promotion.discountPercent ?? promotion.discount ?? promotion.percent ?? fallback.discountPercent ?? 0
     ),
     discountValue: roundCurrency(
-      Math.max(Number(promotion.discountValue ?? promotion.value ?? promotion.amount ?? fallback.discountValue ?? 0), 0)
+      Math.max(Number(promotion.discountValue ?? promotion.discountAmount ?? fallback.discountValue ?? 0), 0)
+    ),
+    promotionalPrice: roundCurrency(
+      Math.max(
+        Number(
+          promotion.promotionalPrice ??
+            promotion.promoPrice ??
+            promotion.price ??
+            promotion.value ??
+            fallback.promotionalPrice ??
+            0
+        ),
+        0
+      )
     ),
     active: promotion.active !== false,
   };
@@ -464,6 +483,12 @@ function normalizePromotions(value, legacy = {}) {
 }
 
 function promotionDiscountAmount(promotion, subtotal) {
+  if (promotion.type === "price") {
+    const price = Number(promotion.promotionalPrice || 0);
+    if (price <= 0) return 0;
+    return roundCurrency(Math.max(subtotal - price, 0));
+  }
+
   const percentValue = (subtotal * clampPercentage(promotion.discountPercent)) / 100;
   const fixedValue = Number(promotion.discountValue || 0);
   return roundCurrency(Math.max(percentValue, 0) + Math.max(fixedValue, 0));

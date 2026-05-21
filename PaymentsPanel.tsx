@@ -32,8 +32,10 @@ export default function PaymentsPanel({ model }) {
         id: `promo-${Date.now()}`,
         title: "Nova promoção",
         description: "Descreva a condição da promoção.",
+        type: "discount",
         discountPercent: 0,
         discountValue: 0,
+        promotionalPrice: 0,
         active: true,
       }),
     });
@@ -122,34 +124,67 @@ export default function PaymentsPanel({ model }) {
                   onChange={(event) => updatePromotion(index, "description", event.target.value)}
                 />
 
-                <div className="timePair">
+                <label>Tipo da promoção</label>
+                <select
+                  disabled={!promotionsReleased}
+                  value={promotion.type === "price" ? "price" : "discount"}
+                  onChange={(event) => updatePromotion(index, "type", event.target.value)}
+                >
+                  <option value="discount">Desconto</option>
+                  <option value="price">Valor promocional</option>
+                </select>
+
+                {promotion.type === "price" ? (
                   <div>
-                    <label>Desconto (%)</label>
-                    <input
-                      disabled={!promotionsReleased}
-                      type="number"
-                      min="0"
-                      max="80"
-                      value={promotion.discountPercent || 0}
-                      onChange={(event) =>
-                        updatePromotion(index, "discountPercent", clampPercentage(event.target.value))
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label>Valor de desconto (R$)</label>
+                    <label>Valor da promoção (R$)</label>
                     <input
                       disabled={!promotionsReleased}
                       type="number"
                       min="0"
                       step="1"
-                      value={promotion.discountValue || 0}
+                      value={promotion.promotionalPrice || 0}
                       onChange={(event) =>
-                        updatePromotion(index, "discountValue", Math.max(Number(event.target.value) || 0, 0))
+                        updatePromotion(
+                          index,
+                          "promotionalPrice",
+                          Math.max(Number(event.target.value) || 0, 0)
+                        )
                       }
                     />
+                    <p className="hint">
+                      Use quando a promoção tiver preço final. Exemplo: Corte por R$150.
+                    </p>
                   </div>
-                </div>
+                ) : (
+                  <div className="timePair">
+                    <div>
+                      <label>Desconto (%)</label>
+                      <input
+                        disabled={!promotionsReleased}
+                        type="number"
+                        min="0"
+                        max="80"
+                        value={promotion.discountPercent || 0}
+                        onChange={(event) =>
+                          updatePromotion(index, "discountPercent", clampPercentage(event.target.value))
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label>Desconto em R$</label>
+                      <input
+                        disabled={!promotionsReleased}
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={promotion.discountValue || 0}
+                        onChange={(event) =>
+                          updatePromotion(index, "discountValue", Math.max(Number(event.target.value) || 0, 0))
+                        }
+                      />
+                    </div>
+                  </div>
+                )}
 
                 <button
                   type="button"

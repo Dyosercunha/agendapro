@@ -1,5 +1,5 @@
 -- AgendaPro SQL 16
--- Multiple intelligent promotions and fixed-value promotion discounts.
+-- Multiple intelligent promotions with discount or final promotional price.
 
 alter table public.barbershops
   add column if not exists promotions jsonb not null default '[]'::jsonb;
@@ -10,8 +10,10 @@ set promotions = jsonb_build_array(
     'id', 'promo-online',
     'title', coalesce(promotion_title, 'Promoção online'),
     'description', coalesce(promotion_description, ''),
+    'type', 'discount',
     'discountPercent', greatest(0, least(coalesce(promotion_discount, 0), 80)),
     'discountValue', 0,
+    'promotionalPrice', 0,
     'active', true
   )
 )
@@ -52,6 +54,12 @@ begin
       'id', coalesce(nullif(value->>'id', ''), 'promo-' || ordinality::text),
       'title', coalesce(nullif(trim(value->>'title'), ''), 'Promoção'),
       'description', coalesce(nullif(trim(value->>'description'), ''), ''),
+      'type',
+        case
+          when lower(coalesce(value->>'type', value->>'mode', value->>'kind', 'discount')) = 'price'
+            then 'price'
+          else 'discount'
+        end,
       'discountPercent', greatest(
         0,
         least(
@@ -66,8 +74,16 @@ begin
       'discountValue', greatest(
         0,
         case
-          when coalesce(value->>'discountValue', '') ~ '^-?[0-9]+(\.[0-9]+)?$'
-            then (value->>'discountValue')::numeric
+          when coalesce(value->>'discountValue', value->>'discountAmount', '') ~ '^-?[0-9]+(\.[0-9]+)?$'
+            then coalesce(value->>'discountValue', value->>'discountAmount')::numeric
+          else 0
+        end
+      ),
+      'promotionalPrice', greatest(
+        0,
+        case
+          when coalesce(value->>'promotionalPrice', value->>'promoPrice', value->>'price', value->>'value', '') ~ '^-?[0-9]+(\.[0-9]+)?$'
+            then coalesce(value->>'promotionalPrice', value->>'promoPrice', value->>'price', value->>'value')::numeric
           else 0
         end
       ),

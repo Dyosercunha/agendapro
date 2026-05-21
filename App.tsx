@@ -44,7 +44,6 @@ const initialBusiness = {
       discountPercent: 10,
       discountValue: 0,
       promotionalPrice: 0,
-      duration: 30,
       active: true,
     },
   ],
@@ -439,7 +438,6 @@ function normalizePromotion(item, index = 0) {
         0
       )
     ),
-    duration: Math.max(Number(promotion.duration ?? promotion.minutes ?? fallback.duration ?? 30) || 30, 0),
     active: promotion.active !== false,
   };
 }
@@ -1358,12 +1356,8 @@ function CoreAgendaProApp() {
     (promotion) => promotion.type !== "price"
   );
   const serviceDuration = chosenServices.reduce((sum, service) => sum + service.duration, 0);
-  const promotionDuration = selectedPromotionItems.reduce(
-    (sum, promotion) => sum + Math.max(Number(promotion.duration || 0), 0),
-    0
-  );
   const totalDuration =
-    serviceDuration + promotionDuration || (selectedPromotionDetails.length > 0 ? schedule.slotInterval : 0);
+    serviceDuration || (selectedPromotionDetails.length > 0 ? schedule.slotInterval : 0);
   const serviceTotal = chosenServices.reduce((sum, service) => sum + service.price, 0);
   const promotionItemsTotal = selectedPromotionItems.reduce(
     (sum, promotion) => sum + Number(promotion.promotionalPrice || 0),

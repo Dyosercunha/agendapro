@@ -14,7 +14,6 @@ set promotions = jsonb_build_array(
     'discountPercent', greatest(0, least(coalesce(promotion_discount, 0), 80)),
     'discountValue', 0,
     'promotionalPrice', 0,
-    'duration', 30,
     'active', true
   )
 )
@@ -86,14 +85,6 @@ begin
           when coalesce(value->>'promotionalPrice', value->>'promoPrice', value->>'price', value->>'value', '') ~ '^-?[0-9]+(\.[0-9]+)?$'
             then coalesce(value->>'promotionalPrice', value->>'promoPrice', value->>'price', value->>'value')::numeric
           else 0
-        end
-      ),
-      'duration', greatest(
-        0,
-        case
-          when coalesce(value->>'duration', value->>'minutes', '') ~ '^-?[0-9]+(\.[0-9]+)?$'
-            then coalesce(value->>'duration', value->>'minutes')::numeric
-          else 30
         end
       ),
       'active',

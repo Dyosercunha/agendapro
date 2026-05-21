@@ -5,6 +5,7 @@ const monthlyStatusLabels = {
   active: "Ativa",
   trial: "Em teste",
   pending: "Pagamento pendente",
+  overdue: "Pagamento atrasado",
   blocked: "Bloqueada",
 };
 
@@ -250,6 +251,7 @@ export default function AccountPanel({ model }) {
                 <option value="active">Ativa</option>
                 <option value="trial">Em teste</option>
                 <option value="pending">Pagamento pendente</option>
+                <option value="overdue">Pagamento atrasado</option>
                 <option value="blocked">Bloqueada</option>
               </select>
 

@@ -26,7 +26,10 @@ export default function AccountPanel({ model }) {
     isDeveloperRole,
     isUuid,
     normalizeRole,
+    passwordForm = { next: "", confirm: "" },
     passwordEditorOpen,
+    passwordMessage,
+    passwordSaving,
     planOptions,
     publicScheduleLink,
     removeAccessAccount,
@@ -34,6 +37,8 @@ export default function AccountPanel({ model }) {
     saveBusinessToCloud,
     setAccessPasswordEditor,
     setBusiness,
+    setPasswordForm,
+    updateOwnPassword,
     updateAccessAccount,
     updateBusinessSlug,
   } = model;
@@ -102,6 +107,47 @@ export default function AccountPanel({ model }) {
           <button type="button" className="outline" onClick={() => copyText(adminPanelLink)}>
             Copiar link do painel
           </button>
+
+          <div className="passwordPanel">
+            <div className="sectionTitle">
+              <h3>Minha senha</h3>
+              <span>Acesso atual</span>
+            </div>
+
+            <p className="hint">
+              Altere aqui a senha do e-mail que está logado neste painel. Para trocar a senha de outro
+              acesso, use a lista abaixo.
+            </p>
+
+            <label>Nova senha</label>
+            <input
+              type="password"
+              autoComplete="new-password"
+              value={passwordForm.next}
+              placeholder="mínimo 6 caracteres"
+              onChange={(event) => setPasswordForm({ ...passwordForm, next: event.target.value })}
+            />
+
+            <label>Confirmar nova senha</label>
+            <input
+              type="password"
+              autoComplete="new-password"
+              value={passwordForm.confirm}
+              placeholder="repita a nova senha"
+              onChange={(event) => setPasswordForm({ ...passwordForm, confirm: event.target.value })}
+            />
+
+            {passwordMessage && <p className="adminNote">{passwordMessage}</p>}
+
+            <button
+              type="button"
+              className="black"
+              disabled={passwordSaving === "password"}
+              onClick={updateOwnPassword}
+            >
+              {passwordSaving === "password" ? "Salvando senha..." : "Alterar minha senha"}
+            </button>
+          </div>
 
           <div className="accessHeader">
             <div>

@@ -54,6 +54,14 @@ async function findUserByEmail(adminClient, email) {
 }
 
 export default async function handler(request, response) {
+  if (request.method === "GET") {
+    return response.status(200).json({
+      ok: true,
+      endpoint: "admin-auth-user",
+      serviceRoleConfigured: Boolean(serviceRoleKey),
+    });
+  }
+
   if (request.method !== "POST") {
     response.setHeader("Allow", "POST");
     return response.status(405).json({ ok: false, error: "Método não permitido." });

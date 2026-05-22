@@ -509,8 +509,16 @@ export default function PlatformDashboard() {
 
   async function createShop(event) {
     event.preventDefault();
-    setSaving("create");
     setMessage("");
+
+    const ownerPassword = String(newShop.owner_password || "").trim();
+
+    if (ownerPassword.length < 6) {
+      setMessage("Informe uma senha inicial do dono com pelo menos 6 caracteres.");
+      return;
+    }
+
+    setSaving("create");
 
     try {
       const { data, error } = await supabase.rpc("create_barbershop_full", {
@@ -546,25 +554,27 @@ export default function PlatformDashboard() {
 
       const createdSlug = data?.slug || newShop.slug || makeSlug(newShop.name);
       const createdPanelLink = data?.link_painel || `/painel/${createdSlug}`;
-      let loginMessage = "";
 
-      if (newShop.owner_password) {
-        try {
-          await syncOwnerAuthUser({
-            id: data?.barbershop_id,
-            slug: createdSlug,
-            email: newShop.owner_email,
-            password: newShop.owner_password,
-            role: "owner",
-          });
-          loginMessage = " Login do dono criado.";
-        } catch (authError) {
-          loginMessage = ` ${ownerLoginErrorText(authError)}`;
-        }
+      try {
+        await syncOwnerAuthUser({
+          id: data?.barbershop_id,
+          slug: createdSlug,
+          email: newShop.owner_email,
+          password: ownerPassword,
+          role: "owner",
+        });
+      } catch (authError) {
+        setMessage(
+          `Barbearia cadastrada, mas o login do dono não foi criado. ${ownerLoginErrorText(
+            authError
+          )} Corrija a senha na edição da barbearia antes de entregar o painel.`
+        );
+        await loadDashboard();
+        return;
       }
 
       setMessage(
-        `Barbearia cadastrada. Cliente: ${data?.link_cliente || ""} Painel: ${createdPanelLink}${loginMessage} Abrindo o painel da barbearia...`
+        `Barbearia cadastrada. Login do dono criado. Cliente: ${data?.link_cliente || ""} Painel: ${createdPanelLink} Abrindo o painel da barbearia...`
       );
       setNewShop(emptyForm());
       setSlugTouched(false);
@@ -580,8 +590,16 @@ export default function PlatformDashboard() {
   async function saveShop(event) {
     event.preventDefault();
     if (!selectedShop) return;
-    setSaving("shop");
     setMessage("");
+
+    const ownerPassword = String(selectedShop.owner_password || "").trim();
+
+    if (ownerPassword && ownerPassword.length < 6) {
+      setMessage("A nova senha do dono precisa ter pelo menos 6 caracteres.");
+      return;
+    }
+
+    setSaving("shop");
 
     try {
       const { error } = await supabase.rpc("update_platform_barbershop", {
@@ -602,19 +620,25 @@ export default function PlatformDashboard() {
 
       let loginMessage = "";
 
-      if (selectedShop.owner_password) {
+      if (ownerPassword) {
         try {
           await syncOwnerAuthUser({
             id: selectedShop.id,
             slug: selectedShop.slug,
             email: selectedShop.owner_email,
-            password: selectedShop.owner_password,
+            password: ownerPassword,
             role: "owner",
           });
           updateSelected("owner_password", "");
           loginMessage = " Login do dono atualizado.";
         } catch (authError) {
-          loginMessage = ` ${ownerLoginErrorText(authError)}`;
+          setMessage(
+            `Dados da barbearia salvos, mas o login do dono não foi atualizado. ${ownerLoginErrorText(
+              authError
+            )}`
+          );
+          await loadDashboard();
+          return;
         }
       }
 
@@ -862,7 +886,7 @@ export default function PlatformDashboard() {
             <label>E-mail do dono</label>
             <input value={newShop.owner_email} onChange={(event) => updateNewShop("owner_email", event.target.value)} type="email" placeholder="dono@email.com" required />
             <label>Senha inicial do dono</label>
-            <input value={newShop.owner_password || ""} onChange={(event) => updateNewShop("owner_password", event.target.value)} type="password" placeholder="mínimo 6 caracteres" />
+            <input value={newShop.owner_password || ""} onChange={(event) => updateNewShop("owner_password", event.target.value)} type="password" autoComplete="new-password" minLength={6} placeholder="mínimo 6 caracteres" required />
             <div className="platformTwoCols">
               <span><label>Plano</label><select value={newShop.plan} onChange={(event) => updateNewShop("plan", event.target.value)}><option value="starter">Inicial</option><option value="professional">Profissional</option><option value="premium">Premium</option></select></span>
               <span><label>Status</label><select value={newShop.monthly_status} onChange={(event) => updateNewShop("monthly_status", event.target.value)}>{statusOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></span>
@@ -983,7 +1007,7 @@ export default function PlatformDashboard() {
               <label>Nome</label><input value={selectedShop.name || ""} onChange={(event) => updateSelected("name", event.target.value)} />
               <label>WhatsApp</label><input value={selectedShop.whatsapp || ""} onChange={(event) => updateSelected("whatsapp", event.target.value)} />
               <label>E-mail do dono</label><input value={selectedShop.owner_email || ""} onChange={(event) => updateSelected("owner_email", event.target.value)} type="email" />
-              <label>Nova senha do dono</label><input value={selectedShop.owner_password || ""} onChange={(event) => updateSelected("owner_password", event.target.value)} type="password" placeholder="preencha apenas se quiser alterar" />
+              <label>Nova senha do dono</label><input value={selectedShop.owner_password || ""} onChange={(event) => updateSelected("owner_password", event.target.value)} type="password" autoComplete="new-password" minLength={6} placeholder="preencha apenas se quiser alterar" />
               </div>
               <div className="platformEditorSection">
                 <h3>Assinatura</h3>

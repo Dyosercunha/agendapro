@@ -216,7 +216,7 @@ export default function PlatformDashboard() {
   const [saving, setSaving] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
   const [filter, setFilter] = useState("all");
-  const [platformLogin, setPlatformLogin] = useState({ email: "dyoser2@gmail.com", password: "" });
+  const [platformLogin, setPlatformLogin] = useState({ email: "appagenda.pro@gmail.com", password: "" });
   const [cloudAudit, setCloudAudit] = useState({ barbershops: [] });
 
   const auditActiveShops = useMemo(
@@ -812,7 +812,7 @@ export default function PlatformDashboard() {
               type="email"
               value={platformLogin.email}
               onChange={(event) => setPlatformLogin({ ...platformLogin, email: event.target.value })}
-              placeholder="dyoser2@gmail.com"
+              placeholder="appagenda.pro@gmail.com"
             />
             <label>Senha</label>
             <input

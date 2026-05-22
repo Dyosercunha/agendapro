@@ -7,7 +7,12 @@ import BarberDashboard from "./BarberDashboard";
 import ClientBooking from "./ClientBooking";
 import "./styles.css";
 
-const platformDeveloperEmail = "dyoser2@gmail.com";
+const platformDeveloperEmails = ["dyoser2@gmail.com", "appagenda.pro@gmail.com"];
+const primaryPlatformDeveloperEmail = platformDeveloperEmails[0];
+
+function isPlatformDeveloperEmail(value = "") {
+  return platformDeveloperEmails.includes(String(value || "").trim().toLowerCase());
+}
 
 const fallbackProfessionalName = "Profissional disponível";
 
@@ -16,7 +21,7 @@ const initialBusiness = {
   logo: "A",
   logoImage: "",
   slug: "agenda-pro",
-  ownerEmail: "dyoser2@gmail.com",
+  ownerEmail: primaryPlatformDeveloperEmail,
   plan: "professional",
   monthlyStatus: "active",
   nextBillingDate: "2026-06-04",
@@ -53,17 +58,15 @@ const initialBusiness = {
   successFooter: "A barbearia já recebeu os detalhes do atendimento.",
 };
 
-const initialAccessAccounts = [
-  {
-    id: "access-1",
-    email: platformDeveloperEmail,
-    role: "Desenvolvedor",
-    active: true,
-    fixed: true,
-    password: "",
-    passwordConfirm: "",
-  },
-];
+const initialAccessAccounts = platformDeveloperEmails.map((email, index) => ({
+  id: `developer-local-${index + 1}`,
+  email,
+  role: "Desenvolvedor",
+  active: true,
+  fixed: true,
+  password: "",
+  passwordConfirm: "",
+}));
 
 function normalizeRole(value){const r=String(value||"").trim().toLowerCase();if(["desenvolvedor","developer","platform","plataforma"].includes(r))return"desenvolvedor";if(["dono","owner"].includes(r))return"dono";return"funcionario";}
 function roleLabel(value){const r=normalizeRole(value);return r==="desenvolvedor"?"Desenvolvedor":r==="dono"?"Dono":"Funcionário";}
@@ -680,43 +683,52 @@ function normalizeBusiness(value) {
 }
 
 function mapAccessAccountsFromCloud(rows, ownerEmail) {
-  const cloudAccounts = (rows || []).map((item) => ({
-    id: item.id,
-    email: item.email,
-    role: String(item.email || "").trim().toLowerCase() === platformDeveloperEmail ? "Desenvolvedor" : roleLabel(item.role),
-    active: item.active !== false,
-    fixed:
-      String(item.email || "").trim().toLowerCase() === platformDeveloperEmail ||
-      normalizeRole(item.role) === "desenvolvedor",
-    password: "",
-    passwordConfirm: "",
-  }));
+  const cloudAccounts = (rows || []).map((item) => {
+    const accountEmail = String(item.email || "").trim().toLowerCase();
+    const isDeveloper = isPlatformDeveloperEmail(accountEmail) || normalizeRole(item.role) === "desenvolvedor";
+
+    return {
+      id: item.id,
+      email: item.email,
+      role: isDeveloper ? "Desenvolvedor" : roleLabel(item.role),
+      active: item.active !== false,
+      fixed: isDeveloper,
+      password: "",
+      passwordConfirm: "",
+    };
+  });
 
   if (cloudAccounts.length) {
-    const hasDeveloper = cloudAccounts.some(
-      (account) => String(account.email || "").trim().toLowerCase() === platformDeveloperEmail
-    );
+    const accountsWithDevelopers = [...cloudAccounts];
 
-    if (hasDeveloper) return cloudAccounts;
+    platformDeveloperEmails
+      .slice()
+      .reverse()
+      .forEach((email, index) => {
+        const hasDeveloper = accountsWithDevelopers.some(
+          (account) => String(account.email || "").trim().toLowerCase() === email
+        );
 
-    return [
-      {
-        id: "developer-local",
-        email: platformDeveloperEmail,
-        role: "Desenvolvedor",
-        active: true,
-        fixed: true,
-        password: "",
-        passwordConfirm: "",
-      },
-      ...cloudAccounts,
-    ];
+        if (!hasDeveloper) {
+          accountsWithDevelopers.unshift({
+            id: `developer-local-${index + 1}`,
+            email,
+            role: "Desenvolvedor",
+            active: true,
+            fixed: true,
+            password: "",
+            passwordConfirm: "",
+          });
+        }
+      });
+
+    return accountsWithDevelopers;
   }
 
   const fallbackOwnerEmail = String(ownerEmail || "").trim().toLowerCase();
   const fallbackAccounts = [...initialAccessAccounts];
 
-  if (fallbackOwnerEmail && fallbackOwnerEmail !== platformDeveloperEmail) {
+  if (fallbackOwnerEmail && !isPlatformDeveloperEmail(fallbackOwnerEmail)) {
     fallbackAccounts.push({
       id: "owner-local",
       email: fallbackOwnerEmail,

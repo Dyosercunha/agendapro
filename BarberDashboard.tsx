@@ -40,6 +40,7 @@ export default function BarberDashboard({ model }) {
     pixAvailable,
     professional,
     professionals,
+    refreshWhatsappIntegrationStatus,
     resetDemoData,
     returningCustomers,
     services,
@@ -54,6 +55,7 @@ export default function BarberDashboard({ model }) {
     updateFeatureFlag,
     visibleAdminTabs,
     waitlist,
+    whatsappIntegrationStatus,
     withNotice,
   } = model;
 
@@ -295,7 +297,23 @@ export default function BarberDashboard({ model }) {
                   <span>Último salvamento</span>
                   <strong>{dataSavedAt || "Automático"}</strong>
                 </div>
+                <div>
+                  <span>WhatsApp automático</span>
+                  <strong>{whatsappIntegrationStatus.message}</strong>
+                  <small>{whatsappIntegrationStatus.providerLabel}</small>
+                </div>
               </div>
+
+              {!whatsappIntegrationStatus.ready && (
+                <p className="hint">
+                  Enquanto a integração profissional não estiver completa, o cliente recebe um botão
+                  para enviar a confirmação manualmente pelo WhatsApp.
+                </p>
+              )}
+
+              <button type="button" className="outline" onClick={refreshWhatsappIntegrationStatus}>
+                Verificar integração do WhatsApp
+              </button>
 
               {canManageBilling && (
                 <button type="button" className="dangerButton" onClick={resetDemoData}>

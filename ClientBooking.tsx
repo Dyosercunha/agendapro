@@ -169,7 +169,10 @@ export default function ClientBooking({ model }) {
           {confirmationSent ? (
             <p>{repairText(business.successFooter)}</p>
           ) : (
-            <p>A confirmação está pronta para ser enviada à barbearia.</p>
+            <p>
+              Seu horário já está reservado. A confirmação automática está em preparação;
+              envie os dados pelo WhatsApp para avisar a barbearia agora.
+            </p>
           )}
           <p>
             <strong>
@@ -192,16 +195,30 @@ export default function ClientBooking({ model }) {
             </a>
           )}
           {!confirmationSent && barberConfirmationMessage && (
-            <a
-              className="black linkButton"
-              href={`https://wa.me/${business.whatsapp}?text=${encodeURIComponent(
-                barberConfirmationMessage
-              )}`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Enviar confirmação para a barbearia
-            </a>
+            <div className="manualConfirmationBox">
+              <strong>Envio manual disponível</strong>
+              <p>
+                Até o WhatsApp automático ser ativado, toque no botão abaixo para enviar
+                o resumo completo direto para a barbearia.
+              </p>
+              <a
+                className="black linkButton"
+                href={`https://wa.me/${business.whatsapp}?text=${encodeURIComponent(
+                  barberConfirmationMessage
+                )}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Enviar confirmação para a barbearia
+              </a>
+              <button
+                type="button"
+                className="outline"
+                onClick={() => copyText(barberConfirmationMessage)}
+              >
+                Copiar dados do agendamento
+              </button>
+            </div>
           )}
           <a
             className={confirmationSent ? "black linkButton" : "outline linkButton"}

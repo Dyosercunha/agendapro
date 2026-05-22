@@ -48,6 +48,29 @@ function getAdminClient() {
   });
 }
 
+function whatsappProviderStatus() {
+  const provider = String(process.env.WHATSAPP_PROVIDER || "meta").toLowerCase();
+  const serviceRoleConfigured = Boolean(serviceRoleKey);
+  const metaConfigured = Boolean(process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID);
+  const webhookConfigured = Boolean(process.env.WHATSAPP_WEBHOOK_URL);
+  const providerConfigured = provider === "webhook" ? webhookConfigured : metaConfigured;
+  const providerLabel = provider === "webhook" ? "Webhook externo" : "WhatsApp Cloud API";
+
+  return {
+    provider,
+    providerLabel,
+    serviceRoleConfigured,
+    providerConfigured,
+    ready: serviceRoleConfigured && providerConfigured,
+    missing: [
+      !serviceRoleConfigured ? "SUPABASE_SERVICE_ROLE_KEY" : "",
+      provider === "webhook" && !webhookConfigured ? "WHATSAPP_WEBHOOK_URL" : "",
+      provider !== "webhook" && !process.env.WHATSAPP_TOKEN ? "WHATSAPP_TOKEN" : "",
+      provider !== "webhook" && !process.env.WHATSAPP_PHONE_NUMBER_ID ? "WHATSAPP_PHONE_NUMBER_ID" : "",
+    ].filter(Boolean),
+  };
+}
+
 async function validateBarbershopDestination(payload, response) {
   const slug = String(payload.barbershopSlug || payload.slug || "").trim();
   const adminClient = getAdminClient();
@@ -195,6 +218,13 @@ async function sendWithWebhook(to, body) {
 }
 
 export default async function handler(request, response) {
+  if (request.method === "GET") {
+    return response.status(200).json({
+      ok: true,
+      ...whatsappProviderStatus(),
+    });
+  }
+
   if (request.method !== "POST") {
     response.setHeader("Allow", "POST");
     return errorResponse(response, 405, "Método não permitido.");

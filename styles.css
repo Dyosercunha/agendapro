@@ -1728,6 +1728,37 @@ button:disabled {
   overflow-wrap: anywhere;
 }
 
+.storageGrid small {
+  color: var(--text-muted);
+  display: block;
+  font-size: 12px;
+  font-weight: 800;
+  margin-top: 6px;
+}
+
+.manualConfirmationBox {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.24);
+  border-radius: 22px;
+  margin: 16px 0;
+  padding: 14px;
+  text-align: left;
+}
+
+.manualConfirmationBox strong {
+  color: var(--warning);
+  display: block;
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+.manualConfirmationBox p {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0 0 10px;
+}
+
 .commandGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;

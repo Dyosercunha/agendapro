@@ -936,6 +936,14 @@ function CoreAgendaProApp() {
   const [waitlistSent, setWaitlistSent] = useState(false);
   const [notice, setNotice] = useState(null);
   const [barberConfirmationMessage, setBarberConfirmationMessage] = useState("");
+  const [whatsappIntegrationStatus, setWhatsappIntegrationStatus] = useState({
+    checked: false,
+    ready: false,
+    provider: "meta",
+    providerLabel: "WhatsApp Cloud API",
+    message: "Verificação pendente",
+    missing: [],
+  });
 
   const today = getDateAfterDays(0);
   const cleanWhatsapp = whatsapp.replace(/\D/g, "");
@@ -988,6 +996,12 @@ function CoreAgendaProApp() {
       window.__agendaProAdminTab = activeAdminTab;
     }
   }, [activeAdminTab, adminLoggedIn, adminTab]);
+
+  useEffect(() => {
+    if (!adminLoggedIn) return;
+
+    refreshWhatsappIntegrationStatus();
+  }, [adminLoggedIn]);
 
   function handleClearLocalCache() {
     removeSavedData();
@@ -2116,6 +2130,70 @@ function CoreAgendaProApp() {
     ]
       .filter(Boolean)
       .join("\n");
+  }
+
+  function formatWhatsappIntegrationStatus(data) {
+    const missing = Array.isArray(data?.missing) ? data.missing : [];
+    const providerLabel = repairText(data?.providerLabel || "WhatsApp Cloud API");
+
+    if (data?.ready) {
+      return {
+        checked: true,
+        ready: true,
+        provider: data.provider || "meta",
+        providerLabel,
+        message: "Pronto para disparo automático",
+        missing,
+      };
+    }
+
+    if (!data?.serviceRoleConfigured) {
+      return {
+        checked: true,
+        ready: false,
+        provider: data?.provider || "meta",
+        providerLabel,
+        message: "Falta chave segura do Supabase no Vercel",
+        missing,
+      };
+    }
+
+    return {
+      checked: true,
+      ready: false,
+      provider: data?.provider || "meta",
+      providerLabel,
+      message: missing.length
+        ? `Falta configurar ${missing.join(" e ")}`
+        : "Provedor de WhatsApp ainda não configurado",
+      missing,
+    };
+  }
+
+  async function refreshWhatsappIntegrationStatus() {
+    setWhatsappIntegrationStatus((current) => ({
+      ...current,
+      checked: false,
+      message: "Verificando integração...",
+    }));
+
+    try {
+      const response = await fetch("/api/send-whatsapp?status=1");
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Não foi possível verificar a integração.");
+      }
+
+      setWhatsappIntegrationStatus(formatWhatsappIntegrationStatus(data));
+    } catch (error) {
+      setWhatsappIntegrationStatus((current) => ({
+        ...current,
+        checked: true,
+        ready: false,
+        message: repairText(error?.message || "Não foi possível verificar a integração."),
+      }));
+    }
   }
 
   async function sendBarberConfirmation(appointmentData, appointmentId) {
@@ -3759,6 +3837,7 @@ function CoreAgendaProApp() {
     repeatLastService,
     rescheduleAppointment,
     resetDemoData,
+    refreshWhatsappIntegrationStatus,
     returningCustomers,
     saveAccessAccountsToCloud,
     saveBackgroundsToCloud,
@@ -3826,6 +3905,7 @@ function CoreAgendaProApp() {
     waitlistSent,
     weekDays,
     whatsapp,
+    whatsappIntegrationStatus,
     withNotice,
   };
 

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 
 function normalizeSlug(value: string) {
   return value
@@ -11,10 +11,19 @@ function normalizeSlug(value: string) {
 }
 
 export default function LandingPage() {
-  const [slug, setSlug] = useState("agenda-pro");
-  const cleanSlug = normalizeSlug(slug) || "agenda-pro";
+  const [slug, setSlug] = useState("");
+  const [slugError, setSlugError] = useState("");
+  const slugInputRef = useRef<HTMLInputElement | null>(null);
+  const cleanSlug = normalizeSlug(slug);
 
   function goTo(path: "agendamento" | "painel") {
+    if (!cleanSlug) {
+      setSlugError("Digite o link da barbearia para continuar. Exemplo: master.");
+      slugInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      slugInputRef.current?.focus();
+      return;
+    }
+
     window.location.href = path === "painel" ? `/painel/${cleanSlug}` : `/${cleanSlug}`;
   }
 
@@ -22,8 +31,8 @@ export default function LandingPage() {
     <main className="landingApp">
       <section className="landingHero">
         <div className="landingCopy">
-          <span>AgendaPro</span>
-          <h1>Sistema de agendamento para barbearias</h1>
+          <h1>AgendaPro</h1>
+          <p className="landingLead">Sistema de agendamento para barbearias</p>
           <p>
             Agenda online, painel da barbearia, pagamentos, clientes e melhorias liberadas
             por assinatura em uma experiência simples para vender e usar no celular.
@@ -34,7 +43,7 @@ export default function LandingPage() {
               Quero agendar
             </button>
             <button type="button" onClick={() => goTo("painel")}>
-              Entrar no painel
+              Sou barbearia
             </button>
             <a href="/plataforma?platform=1">Painel Plataforma</a>
           </div>
@@ -67,16 +76,21 @@ export default function LandingPage() {
         <div>
           <span>Link da barbearia</span>
           <h2>Abrir agenda ou painel</h2>
-          <p>Digite o slug cadastrado no Painel Plataforma. Exemplo: agenda-pro.</p>
+          <p>Digite o link cadastrado no Painel Plataforma. Exemplo: master.</p>
         </div>
 
         <label>
-          Slug
+          Digite o link da barbearia
           <input
+            ref={slugInputRef}
             value={slug}
-            onChange={(event) => setSlug(event.target.value)}
-            placeholder="agenda-pro"
+            onChange={(event) => {
+              setSlug(event.target.value);
+              setSlugError("");
+            }}
+            placeholder="master"
           />
+          {slugError && <small className="landingError">{slugError}</small>}
         </label>
 
         <div className="landingSlugActions">

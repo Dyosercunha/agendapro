@@ -1,10 +1,10 @@
-import "./networkTimeoutGuard";
-import "./pro-features.css";
+import "./features/auth/networkTimeoutGuard";
+import "./features/improvements/pro-features.css";
 import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
-import LandingPage from "./LandingPage";
-import PlatformDashboard from "./PlatformDashboard";
+import LandingPage from "./features/landing/LandingPage";
+import PlatformDashboard from "./features/platform-dashboard/PlatformDashboard";
 
 const container = document.getElementById("root");
 const path = window.location.pathname.toLowerCase();

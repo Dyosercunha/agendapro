@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useEffect, useState } from "react";
-import { supabase } from "./supabaseClient";
+import { supabase } from "../../lib/supabaseClient";
 
 function makeSlug(value = "") {
   return String(value || "")

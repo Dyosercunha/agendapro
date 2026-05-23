@@ -1,13 +1,13 @@
 // @ts-nocheck
 import React from "react";
-import AgendaPanel from "./AgendaPanel";
-import AccountPanel from "./AccountPanel";
-import AppearancePanel from "./AppearancePanel";
-import CustomersPanel from "./CustomersPanel";
-import ImprovementsPanel from "./ImprovementsPanel";
-import PaymentsPanel from "./PaymentsPanel";
-import ProfessionalsPanel from "./ProfessionalsPanel";
-import ServicesPanel from "./ServicesPanel";
+import AgendaPanel from "./panels/AgendaPanel";
+import AccountPanel from "./panels/AccountPanel";
+import AppearancePanel from "./panels/AppearancePanel";
+import CustomersPanel from "./panels/CustomersPanel";
+import ImprovementsPanel from "./panels/ImprovementsPanel";
+import PaymentsPanel from "./panels/PaymentsPanel";
+import ProfessionalsPanel from "./panels/ProfessionalsPanel";
+import ServicesPanel from "./panels/ServicesPanel";
 
 export default function BarberDashboard({ model }) {
   const {

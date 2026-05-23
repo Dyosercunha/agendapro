@@ -8,8 +8,8 @@ import {
   logoutAuth,
   onAuthStateChange,
   syncAdminAuthUser,
-} from "./authApi";
-import { getWhatsappStatus, sendWhatsappMessage } from "./appointmentsApi";
+} from "../../lib/authApi";
+import { getWhatsappStatus, sendWhatsappMessage } from "../../lib/appointmentsApi";
 import {
   archivePlatformBarbershop,
   callPlatformMaintenance as callPlatformMaintenanceRequest,
@@ -22,8 +22,8 @@ import {
   purgeArchivedBarbershops,
   savePlatformFeatureFlags,
   updatePlatformBarbershop,
-} from "./platformApi";
-import "./styles.css";
+} from "../../lib/platformApi";
+import "../../styles.css";
 
 const featureLabels = {
   pix: "PIX antecipado",

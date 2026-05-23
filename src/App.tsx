@@ -10,7 +10,7 @@ import {
   onAuthStateChange,
   syncAdminAuthUser,
   updateCurrentPassword,
-} from "./authApi";
+} from "./lib/authApi";
 import {
   getBarbershopCloudBundle,
   getBarbershopIdBySlug,
@@ -26,7 +26,7 @@ import {
   savePromotions,
   saveScheduleSettings,
   uploadAsset,
-} from "./barbershopApi";
+} from "./lib/barbershopApi";
 import {
   bookAppointmentLegacy,
   bookAppointmentV2,
@@ -39,11 +39,11 @@ import {
   sendWhatsappMessage,
   updateAppointmentAction,
   updateWaitlistStatus as updateWaitlistStatusRequest,
-} from "./appointmentsApi";
-import { saveServices as saveServicesRequest, softDeleteService } from "./servicesApi";
-import AppProFeatures from "./ProFeatures";
-import BarberDashboard from "./BarberDashboard";
-import ClientBooking from "./ClientBooking";
+} from "./lib/appointmentsApi";
+import { saveServices as saveServicesRequest, softDeleteService } from "./lib/servicesApi";
+import AppProFeatures from "./features/improvements/ProFeatures";
+import BarberDashboard from "./features/barber-dashboard/BarberDashboard";
+import ClientBooking from "./features/client-booking/ClientBooking";
 import "./styles.css";
 
 const platformDeveloperEmails = ["dyoser2@gmail.com", "appagenda.pro@gmail.com"];

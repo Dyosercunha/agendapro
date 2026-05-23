@@ -20,6 +20,29 @@
   --shadow-glow: 0 0 32px rgba(34, 197, 94, 0.22);
 }
 
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(12px);
+}
+
+.modalCard {
+  width: min(100%, 420px);
+  max-height: calc(100vh - 36px);
+  overflow: auto;
+  background: linear-gradient(180deg, #171b21 0%, #101418 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 28px;
+  padding: 18px;
+  color: #f9fafb;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+}
+
 * {
   box-sizing: border-box;
 }

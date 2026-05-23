@@ -1,6 +1,28 @@
 // @ts-nocheck
 import React, { useEffect, useMemo, useState } from "react";
-import { supabase } from "./supabaseClient";
+import {
+  getAdminAuthHealth,
+  getAuthSession,
+  loginWithEmailPassword,
+  loginWithGoogleRedirect,
+  logoutAuth,
+  onAuthStateChange,
+  syncAdminAuthUser,
+} from "./authApi";
+import { getWhatsappStatus, sendWhatsappMessage } from "./appointmentsApi";
+import {
+  archivePlatformBarbershop,
+  callPlatformMaintenance as callPlatformMaintenanceRequest,
+  createBarbershopFull,
+  getDeployInfo,
+  getPlatformBillingReminders,
+  getPlatformDashboard,
+  isPlatformAdmin,
+  markBillingReminderSent,
+  purgeArchivedBarbershops,
+  savePlatformFeatureFlags,
+  updatePlatformBarbershop,
+} from "./platformApi";
 import "./styles.css";
 
 const featureLabels = {
@@ -279,7 +301,7 @@ export default function PlatformDashboard() {
     async function boot() {
       setChecking(true);
       try {
-        const { data } = await withTimeout(supabase.auth.getSession(), "A sessão");
+        const { data } = await withTimeout(getAuthSession(), "A sessão");
         if (!mounted) return;
         setSession(data?.session || null);
         await checkDeveloper(data?.session || null);
@@ -294,7 +316,7 @@ export default function PlatformDashboard() {
       }
     }
 
-    const { data: listener } = supabase.auth.onAuthStateChange((event, nextSession) => {
+    const { data: listener } = onAuthStateChange((event, nextSession) => {
       if (event === "INITIAL_SESSION") return;
       if (!mounted) return;
 
@@ -329,7 +351,7 @@ export default function PlatformDashboard() {
       return;
     }
 
-    const { data, error } = await withTimeout(supabase.rpc("is_platform_admin"), "A verificação do desenvolvedor");
+    const { data, error } = await withTimeout(isPlatformAdmin(), "A verificação do desenvolvedor");
     if (error || data !== true) {
       setIsDeveloper(false);
       setLoading(false);
@@ -349,17 +371,6 @@ export default function PlatformDashboard() {
     }
   }
 
-  async function fetchHealthJson(url) {
-    const response = await fetch(url);
-    const data = await response.json().catch(() => ({}));
-
-    if (!response.ok) {
-      throw new Error(data?.error || `Falha ao verificar ${url}.`);
-    }
-
-    return data;
-  }
-
   function rememberError(source, error) {
     const text = `${source}: ${errorText(error)}`;
     setLastError(text);
@@ -371,12 +382,12 @@ export default function PlatformDashboard() {
 
     const [adminResult, dashboardResult, maintenanceResult, authResult, whatsappResult, deployResult] =
       await Promise.allSettled([
-        supabase.rpc("is_platform_admin"),
-        supabase.rpc("get_platform_dashboard"),
+        isPlatformAdmin(),
+        getPlatformDashboard(),
         callPlatformMaintenance({ action: "diagnostics" }),
-        fetchHealthJson("/api/admin-auth-user"),
-        fetchHealthJson("/api/send-whatsapp?status=1"),
-        fetchHealthJson("/api/deploy-info"),
+        getAdminAuthHealth(),
+        getWhatsappStatus(),
+        getDeployInfo(),
       ]);
 
     const dashboardData = dashboardResult.status === "fulfilled" ? dashboardResult.value?.data : null;
@@ -453,7 +464,7 @@ export default function PlatformDashboard() {
   async function loadDashboard() {
     setLoading(true);
     try {
-    const { data, error } = await withTimeout(supabase.rpc("get_platform_dashboard"), "O painel da plataforma");
+    const { data, error } = await withTimeout(getPlatformDashboard(), "O painel da plataforma");
     if (error) {
       rememberError("get_platform_dashboard", error);
       setMessage("Não foi possível puxar dados da nuvem: " + errorText(error));
@@ -472,29 +483,7 @@ export default function PlatformDashboard() {
   }
 
   async function callPlatformMaintenance(payload) {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const token = sessionData?.session?.access_token;
-
-    if (!token) {
-      throw new Error("Sessão da plataforma expirada. Entre novamente para consultar a nuvem.");
-    }
-
-    const response = await fetch("/api/platform-shop-maintenance", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const result = await response.json().catch(() => ({}));
-
-    if (!response.ok || result.ok === false) {
-      throw new Error(result.error || "Não foi possível consultar a manutenção da plataforma.");
-    }
-
-    return result;
+    return callPlatformMaintenanceRequest(payload);
   }
 
   async function loadCloudAudit(options = {}) {
@@ -543,10 +532,7 @@ export default function PlatformDashboard() {
   }
 
   async function login() {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/plataforma?platform=1` },
-    });
+    const { error } = await loginWithGoogleRedirect(`${window.location.origin}/plataforma?platform=1`);
     if (error) setMessage(errorText(error));
   }
 
@@ -555,10 +541,7 @@ export default function PlatformDashboard() {
     setMessage("");
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: platformLogin.email.trim().toLowerCase(),
-        password: platformLogin.password,
-      });
+      const { error } = await loginWithEmailPassword(platformLogin.email, platformLogin.password);
 
       if (error) throw error;
     } catch (error) {
@@ -570,7 +553,7 @@ export default function PlatformDashboard() {
   }
 
   async function logout() {
-    await supabase.auth.signOut();
+    await logoutAuth();
     setIsDeveloper(false);
     setSession(null);
     setDashboard({ stats: {}, barbershops: [] });
@@ -620,36 +603,14 @@ export default function PlatformDashboard() {
   async function syncOwnerAuthUser({ id, slug, email, password, role = "owner" }) {
     if (!password) return { skipped: true };
 
-    const { data: sessionData } = await supabase.auth.getSession();
-    const token = sessionData?.session?.access_token;
-
-    if (!token) {
-      throw new Error("Sessão da plataforma expirada. Entre novamente para criar o login.");
-    }
-
-    const response = await fetch("/api/admin-auth-user", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        barbershopId: id,
-        barbershopSlug: slug,
-        email,
-        password,
-        role,
-        active: true,
-      }),
+    return syncAdminAuthUser({
+      barbershopId: id,
+      barbershopSlug: slug,
+      email,
+      password,
+      role,
+      active: true,
     });
-
-    const result = await response.json().catch(() => ({}));
-
-    if (!response.ok || result.ok === false) {
-      throw new Error(result.error || "Não foi possível criar o login do dono.");
-    }
-
-    return result;
   }
 
   async function createShop(event) {
@@ -666,7 +627,7 @@ export default function PlatformDashboard() {
     setSaving("create");
 
     try {
-      const { data, error } = await supabase.rpc("create_barbershop_full", {
+      const { data, error } = await createBarbershopFull({
         name_input: newShop.name,
         slug_input: newShop.slug || makeSlug(newShop.name),
         whatsapp_input: onlyDigits(newShop.whatsapp),
@@ -681,7 +642,7 @@ export default function PlatformDashboard() {
 
       if (error) throw error;
 
-      const priceSync = await supabase.rpc("update_platform_barbershop", {
+      const priceSync = await updatePlatformBarbershop({
         target_slug: newShop.slug || makeSlug(newShop.name),
         name_input: newShop.name,
         whatsapp_input: onlyDigits(newShop.whatsapp),
@@ -748,7 +709,7 @@ export default function PlatformDashboard() {
     setSaving("shop");
 
     try {
-      const { error } = await supabase.rpc("update_platform_barbershop", {
+      const { error } = await updatePlatformBarbershop({
         target_slug: selectedShop.slug,
         name_input: selectedShop.name,
         whatsapp_input: onlyDigits(selectedShop.whatsapp),
@@ -803,7 +764,7 @@ export default function PlatformDashboard() {
     setSaving("hide-" + shop.slug);
     setMessage("");
     try {
-      const { error } = await supabase.rpc("archive_platform_barbershop", { target_slug: shop.slug });
+      const { error } = await archivePlatformBarbershop(shop.slug);
       if (error) throw error;
       if (selectedShop?.slug === shop.slug) setSelectedShop(null);
       setMessage("Barbearia removida da lista do painel. Ela continua cadastrada no banco de dados.");
@@ -836,7 +797,7 @@ export default function PlatformDashboard() {
     setMessage("");
 
     try {
-      const { data, error } = await supabase.rpc("purge_archived_barbershops");
+      const { data, error } = await purgeArchivedBarbershops();
       if (error) throw error;
 
       const result = Array.isArray(data) ? data[0] : data;
@@ -865,7 +826,7 @@ export default function PlatformDashboard() {
         enabled: Boolean(selectedShop.features?.[key]?.enabled),
       }));
 
-      const { error } = await supabase.rpc("save_platform_feature_flags", {
+      const { error } = await savePlatformFeatureFlags({
         target_slug: selectedShop.slug,
         features_input: features,
       });
@@ -887,7 +848,7 @@ export default function PlatformDashboard() {
     setMessage("");
 
     try {
-      const { data, error } = await supabase.rpc("get_platform_billing_reminders");
+      const { data, error } = await getPlatformBillingReminders();
       if (error) throw error;
 
       const reminders = data || [];
@@ -901,15 +862,8 @@ export default function PlatformDashboard() {
 
       for (const item of reminders) {
         try {
-          const response = await fetch("/api/send-whatsapp", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ to: item.whatsapp, message: item.message }),
-          });
-          const result = await response.json().catch(() => ({}));
-          if (!response.ok || result.ok === false) throw new Error(result.error || "Falha ao enviar WhatsApp.");
-
-          await supabase.rpc("mark_billing_reminder_sent", { target_slug: item.slug });
+          await sendWhatsappMessage({ to: item.whatsapp, message: item.message });
+          await markBillingReminderSent(item.slug);
           sent += 1;
         } catch (_err) {
           failed += 1;

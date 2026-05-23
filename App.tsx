@@ -1,7 +1,46 @@
 // @ts-nocheck
 import React from "react";
 import { useEffect, useMemo, useState } from "react";
-import { supabase, supabaseAnonKey, supabaseUrl } from "./supabaseClient";
+import {
+  getAuthSession,
+  getMyAdminContext,
+  loginWithEmailPassword,
+  loginWithGoogleRedirect,
+  logoutAuth,
+  onAuthStateChange,
+  syncAdminAuthUser,
+  updateCurrentPassword,
+} from "./authApi";
+import {
+  getBarbershopCloudBundle,
+  getBarbershopIdBySlug,
+  getClientHistory,
+  getProfessionalsByBarbershop,
+  getPublicAssetUrl,
+  saveBackgroundSettings,
+  saveBarbershopAccesses,
+  saveBusinessSettings,
+  saveFeatureFlags,
+  saveProfessionals,
+  savePromotionSettings,
+  savePromotions,
+  saveScheduleSettings,
+  uploadAsset,
+} from "./barbershopApi";
+import {
+  bookAppointmentLegacy,
+  bookAppointmentV2,
+  cancelPublicAppointment,
+  getAdminAppointments,
+  getPublicAppointment,
+  getWhatsappStatus,
+  joinWaitlist as joinWaitlistRequest,
+  requestPublicReschedule,
+  sendWhatsappMessage,
+  updateAppointmentAction,
+  updateWaitlistStatus as updateWaitlistStatusRequest,
+} from "./appointmentsApi";
+import { saveServices as saveServicesRequest, softDeleteService } from "./servicesApi";
 import AppProFeatures from "./ProFeatures";
 import BarberDashboard from "./BarberDashboard";
 import ClientBooking from "./ClientBooking";
@@ -559,7 +598,6 @@ function safeImageUrl(value) {
 }
 
 const storagePrefix = "agendaProV3";
-const assetBucketName = "agendapro-assets";
 
 const storageKeys = {
   business: "business",
@@ -1107,7 +1145,7 @@ function CoreAgendaProApp() {
 
     if (!email) return;
 
-    const { data: contextData, error: contextError } = await supabase.rpc("get_my_admin_context");
+    const { data: contextData, error: contextError } = await getMyAdminContext();
     const context = Array.isArray(contextData) ? contextData[0] : contextData;
 
     if (!contextError && context?.access_type === "platform") {
@@ -1299,13 +1337,13 @@ function CoreAgendaProApp() {
   useEffect(() => {
     let active = true;
 
-    supabase.auth.getSession().then(({ data }) => {
+    getAuthSession().then(({ data }) => {
       if (active && data?.session) {
         handleAuthSession(data.session);
       }
     });
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: authListener } = onAuthStateChange((_event, session) => {
       if (session) {
         handleAuthSession(session);
       }
@@ -1328,7 +1366,7 @@ function CoreAgendaProApp() {
     let active = true;
 
     async function loadClientHistory() {
-      const { data, error } = await supabase.rpc("get_client_history", {
+      const { data, error } = await getClientHistory({
         target_slug: targetSlug,
         target_whatsapp: cleanWhatsapp,
       });
@@ -1642,11 +1680,9 @@ function CoreAgendaProApp() {
         return;
       }
 
-      const { data: businessData, error: businessError } = await supabase
-        .from("barbershops")
-        .select("*")
-        .eq("slug", slug)
-        .single();
+      const { businessResult, relatedResults } = await getBarbershopCloudBundle(slug);
+      const businessData = businessResult.data;
+      const businessError = businessResult.error;
 
       if (businessError || !businessData) {
         setBarbershopId("");
@@ -1672,41 +1708,7 @@ function CoreAgendaProApp() {
         adminsResult,
         featureFlagsResult,
         waitlistResult,
-      ] = await Promise.all([
-        supabase
-          .from("barbershop_accounts")
-          .select("*")
-          .eq("barbershop_id", businessData.id)
-          .maybeSingle(),
-        supabase
-          .from("services")
-          .select("*")
-          .eq("barbershop_id", businessData.id)
-          .is("deleted_at", null)
-          .order("sort_order", { ascending: true }),
-        supabase
-          .from("professionals")
-          .select("*")
-          .eq("barbershop_id", businessData.id)
-          .order("fixed", { ascending: false })
-          .order("created_at", { ascending: true }),
-        supabase.from("working_hours").select("*").eq("barbershop_id", businessData.id),
-        supabase.from("schedule_breaks").select("*").eq("barbershop_id", businessData.id),
-        supabase.from("days_off").select("*").eq("barbershop_id", businessData.id),
-        supabase.from("schedule_blocks").select("*").eq("barbershop_id", businessData.id),
-        supabase.rpc("get_admin_appointments", {
-          target_slug: businessData.slug,
-        }),
-        supabase.rpc("get_barbershop_accesses", {
-          target_slug: businessData.slug,
-        }),
-        supabase.from("feature_flags").select("*").eq("barbershop_id", businessData.id),
-        supabase
-          .from("waitlist")
-          .select("*")
-          .eq("barbershop_id", businessData.id)
-          .order("created_at", { ascending: false }),
-      ]);
+      ] = relatedResults;
 
       const cloudProfessionals = (professionalsResult.data || []).map((item) => ({
         id: item.id,
@@ -2029,20 +2031,14 @@ function CoreAgendaProApp() {
 
     const shopId =
       barbershopId ||
-      (
-        await supabase
-          .from("barbershops")
-          .select("id")
-          .eq("slug", targetSlug)
-          .maybeSingle()
-      ).data?.id;
+      (await getBarbershopIdBySlug(targetSlug));
 
     const [appointmentsResult, professionalsResult] = await Promise.all([
-      callCloudFunction("get_admin_appointments", {
+      getAdminAppointments({
         target_slug: targetSlug,
       }),
       shopId
-        ? supabase.from("professionals").select("*").eq("barbershop_id", shopId)
+        ? getProfessionalsByBarbershop(shopId)
         : Promise.resolve({ data: [], error: null }),
     ]);
 
@@ -2229,13 +2225,7 @@ function CoreAgendaProApp() {
     }));
 
     try {
-      const response = await fetch("/api/send-whatsapp?status=1");
-      const data = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(data?.error || "Não foi possível verificar a integração.");
-      }
-
+      const data = await getWhatsappStatus();
       setWhatsappIntegrationStatus(formatWhatsappIntegrationStatus(data));
     } catch (error) {
       setWhatsappIntegrationStatus((current) => ({
@@ -2257,28 +2247,11 @@ function CoreAgendaProApp() {
     }
 
     try {
-      const response = await fetch("/api/send-whatsapp", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          barbershopSlug: loadedCloudSlug() || routeSlug,
-          to: business.whatsapp,
-          message,
-        }),
+      await sendWhatsappMessage({
+        barbershopSlug: loadedCloudSlug() || routeSlug,
+        to: business.whatsapp,
+        message,
       });
-
-      const data = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        const detail = repairText(
-          data?.error || "WhatsApp automático ainda não configurado para esta barbearia."
-        );
-        console.warn("WhatsApp automático não enviado:", data);
-        setCloudStatus(detail);
-        return false;
-      }
 
       setCloudStatus("Confirmação enviada para o WhatsApp da barbearia.");
       return true;
@@ -2344,12 +2317,12 @@ function CoreAgendaProApp() {
       note_input: appointmentData.note || "",
     };
 
-    let { data, error } = await callCloudFunction("book_appointment_v2", payload);
+    let { data, error } = await bookAppointmentV2(payload);
 
     if (error && shouldFallbackToLegacyBooking(error)) {
       const legacyPayload = { ...payload };
       delete legacyPayload.note_input;
-      const legacyResult = await callCloudFunction("book_appointment", legacyPayload);
+      const legacyResult = await bookAppointmentLegacy(legacyPayload);
       data = legacyResult.data;
       error = legacyResult.error;
     }
@@ -2412,7 +2385,7 @@ function CoreAgendaProApp() {
     setPublicActionSaving("load");
 
     try {
-      const { data, error } = await callCloudFunction("get_public_appointment", {
+      const { data, error } = await getPublicAppointment({
         target_slug: targetSlug,
         public_token_input: cleanToken,
       });
@@ -2448,12 +2421,8 @@ function CoreAgendaProApp() {
     const isCancel = action === "cancel";
     setPublicActionSaving(action);
 
-    const functionName = isCancel
-      ? "cancel_appointment_public"
-      : "request_appointment_reschedule";
-
     try {
-      const { error } = await callCloudFunction(functionName, {
+      const { error } = await (isCancel ? cancelPublicAppointment : requestPublicReschedule)({
         target_slug: targetSlug,
         public_token_input: token,
       });
@@ -2504,60 +2473,13 @@ function CoreAgendaProApp() {
     }
   }
 
-  async function callCloudFunction(functionName, payload) {
-    if (payload && Object.prototype.hasOwnProperty.call(payload, "target_slug") && !payload.target_slug) {
-      return missingLoadedBarbershopResult();
-    }
-
-    const result = await supabase.rpc(functionName, payload);
-
-    if (!result.error) return result;
-
-    try {
-      const response = await fetch(`${supabaseUrl}/rest/v1/rpc/${functionName}`, {
-        method: "POST",
-        headers: {
-          apikey: supabaseAnonKey,
-          authorization: `Bearer ${supabaseAnonKey}`,
-          "content-type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const text = await response.text();
-
-      if (!response.ok) {
-        return {
-          data: null,
-          error: {
-            message: text || response.statusText,
-            code: String(response.status),
-          },
-        };
-      }
-
-      return {
-        data: text ? JSON.parse(text) : null,
-        error: null,
-      };
-    } catch (fallbackError) {
-      return {
-        data: null,
-        error: {
-          message: cloudErrorText(result.error),
-          details: cloudErrorText(fallbackError),
-        },
-      };
-    }
-  }
-
   function saveBusinessToCloud() {
     return runCloudSave("business", "Dados da barbearia salvos online", async () => {
       const { targetSlug, result: missingBarbershop } = requireLoadedBarbershop();
       if (missingBarbershop) return missingBarbershop;
 
       const nextSlug = business.slug || makeSlug(business.name);
-      const result = await callCloudFunction("save_business_settings", {
+      const result = await saveBusinessSettings({
         target_slug: targetSlug,
         name_input: business.name,
         slug_input: nextSlug,
@@ -2600,14 +2522,14 @@ function CoreAgendaProApp() {
 
       const promotions = normalizePromotions(business.promotions, business);
       const primaryPromotion = promotions[0] || initialBusiness.promotions[0];
-      const multiPromotionResult = await callCloudFunction("save_promotions", {
+      const multiPromotionResult = await savePromotions({
         target_slug: nextSlug,
         promotions_input: promotions,
       });
 
       if (!multiPromotionResult.error) return multiPromotionResult;
 
-      return callCloudFunction("save_promotion_settings", {
+      return savePromotionSettings({
         target_slug: nextSlug,
         promotion_title_input: primaryPromotion.title || "",
         promotion_description_input: primaryPromotion.description || "",
@@ -2677,7 +2599,7 @@ function CoreAgendaProApp() {
 
       if (authResult.error) return authResult;
 
-      const result = await callCloudFunction("save_barbershop_accesses", {
+      const result = await saveBarbershopAccesses({
         target_slug: targetSlug,
         accesses_input: accessAccounts.map((account) => ({
           id: account.id || null,
@@ -2705,37 +2627,21 @@ function CoreAgendaProApp() {
 
     if (!accountsWithPassword.length) return { error: null };
 
-    const { data: sessionData } = await supabase.auth.getSession();
-    const token = sessionData?.session?.access_token;
-
-    if (!token) {
-      return { error: { message: "Sessão expirada. Entre novamente para criar logins com senha." } };
-    }
-
     for (const account of accountsWithPassword) {
-      const response = await fetch("/api/admin-auth-user", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
+      try {
+        await syncAdminAuthUser({
           barbershopId,
           barbershopSlug: barbershopId ? cloudSlug : "",
           email: account.email.trim().toLowerCase(),
           password: String(account.password || "").trim(),
           role: cloudRoleFromLabel(account.role),
           active: Boolean(account.active),
-        }),
-      });
-
-      const result = await response.json().catch(() => ({}));
-
-      if (!response.ok || result.ok === false) {
+        });
+      } catch (error) {
         return {
           error: {
             message:
-              result.error ||
+              error?.message ||
               `Não foi possível criar o login para ${account.email}. Confira a senha e tente novamente.`,
           },
         };
@@ -2747,7 +2653,7 @@ function CoreAgendaProApp() {
 
   function saveFeatureFlagsToCloud() {
     return runCloudSave("features", "Melhorias salvas online", () =>
-      callCloudFunction("save_feature_flags", {
+      saveFeatureFlags({
         target_slug: loadedCloudSlug(),
         features_input: platformFeatures.map((feature) => ({
           feature_key: feature.key,
@@ -2760,7 +2666,7 @@ function CoreAgendaProApp() {
 
   function saveServicesToCloud() {
     return runCloudSave("services", "Serviços salvos online", () =>
-      callCloudFunction("save_services", {
+      saveServicesRequest({
         target_slug: loadedCloudSlug(),
         services_input: services
           .filter((service) => !isServiceDeleted(service))
@@ -2778,7 +2684,7 @@ function CoreAgendaProApp() {
 
   function saveProfessionalsToCloud() {
     return runCloudSave("professionals", "Profissionais salvos online", () =>
-      callCloudFunction("save_professionals", {
+      saveProfessionals({
         target_slug: loadedCloudSlug(),
         professionals_input: professionals.map((item) => ({
           id: item.id || null,
@@ -2792,7 +2698,7 @@ function CoreAgendaProApp() {
 
   function saveScheduleToCloud() {
     return runCloudSave("schedule", "Agenda salva online", () =>
-      callCloudFunction("save_schedule_settings", {
+      saveScheduleSettings({
         target_slug: loadedCloudSlug(),
         slot_interval_input: Number(schedule.slotInterval || 30),
         working_hours_input: weekDays.map((day) => ({
@@ -2825,7 +2731,7 @@ function CoreAgendaProApp() {
     if (!isUuid(id)) return;
 
     try {
-      const { error } = await callCloudFunction("update_appointment_action", {
+      const { error } = await updateAppointmentAction({
         target_slug: loadedCloudSlug(),
         appointment_id_input: id,
         paid_input: patch.paid ?? null,
@@ -2871,7 +2777,7 @@ function CoreAgendaProApp() {
     setCloudSaving("waitlist");
 
     try {
-      const { data, error } = await callCloudFunction("join_waitlist", {
+      const { data, error } = await joinWaitlistRequest({
         target_slug: loadedCloudSlug(),
         client_name_input: clientName,
         whatsapp_input: whatsapp,
@@ -2912,7 +2818,7 @@ function CoreAgendaProApp() {
     setCloudSaving("waitlist-status");
 
     try {
-      const { error } = await callCloudFunction("update_waitlist_status", {
+      const { error } = await updateWaitlistStatusRequest({
         target_slug: loadedCloudSlug(),
         waitlist_id_input: id,
         status_input: status,
@@ -2967,13 +2873,11 @@ function CoreAgendaProApp() {
 
     const fileName = `${Date.now()}-${Math.round(Math.random() * 100000)}.${assetExtension(file)}`;
     const filePath = `${targetSlug}/${folder}/${fileName}`;
-    const { error } = await supabase.storage
-      .from(assetBucketName)
-      .upload(filePath, file, {
-        cacheControl: "3600",
-        contentType: file.type || "image/jpeg",
-        upsert: true,
-      });
+    const { error } = await uploadAsset(filePath, file, {
+      cacheControl: "3600",
+      contentType: file.type || "image/jpeg",
+      upsert: true,
+    });
 
     if (error) {
       throw new Error(
@@ -2981,7 +2885,7 @@ function CoreAgendaProApp() {
       );
     }
 
-    const { data } = supabase.storage.from(assetBucketName).getPublicUrl(filePath);
+    const { data } = getPublicAssetUrl(filePath);
 
     if (!data?.publicUrl) {
       throw new Error("A imagem subiu, mas não foi possível gerar o link público.");
@@ -3044,7 +2948,7 @@ function CoreAgendaProApp() {
         return missingLoadedBarbershopResult();
       }
 
-      return callCloudFunction("save_background_settings", {
+      return saveBackgroundSettings({
         target_slug: targetSlug,
         client_background_url_input: business.clientBackgroundUrl || "",
         admin_background_url_input: business.adminBackgroundUrl || "",
@@ -3266,7 +3170,7 @@ function CoreAgendaProApp() {
     setCloudSaving("services");
 
     try {
-      const { error } = await callCloudFunction("soft_delete_service", {
+      const { error } = await softDeleteService({
         target_slug: loadedCloudSlug(),
         service_id_input: service.id,
       });
@@ -3506,15 +3410,11 @@ function CoreAgendaProApp() {
     setAdminLoginError("");
 
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo:
-            typeof window !== "undefined"
-              ? `${window.location.origin}${window.location.pathname}`
-              : adminPanelLink,
-        },
-      });
+      const redirectTo =
+        typeof window !== "undefined"
+          ? `${window.location.origin}${window.location.pathname}`
+          : adminPanelLink;
+      const { error } = await loginWithGoogleRedirect(redirectTo);
 
       if (error) {
         setAdminLoginError("O login com Google ainda não está configurado na autenticação.");
@@ -3535,10 +3435,7 @@ function CoreAgendaProApp() {
     setAdminLoginError("");
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: normalizedEmail,
-        password: adminPassword,
-      });
+      const { data, error } = await loginWithEmailPassword(normalizedEmail, adminPassword);
 
       if (error) throw error;
 
@@ -3550,7 +3447,7 @@ function CoreAgendaProApp() {
   }
 
   function logoutAdmin() {
-    supabase.auth.signOut();
+    logoutAuth();
     setAdminLoggedIn(false);
     setAdminPassword("");
     setPasswordForm({ next: "", confirm: "" });
@@ -3575,7 +3472,7 @@ function CoreAgendaProApp() {
     setPasswordMessage("");
 
     try {
-      const { error } = await supabase.auth.updateUser({ password: nextPassword });
+      const { error } = await updateCurrentPassword(nextPassword);
 
       if (error) throw error;
 

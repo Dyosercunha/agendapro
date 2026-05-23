@@ -560,6 +560,50 @@ input[type="time"] {
   margin: 12px 0 0;
 }
 
+.platformTabs {
+  background: rgba(7, 10, 13, 0.64);
+  border: 1px solid var(--border-soft, rgba(255,255,255,.06));
+  border-radius: 999px;
+  display: inline-flex;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 7px;
+}
+
+.platformTabs button {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: var(--text-muted, #7c838e);
+  font-weight: 900;
+  padding: 11px 16px;
+}
+
+.platformTabs button.active {
+  background: rgba(34,197,94,.14);
+  border-color: rgba(34,197,94,.35);
+  color: #4ade80;
+}
+
+.platformDiagnosticsCard {
+  margin-bottom: 16px;
+}
+
+.platformDiagnosticActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -4px 0 14px;
+}
+
+.platformDiagnosticActions button {
+  width: auto;
+}
+
+.platformDiagnosticGrid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
 .platformFilters {
   display: flex;
   flex-wrap: wrap;
@@ -920,6 +964,17 @@ input[type="time"] {
   .clientGrowthActions > *,
   .platformQuickActions > * {
     flex: 1 1 100%;
+  }
+
+  .platformTabs,
+  .platformDiagnosticActions {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .platformDiagnosticActions button {
+    width: 100%;
   }
 
   .platformFeature {

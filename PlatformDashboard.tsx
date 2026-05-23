@@ -223,6 +223,10 @@ function HealthItem({ label, status, detail, tone = "neutral" }) {
   );
 }
 
+function shortCommit(value = "") {
+  return value ? String(value).slice(0, 7) : "Não informado";
+}
+
 export default function PlatformDashboard() {
   const [loading, setLoading] = useState(true);
   const [checking, setChecking] = useState(true);
@@ -235,13 +239,19 @@ export default function PlatformDashboard() {
   const [saving, setSaving] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
   const [filter, setFilter] = useState("all");
+  const [platformTab, setPlatformTab] = useState("barbershops");
+  const [lastError, setLastError] = useState("");
   const [platformLogin, setPlatformLogin] = useState({ email: "appagenda.pro@gmail.com", password: "" });
   const [cloudAudit, setCloudAudit] = useState({ barbershops: [] });
   const [systemHealth, setSystemHealth] = useState({
     loading: false,
     checkedAt: "",
+    supabase: null,
+    rpc: null,
     auth: null,
     whatsapp: null,
+    deploy: null,
+    data: null,
   });
 
   const auditActiveShops = useMemo(
@@ -277,6 +287,7 @@ export default function PlatformDashboard() {
         if (!mounted) return;
         setIsDeveloper(false);
         setLoading(false);
+        rememberError("Sessão Plataforma", error);
         setMessage("Não foi possível carregar sua sessão: " + errorText(error));
       } finally {
         if (mounted) setChecking(false);
@@ -333,6 +344,7 @@ export default function PlatformDashboard() {
     } catch (error) {
       setIsDeveloper(false);
       setLoading(false);
+      rememberError("Validação do desenvolvedor", error);
       setMessage("Não foi possível validar o acesso do desenvolvedor: " + errorText(error));
     }
   }
@@ -348,17 +360,76 @@ export default function PlatformDashboard() {
     return data;
   }
 
+  function rememberError(source, error) {
+    const text = `${source}: ${errorText(error)}`;
+    setLastError(text);
+    return text;
+  }
+
   async function checkSystemHealth() {
     setSystemHealth((current) => ({ ...current, loading: true }));
 
-    const [authResult, whatsappResult] = await Promise.allSettled([
-      fetchHealthJson("/api/admin-auth-user"),
-      fetchHealthJson("/api/send-whatsapp?status=1"),
-    ]);
+    const [adminResult, dashboardResult, maintenanceResult, authResult, whatsappResult, deployResult] =
+      await Promise.allSettled([
+        supabase.rpc("is_platform_admin"),
+        supabase.rpc("get_platform_dashboard"),
+        callPlatformMaintenance({ action: "diagnostics" }),
+        fetchHealthJson("/api/admin-auth-user"),
+        fetchHealthJson("/api/send-whatsapp?status=1"),
+        fetchHealthJson("/api/deploy-info"),
+      ]);
+
+    const dashboardData = dashboardResult.status === "fulfilled" ? dashboardResult.value?.data : null;
+    const maintenanceData =
+      maintenanceResult.status === "fulfilled" ? maintenanceResult.value?.barbershops || [] : [];
+    const archivedCount = maintenanceData.filter((shop) => shop.archived_at).length;
+    const activeCount = maintenanceData.filter((shop) => !shop.archived_at).length;
+    const rpcOk =
+      adminResult.status === "fulfilled" &&
+      adminResult.value?.error == null &&
+      adminResult.value?.data === true &&
+      dashboardResult.status === "fulfilled" &&
+      dashboardResult.value?.error == null;
+    const firstError = [
+      adminResult,
+      dashboardResult,
+      maintenanceResult,
+      authResult,
+      whatsappResult,
+      deployResult,
+    ].find((item) => item.status === "rejected" || item.value?.error);
+
+    if (firstError) {
+      setLastError(
+        firstError.status === "rejected"
+          ? errorText(firstError.reason)
+          : errorText(firstError.value?.error)
+      );
+    }
 
     setSystemHealth({
       loading: false,
       checkedAt: checkedAtText(),
+      supabase: {
+        ok: maintenanceResult.status === "fulfilled" || dashboardResult.status === "fulfilled",
+        detail:
+          maintenanceResult.status === "fulfilled"
+            ? "Consulta segura com service role respondeu."
+            : dashboardResult.status === "fulfilled"
+            ? "RPC principal respondeu pela sessão atual."
+            : errorText(maintenanceResult.reason || dashboardResult.reason),
+      },
+      rpc: {
+        ok: rpcOk,
+        detail: rpcOk
+          ? "is_platform_admin e get_platform_dashboard responderam."
+          : errorText(
+              adminResult.reason ||
+                dashboardResult.reason ||
+                adminResult.value?.error ||
+                dashboardResult.value?.error
+            ),
+      },
       auth:
         authResult.status === "fulfilled"
           ? authResult.value
@@ -367,6 +438,15 @@ export default function PlatformDashboard() {
         whatsappResult.status === "fulfilled"
           ? whatsappResult.value
           : { ok: false, error: errorText(whatsappResult.reason), missing: [] },
+      deploy:
+        deployResult.status === "fulfilled"
+          ? deployResult.value
+          : { ok: false, error: errorText(deployResult.reason) },
+      data: {
+        total: maintenanceData.length || dashboardData?.stats?.total || shops.length || 0,
+        active: activeCount || dashboardData?.stats?.active || shops.length || 0,
+        archived: archivedCount || dashboardData?.stats?.archived || archivedShops.length || 0,
+      },
     });
   }
 
@@ -375,12 +455,14 @@ export default function PlatformDashboard() {
     try {
     const { data, error } = await withTimeout(supabase.rpc("get_platform_dashboard"), "O painel da plataforma");
     if (error) {
+      rememberError("get_platform_dashboard", error);
       setMessage("Não foi possível puxar dados da nuvem: " + errorText(error));
       return;
     }
     setDashboard(data || { stats: {}, barbershops: [] });
     await loadCloudAudit().catch(() => null);
     } catch (error) {
+      rememberError("Painel Plataforma", error);
       setMessage("Não foi possível puxar dados da nuvem: " + errorText(error));
       setDashboard({ stats: {}, barbershops: [] });
       await loadCloudAudit({ allowDashboardFallback: true }).catch(() => null);
@@ -453,6 +535,7 @@ export default function PlatformDashboard() {
       setMessage(`Barbearia ${shop.name || shop.slug} restaurada. Agora ela volta para a lista principal.`);
       await loadDashboard();
     } catch (error) {
+      rememberError("Restaurar barbearia arquivada", error);
       setMessage("Não foi possível restaurar a barbearia: " + errorText(error));
     } finally {
       setSaving("");
@@ -479,6 +562,7 @@ export default function PlatformDashboard() {
 
       if (error) throw error;
     } catch (error) {
+      rememberError("Login Plataforma", error);
       setMessage("Não foi possível entrar com e-mail e senha: " + errorText(error));
     } finally {
       setSaving("");
@@ -510,6 +594,7 @@ export default function PlatformDashboard() {
       updateNewShop("address", address);
       setMessage("Endereço encontrado pelo CEP. Confira antes de cadastrar.");
     } catch (error) {
+      rememberError("Buscar CEP da nova barbearia", error);
       setMessage(errorText(error));
     } finally {
       setSaving("");
@@ -525,6 +610,7 @@ export default function PlatformDashboard() {
       updateSelected("address", address);
       setMessage("Endereço encontrado pelo CEP. Confira antes de salvar.");
     } catch (error) {
+      rememberError("Buscar CEP da barbearia selecionada", error);
       setMessage(errorText(error));
     } finally {
       setSaving("");
@@ -640,6 +726,7 @@ export default function PlatformDashboard() {
       await loadDashboard();
       window.location.assign(createdPanelLink);
     } catch (error) {
+      rememberError("Cadastrar barbearia", error);
       setMessage(errorText(error));
     } finally {
       setSaving("");
@@ -704,6 +791,7 @@ export default function PlatformDashboard() {
       setMessage(`Barbearia atualizada com sucesso.${loginMessage}`);
       await loadDashboard();
     } catch (error) {
+      rememberError("Salvar barbearia", error);
       setMessage(errorText(error));
     } finally {
       setSaving("");
@@ -721,6 +809,7 @@ export default function PlatformDashboard() {
       setMessage("Barbearia removida da lista do painel. Ela continua cadastrada no banco de dados.");
       await loadDashboard();
     } catch (error) {
+      rememberError("Arquivar barbearia", error);
       setMessage(errorText(error));
     } finally {
       setSaving("");
@@ -757,6 +846,7 @@ export default function PlatformDashboard() {
       );
       await loadDashboard();
     } catch (error) {
+      rememberError("Limpar arquivadas", error);
       setMessage(errorText(error));
     } finally {
       setSaving("");
@@ -785,6 +875,7 @@ export default function PlatformDashboard() {
       setMessage("Funções atualizadas com sucesso.");
       await loadDashboard();
     } catch (error) {
+      rememberError("Salvar funções", error);
       setMessage(errorText(error));
     } finally {
       setSaving("");
@@ -828,6 +919,7 @@ export default function PlatformDashboard() {
       setMessage(`Avisos de vencimento: ${sent} enviado(s), ${failed} com falha.`);
       await loadDashboard();
     } catch (error) {
+      rememberError("Avisos de vencimento", error);
       setMessage(errorText(error));
     } finally {
       setSaving("");
@@ -933,7 +1025,25 @@ export default function PlatformDashboard() {
         <StatCard label="Arquivadas" value={dashboard.stats?.archived || 0} hint="fora da lista principal" />
       </section>
 
-      <section className="platformCard platformHealthCard">
+      <section className="platformTabs">
+        <button
+          type="button"
+          className={platformTab === "barbershops" ? "active" : ""}
+          onClick={() => setPlatformTab("barbershops")}
+        >
+          Barbearias
+        </button>
+        <button
+          type="button"
+          className={platformTab === "diagnostics" ? "active" : ""}
+          onClick={() => setPlatformTab("diagnostics")}
+        >
+          Diagnóstico
+        </button>
+      </section>
+
+      {platformTab === "diagnostics" && (
+      <section className="platformCard platformHealthCard platformDiagnosticsCard">
         <div className="platformTitle">
           <div>
             <span>Diagnóstico</span>
@@ -949,7 +1059,31 @@ export default function PlatformDashboard() {
           </button>
         </div>
 
-        <div className="platformHealthGrid">
+        <div className="platformDiagnosticActions">
+          <button type="button" className="platformSecondary" disabled={systemHealth.loading} onClick={checkSystemHealth}>
+            Testar RPCs
+          </button>
+          <button type="button" className="platformSecondary" disabled={systemHealth.loading} onClick={checkSystemHealth}>
+            Testar Auth
+          </button>
+          <button type="button" className="platformSecondary" disabled={systemHealth.loading} onClick={checkSystemHealth}>
+            Testar WhatsApp
+          </button>
+        </div>
+
+        <div className="platformHealthGrid platformDiagnosticGrid">
+          <HealthItem
+            label="Supabase conectado"
+            tone={systemHealth.supabase?.ok ? "ready" : "danger"}
+            status={systemHealth.supabase?.ok ? "Conectado" : "Falha"}
+            detail={systemHealth.supabase?.detail || "Aguardando verificação da conexão com a nuvem."}
+          />
+          <HealthItem
+            label="RPCs principais"
+            tone={systemHealth.rpc?.ok ? "ready" : "danger"}
+            status={systemHealth.rpc?.ok ? "Respondendo" : "Atenção"}
+            detail={systemHealth.rpc?.detail || "Testa is_platform_admin e get_platform_dashboard."}
+          />
           <HealthItem
             label="Login e senha"
             tone={systemHealth.auth?.serviceRoleConfigured ? "ready" : "danger"}
@@ -973,10 +1107,26 @@ export default function PlatformDashboard() {
             }
           />
           <HealthItem
+            label="Último deploy"
+            tone={systemHealth.deploy?.ok ? "ready" : "warning"}
+            status={shortCommit(systemHealth.deploy?.commitSha)}
+            detail={
+              systemHealth.deploy?.ok
+                ? `${systemHealth.deploy.environment || "produção"} · ${systemHealth.deploy.branch || "branch não informada"}`
+                : systemHealth.deploy?.error || "Endpoint de deploy ainda não verificado."
+            }
+          />
+          <HealthItem
             label="Dados da plataforma"
-            tone="ready"
-            status="Conectado"
-            detail={`${filteredShops.length} barbearia(s) na lista atual. ${archivedShops.length || 0} arquivada(s).`}
+            tone={systemHealth.data?.total || shops.length ? "ready" : "warning"}
+            status={`${systemHealth.data?.total ?? shops.length ?? 0} total`}
+            detail={`${systemHealth.data?.active ?? shops.length ?? 0} ativa(s). ${systemHealth.data?.archived ?? archivedShops.length ?? 0} arquivada(s).`}
+          />
+          <HealthItem
+            label="Último erro"
+            tone={lastError ? "danger" : "ready"}
+            status={lastError ? "Registrado" : "Sem erro recente"}
+            detail={lastError || "Nenhum erro capturado nesta sessão do painel."}
           />
         </div>
 
@@ -986,6 +1136,10 @@ export default function PlatformDashboard() {
             : "Clique em verificar para atualizar o diagnóstico."}
         </p>
       </section>
+      )}
+
+      {platformTab === "barbershops" && (
+      <>
 
       <section className="platformFilters">
         <button type="button" className={filter === "all" ? "active" : ""} onClick={() => setFilter("all")}>Todas</button>
@@ -1166,6 +1320,8 @@ export default function PlatformDashboard() {
           </>
         )}
       </section>
+      </>
+      )}
     </main>
   );
 }

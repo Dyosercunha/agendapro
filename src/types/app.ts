@@ -1,6 +1,13 @@
 export type AdminRole = "desenvolvedor" | "dono" | "funcionario";
 
-export type SubscriptionStatus = "active" | "trial" | "overdue" | "blocked" | "cancelled" | "archived";
+export type SubscriptionStatus =
+  | "active"
+  | "trial"
+  | "pending"
+  | "overdue"
+  | "blocked"
+  | "cancelled"
+  | "archived";
 
 export type PlanKey = "starter" | "professional" | "premium";
 

@@ -23,6 +23,13 @@ import {
   savePlatformFeatureFlags,
   updatePlatformBarbershop,
 } from "../../lib/platformApi";
+import {
+  planLabel as commercialPlanLabel,
+  planOptions,
+  planPriceFor,
+  statusLabel as commercialStatusLabel,
+  statusOptions,
+} from "../../lib/commercial";
 import "../../styles.css";
 
 const featureLabels = {
@@ -39,18 +46,7 @@ const featureLabels = {
   unique_link: "Link para remarcar/cancelar",
 };
 
-const planLabels = {
-  starter: "Inicial",
-  professional: "Profissional",
-  premium: "Premium",
-};
-
-const statusOptions = [
-  { value: "active", label: "Ativo" },
-  { value: "trial", label: "Teste de 30 dias" },
-  { value: "overdue", label: "Pagamento atrasado" },
-  { value: "blocked", label: "Desativado" },
-];
+const creationStatusOptions = statusOptions.filter((item) => item.value !== "archived");
 
 function makeSlug(value = "") {
   return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48);
@@ -164,31 +160,37 @@ function emptyForm() {
     address: "",
     pix_key: "",
     theme_color: "#22c55e",
-    plan_price: 89,
+    plan_price: planPriceFor("professional"),
   };
 }
 
 function statusBadge(status, label) {
-  const value = label || status;
-  if (value === "Desativado" || status === "blocked") return <b className="statusBlocked">Desativado</b>;
-  if (value === "Pagamento atrasado" || status === "overdue") return <b className="statusOverdue">Pagamento atrasado</b>;
-  if (value === "Teste de 30 dias" || status === "trial") return <b className="statusTrial">Teste de 30 dias</b>;
-  return <b className="statusActive">Ativo</b>;
+  const normalized = String(status || "").toLowerCase();
+  const value = commercialStatusLabel(normalized) || label || status;
+
+  if (normalized === "archived") return <b className="statusArchived">Arquivado</b>;
+  if (normalized === "cancelled") return <b className="statusCancelled">Cancelado</b>;
+  if (normalized === "blocked") return <b className="statusBlocked">Bloqueado</b>;
+  if (normalized === "overdue") return <b className="statusOverdue">Atrasado</b>;
+  if (normalized === "pending") return <b className="statusPending">Pendente</b>;
+  if (normalized === "trial") return <b className="statusTrial">Teste 30 dias</b>;
+
+  return <b className="statusActive">{value || "Ativo"}</b>;
 }
 
 function planLabel(plan) {
-  return planLabels[plan] || plan || "Sem plano";
+  return commercialPlanLabel(plan);
 }
 
 function statusLabel(status) {
-  return statusOptions.find((item) => item.value === status)?.label || "Ativo";
+  return commercialStatusLabel(status);
 }
 
 function normalizeAuditShop(shop = {}) {
   return {
     ...shop,
     plan_label: shop.plan_label || planLabel(shop.plan),
-    status_label: shop.status_label || statusLabel(shop.monthly_status),
+    status_label: statusLabel(shop.monthly_status),
     days_to_billing:
       typeof shop.days_to_billing === "number"
         ? shop.days_to_billing
@@ -565,6 +567,7 @@ export default function PlatformDashboard() {
       const next = { ...current, [field]: value };
       if (field === "name" && !slugTouched) next.slug = makeSlug(value);
       if (field === "slug") next.slug = makeSlug(value);
+      if (field === "plan") next.plan_price = planPriceFor(value);
       return next;
     });
   }
@@ -725,6 +728,11 @@ export default function PlatformDashboard() {
 
       if (error) throw error;
 
+      if (selectedShop.monthly_status === "archived") {
+        const archiveResult = await archivePlatformBarbershop(selectedShop.slug);
+        if (archiveResult.error) throw archiveResult.error;
+      }
+
       let loginMessage = "";
 
       if (ownerPassword) {
@@ -881,7 +889,11 @@ export default function PlatformDashboard() {
   }
 
   function updateSelected(field, value) {
-    setSelectedShop((current) => ({ ...current, [field]: value }));
+    setSelectedShop((current) => {
+      const next = { ...current, [field]: value };
+      if (field === "plan") next.plan_price = planPriceFor(value);
+      return next;
+    });
   }
 
   function updateFeature(key, field, value) {
@@ -974,8 +986,9 @@ export default function PlatformDashboard() {
       <section className="platformStats platformStatsPro">
         <StatCard label="Faturamento mensal previsto" value={money(dashboard.stats?.monthly_revenue || 0)} hint="Ativos + teste" />
         <StatCard label="Em atraso" value={money(dashboard.stats?.overdue_revenue || 0)} hint={`${dashboard.stats?.overdue || 0} barbearia(s)`} />
-        <StatCard label="Ativas" value={dashboard.stats?.active || 0} hint={`${dashboard.stats?.trial || 0} em teste`} />
-        <StatCard label="Desativadas" value={dashboard.stats?.blocked || 0} hint={`Próximo: ${dateText(dashboard.stats?.next_billing)}`} />
+        <StatCard label="Ativas" value={dashboard.stats?.active || shops.filter((shop) => shop.monthly_status === "active").length || 0} hint={`${dashboard.stats?.trial || shops.filter((shop) => shop.monthly_status === "trial").length || 0} em teste`} />
+        <StatCard label="Bloqueadas" value={dashboard.stats?.blocked || shops.filter((shop) => shop.monthly_status === "blocked").length || 0} hint={`Próximo: ${dateText(dashboard.stats?.next_billing)}`} />
+        <StatCard label="Canceladas" value={dashboard.stats?.cancelled || shops.filter((shop) => shop.monthly_status === "cancelled").length || 0} hint="contratos encerrados" />
         <StatCard label="Arquivadas" value={dashboard.stats?.archived || 0} hint="fora da lista principal" />
       </section>
 
@@ -1097,10 +1110,12 @@ export default function PlatformDashboard() {
 
       <section className="platformFilters">
         <button type="button" className={filter === "all" ? "active" : ""} onClick={() => setFilter("all")}>Todas</button>
-        <button type="button" className={filter === "Ativo" ? "active" : ""} onClick={() => setFilter("Ativo")}>Ativas</button>
-        <button type="button" className={filter === "Teste de 30 dias" ? "active" : ""} onClick={() => setFilter("Teste de 30 dias")}>Teste</button>
-        <button type="button" className={filter === "Pagamento atrasado" ? "active" : ""} onClick={() => setFilter("Pagamento atrasado")}>Atrasadas</button>
-        <button type="button" className={filter === "Desativado" ? "active" : ""} onClick={() => setFilter("Desativado")}>Desativadas</button>
+        <button type="button" className={filter === "active" ? "active" : ""} onClick={() => setFilter("active")}>Ativas</button>
+        <button type="button" className={filter === "trial" ? "active" : ""} onClick={() => setFilter("trial")}>Teste</button>
+        <button type="button" className={filter === "pending" ? "active" : ""} onClick={() => setFilter("pending")}>Pendentes</button>
+        <button type="button" className={filter === "overdue" ? "active" : ""} onClick={() => setFilter("overdue")}>Atrasadas</button>
+        <button type="button" className={filter === "blocked" ? "active" : ""} onClick={() => setFilter("blocked")}>Bloqueadas</button>
+        <button type="button" className={filter === "cancelled" ? "active" : ""} onClick={() => setFilter("cancelled")}>Canceladas</button>
       </section>
 
       <section className="platformGrid">
@@ -1118,8 +1133,8 @@ export default function PlatformDashboard() {
             <label>Senha inicial do dono</label>
             <input value={newShop.owner_password || ""} onChange={(event) => updateNewShop("owner_password", event.target.value)} type="password" autoComplete="new-password" minLength={6} placeholder="mínimo 6 caracteres" required />
             <div className="platformTwoCols">
-              <span><label>Plano</label><select value={newShop.plan} onChange={(event) => updateNewShop("plan", event.target.value)}><option value="starter">Inicial</option><option value="professional">Profissional</option><option value="premium">Premium</option></select></span>
-              <span><label>Status</label><select value={newShop.monthly_status} onChange={(event) => updateNewShop("monthly_status", event.target.value)}>{statusOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></span>
+              <span><label>Plano</label><select value={newShop.plan} onChange={(event) => updateNewShop("plan", event.target.value)}>{planOptions.map((plan) => <option key={plan.id} value={plan.id}>{plan.name}</option>)}</select></span>
+              <span><label>Status</label><select value={newShop.monthly_status} onChange={(event) => updateNewShop("monthly_status", event.target.value)}>{creationStatusOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></span>
             </div>
             <div className="platformTwoCols">
               <span><label>Vencimento</label><input value={newShop.next_billing_date} onChange={(event) => updateNewShop("next_billing_date", event.target.value)} type="date" /></span>
@@ -1154,7 +1169,7 @@ export default function PlatformDashboard() {
                     {typeof shop.service_count === "number" ? ` · ${shop.service_count} serviço(s)` : ""}
                   </small>
                   <div className="platformShopMeta">
-                    <b>{shop.plan_label || planLabels[shop.plan] || shop.plan || "Sem plano"}</b>
+                    <b>{shop.plan_label || planLabel(shop.plan)}</b>
                     <span>{money(shop.plan_price || 0)}/mês</span>
                     <span>Vence: {dateText(shop.next_billing_date)}</span>
                     {typeof shop.days_to_billing === "number" ? <span>{shop.days_to_billing} dia(s)</span> : null}
@@ -1227,8 +1242,11 @@ export default function PlatformDashboard() {
             </div>
             <div className="platformQuickActions">
               <button type="button" onClick={() => updateSelected("monthly_status", "active")}>Marcar ativo</button>
+              <button type="button" onClick={() => updateSelected("monthly_status", "trial")}>Teste 30 dias</button>
+              <button type="button" onClick={() => updateSelected("monthly_status", "pending")}>Pendente</button>
               <button type="button" onClick={() => updateSelected("monthly_status", "overdue")}>Marcar atraso</button>
               <button type="button" onClick={() => updateSelected("monthly_status", "blocked")}>Bloquear</button>
+              <button type="button" onClick={() => updateSelected("monthly_status", "cancelled")}>Cancelar</button>
               <button type="button" onClick={() => updateSelected("next_billing_date", futureDateText(30))}>Renovar +30 dias</button>
             </div>
             <form className="platformForm" onSubmit={saveShop}>
@@ -1242,8 +1260,8 @@ export default function PlatformDashboard() {
               <div className="platformEditorSection">
                 <h3>Assinatura</h3>
               <div className="platformTwoCols">
-                <span><label>Plano</label><select value={selectedShop.plan || "professional"} onChange={(event) => updateSelected("plan", event.target.value)}><option value="starter">Inicial</option><option value="professional">Profissional</option><option value="premium">Premium</option></select></span>
-                <span><label>Status</label><select value={selectedShop.monthly_status || "active"} onChange={(event) => updateSelected("monthly_status", event.target.value)}>{statusOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></span>
+                <span><label>Plano</label><select value={selectedShop.plan || "professional"} onChange={(event) => updateSelected("plan", event.target.value)}>{planOptions.map((plan) => <option key={plan.id} value={plan.id}>{plan.name}</option>)}</select></span>
+                <span><label>Status</label><select value={selectedShop.monthly_status || "active"} onChange={(event) => updateSelected("monthly_status", event.target.value)}><option value="pending">Pendente</option>{statusOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></span>
               </div>
               <div className="platformTwoCols">
                 <span><label>Vencimento</label><input value={selectedShop.next_billing_date || ""} onChange={(event) => updateSelected("next_billing_date", event.target.value)} type="date" /></span>

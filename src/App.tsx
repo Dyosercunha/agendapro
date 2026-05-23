@@ -40,6 +40,7 @@ import {
   updateAppointmentAction,
   updateWaitlistStatus as updateWaitlistStatusRequest,
 } from "./lib/appointmentsApi";
+import { blocksClientScheduling, planOptions } from "./lib/commercial";
 import { saveServices as saveServicesRequest, softDeleteService } from "./lib/servicesApi";
 import AppProFeatures from "./features/improvements/ProFeatures";
 import BarberDashboard from "./features/barber-dashboard/BarberDashboard";
@@ -186,27 +187,6 @@ const adminTabs = [
   { id: "appearance", label: "Aparência" },
   { id: "improvements", label: "Melhorias" },
   { id: "account", label: "Conta" },
-];
-
-const planOptions = [
-  {
-    id: "starter",
-    name: "Inicial",
-    price: "R$ 49/mês",
-    description: "Agenda online, serviços, profissionais e painel básico.",
-  },
-  {
-    id: "professional",
-    name: "Profissional",
-    price: "R$ 89/mês",
-    description: "Inclui identidade visual, PIX, melhorias liberadas e agenda inteligente.",
-  },
-  {
-    id: "premium",
-    name: "Premium",
-    price: "R$ 149/mês",
-    description: "Pensado para automações, fidelidade, lista de espera e campanhas.",
-  },
 ];
 
 const platformFeatures = [
@@ -1064,7 +1044,7 @@ function CoreAgendaProApp() {
   const appointmentManagementLink = uniqueLinkAvailable && confirmedToken
     ? `${publicScheduleLink}?agendamento=${encodeURIComponent(confirmedToken)}`
     : "";
-  const scheduleBlocked = business.monthlyStatus === "blocked";
+  const scheduleBlocked = blocksClientScheduling(business.monthlyStatus);
   const pixFeatureEnabled = featureFlags.pix?.released && featureFlags.pix?.enabled;
   const autoConfirmationFeatureEnabled =
     featureFlags.auto_confirmation?.released && featureFlags.auto_confirmation?.enabled;

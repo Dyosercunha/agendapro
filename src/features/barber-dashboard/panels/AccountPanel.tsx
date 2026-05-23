@@ -1,13 +1,6 @@
 // @ts-nocheck
 import React from "react";
-
-const monthlyStatusLabels = {
-  active: "Ativa",
-  trial: "Em teste",
-  pending: "Pagamento pendente",
-  overdue: "Pagamento atrasado",
-  blocked: "Bloqueada",
-};
+import { monthlyStatusLabels, statusOptions } from "../../../lib/commercial";
 
 export default function AccountPanel({ model }) {
   const {
@@ -283,6 +276,13 @@ export default function AccountPanel({ model }) {
                 <span>{plan.name}</span>
                 <strong>{plan.price}</strong>
                 <small>{plan.description}</small>
+                {plan.features?.length ? (
+                  <ul className="planBenefits">
+                    {plan.features.map((feature) => (
+                      <li key={feature}>{feature}</li>
+                    ))}
+                  </ul>
+                ) : null}
               </button>
             ))}
           </div>
@@ -294,11 +294,12 @@ export default function AccountPanel({ model }) {
                 value={business.monthlyStatus || "active"}
                 onChange={(event) => setBusiness({ ...business, monthlyStatus: event.target.value })}
               >
-                <option value="active">Ativa</option>
-                <option value="trial">Em teste</option>
                 <option value="pending">Pagamento pendente</option>
-                <option value="overdue">Pagamento atrasado</option>
-                <option value="blocked">Bloqueada</option>
+                {statusOptions.filter((item) => item.value !== "archived").map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {monthlyStatusLabels[item.value] || item.label}
+                  </option>
+                ))}
               </select>
 
               <label>Próxima cobrança</label>

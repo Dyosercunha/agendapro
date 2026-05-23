@@ -2247,6 +2247,52 @@ button:disabled {
   color: var(--success);
 }
 
+.statusActive,
+.statusArchived,
+.statusBlocked,
+.statusCancelled,
+.statusOverdue,
+.statusPending,
+.statusTrial {
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 900;
+  justify-content: center;
+  padding: 8px 10px;
+}
+
+.statusActive {
+  background: var(--primary-soft);
+  color: var(--success);
+}
+
+.statusTrial {
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--warning);
+}
+
+.statusPending {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+}
+
+.statusOverdue {
+  background: rgba(239, 68, 68, 0.12);
+  color: #fca5a5;
+}
+
+.statusBlocked,
+.statusCancelled {
+  background: rgba(239, 68, 68, 0.16);
+  color: var(--error);
+}
+
+.statusArchived {
+  background: rgba(124, 131, 142, 0.14);
+  color: var(--text-muted);
+}
+
 .featureGrid {
   display: grid;
   gap: 10px;
@@ -2623,6 +2669,31 @@ button:disabled {
   color: var(--text-muted);
   font-size: 12px;
   line-height: 1.35;
+}
+
+.planBenefits {
+  color: var(--text-secondary);
+  display: grid;
+  gap: 4px;
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.planBenefits li {
+  align-items: center;
+  display: flex;
+  font-size: 12px;
+  gap: 7px;
+}
+
+.planBenefits li::before {
+  background: var(--primary);
+  border-radius: 999px;
+  content: "";
+  flex: 0 0 auto;
+  height: 6px;
+  width: 6px;
 }
 
 .activePlan {

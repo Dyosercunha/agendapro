@@ -1,5 +1,67 @@
 // @ts-nocheck
-import React from "react";
+import React, { useState } from "react";
+
+function onlyDigits(value = "") {
+  return String(value || "").replace(/\D/g, "");
+}
+
+function buildMapsUrl(address = "") {
+  const cleanAddress = String(address || "").trim();
+  if (!cleanAddress) return "";
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cleanAddress)}`;
+}
+
+function hasSpecificMapsUrl(value = "") {
+  const url = String(value || "").trim();
+  if (!url) return false;
+  return !/^https?:\/\/(www\.)?(maps\.google\.com|google\.com\/maps)\/?$/i.test(url);
+}
+
+function buildCepAddress(cepData, number, complement) {
+  const street = cepData?.logradouro || "";
+  const neighborhood = cepData?.bairro || "";
+  const city = cepData?.localidade || "";
+  const state = cepData?.uf || "";
+  const cleanNumber = String(number || "").trim();
+  const cleanComplement = String(complement || "").trim();
+
+  if (!street || !cleanNumber) return "";
+
+  return [
+    `${street}, ${cleanNumber}${cleanComplement ? ` - ${cleanComplement}` : ""}`,
+    neighborhood,
+    city && state ? `${city} - ${state}` : city || state,
+  ]
+    .filter(Boolean)
+    .join(" - ");
+}
+
+async function fetchCepAddress(cep, number, complement) {
+  const cleanCep = onlyDigits(cep);
+  const cleanNumber = String(number || "").trim();
+
+  if (cleanCep.length !== 8) {
+    throw new Error("Informe um CEP válido com 8 números.");
+  }
+
+  if (!cleanNumber) {
+    throw new Error("Informe o número do estabelecimento antes de puxar o endereço.");
+  }
+
+  const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok || !data || data.erro) {
+    throw new Error("CEP não encontrado. Confira o número ou cadastre o endereço manualmente.");
+  }
+
+  const address = buildCepAddress(data, cleanNumber, complement);
+  if (!address) {
+    throw new Error("O CEP não trouxe rua válida. Cadastre o endereço manualmente.");
+  }
+
+  return address;
+}
 
 export default function AppearancePanel({ model }) {
   const {
@@ -13,6 +75,50 @@ export default function AppearancePanel({ model }) {
     setBusiness,
     updateBusinessName,
   } = model;
+  const [addressLookup, setAddressLookup] = useState({ cep: "", number: "", complement: "" });
+  const [addressMessage, setAddressMessage] = useState("");
+  const [addressLoading, setAddressLoading] = useState(false);
+
+  const currentMapsUrl = hasSpecificMapsUrl(business.mapsUrl)
+    ? business.mapsUrl
+    : buildMapsUrl(business.address);
+
+  async function fillAddressByCep() {
+    setAddressLoading(true);
+    setAddressMessage("");
+
+    try {
+      const address = await fetchCepAddress(
+        addressLookup.cep,
+        addressLookup.number,
+        addressLookup.complement
+      );
+      setBusiness({
+        ...business,
+        address,
+        mapsUrl: buildMapsUrl(address),
+      });
+      setAddressMessage("Endereço encontrado pelo CEP. Confira e salve a aparência.");
+    } catch (error) {
+      setAddressMessage(error?.message || "Não foi possível buscar o endereço pelo CEP.");
+    } finally {
+      setAddressLoading(false);
+    }
+  }
+
+  function updateAddressManually(value) {
+    setBusiness({
+      ...business,
+      address: value,
+      mapsUrl: hasSpecificMapsUrl(business.mapsUrl) ? business.mapsUrl : buildMapsUrl(value),
+    });
+  }
+
+  function regenerateMapsLink() {
+    const url = buildMapsUrl(business.address);
+    setBusiness({ ...business, mapsUrl: url });
+    setAddressMessage(url ? "Link de rota gerado pelo endereço atual." : "Informe o endereço antes de gerar a rota.");
+  }
 
   return (
     <>
@@ -152,17 +258,84 @@ export default function AppearancePanel({ model }) {
           <label>WhatsApp</label>
           <input value={business.whatsapp} onChange={(event) => setBusiness({ ...business, whatsapp: event.target.value })} />
 
-          <label>Endereço da barbearia</label>
-          <input
-            value={business.address}
-            onChange={(event) => setBusiness({ ...business, address: event.target.value })}
-          />
+          <div className="adminItem locationEditor">
+            <div className="sectionTitle">
+              <h3>Endereço e rota</h3>
+              <span>Cliente abre no Maps</span>
+            </div>
 
-          <label>Link do Google Maps</label>
-          <input
-            value={business.mapsUrl}
-            onChange={(event) => setBusiness({ ...business, mapsUrl: event.target.value })}
-          />
+            <div className="timePair">
+              <div>
+                <label>CEP</label>
+                <input
+                  inputMode="numeric"
+                  value={addressLookup.cep}
+                  onChange={(event) =>
+                    setAddressLookup({
+                      ...addressLookup,
+                      cep: onlyDigits(event.target.value).slice(0, 8),
+                    })
+                  }
+                  placeholder="00000000"
+                />
+              </div>
+              <div>
+                <label>Número</label>
+                <input
+                  value={addressLookup.number}
+                  onChange={(event) =>
+                    setAddressLookup({ ...addressLookup, number: event.target.value })
+                  }
+                  placeholder="123"
+                />
+              </div>
+            </div>
+
+            <label>Complemento</label>
+            <input
+              value={addressLookup.complement}
+              onChange={(event) =>
+                setAddressLookup({ ...addressLookup, complement: event.target.value })
+              }
+              placeholder="Sala, loja, referência..."
+            />
+
+            <button
+              type="button"
+              className="black"
+              disabled={addressLoading}
+              onClick={fillAddressByCep}
+            >
+              {addressLoading ? "Buscando CEP..." : "Puxar endereço pelo CEP"}
+            </button>
+
+            <label>Endereço da barbearia</label>
+            <input
+              value={business.address}
+              onChange={(event) => updateAddressManually(event.target.value)}
+              placeholder="Rua, número - bairro - cidade"
+            />
+
+            <label>Link de rota no Google Maps</label>
+            <input
+              value={business.mapsUrl || currentMapsUrl}
+              onChange={(event) => setBusiness({ ...business, mapsUrl: event.target.value })}
+              placeholder="Gerado automaticamente pelo endereço"
+            />
+
+            <div className="addressActions">
+              <button type="button" className="outline" onClick={regenerateMapsLink}>
+                Gerar rota pelo endereço
+              </button>
+              {currentMapsUrl && (
+                <a href={currentMapsUrl} target="_blank" rel="noreferrer">
+                  Testar rota
+                </a>
+              )}
+            </div>
+
+            {addressMessage && <p className="hint">{addressMessage}</p>}
+          </div>
 
           <label>Título da tela final</label>
           <input value={business.successTitle} onChange={(event) => setBusiness({ ...business, successTitle: event.target.value })} />

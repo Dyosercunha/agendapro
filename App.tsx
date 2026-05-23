@@ -27,7 +27,7 @@ const initialBusiness = {
   nextBillingDate: "2026-06-04",
   whatsapp: "5551996238323",
   address: "Rua Exemplo, 123 - Centro",
-  mapsUrl: "https://maps.google.com/",
+  mapsUrl: "",
   themeColor: "#22c55e",
   themeColorSecondary: "#4ade80",
   clientBackgroundUrl: "",
@@ -357,6 +357,24 @@ function repairText(value) {
   return fixes.reduce((text, [pattern, replacement]) => text.replace(pattern, replacement), value);
 }
 
+function buildMapsSearchUrl(address = "") {
+  const cleanAddress = String(address || "").trim();
+  if (!cleanAddress) return "";
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cleanAddress)}`;
+}
+
+function normalizeMapsUrl(value = "", address = "") {
+  const url = String(value || "").trim();
+  if (
+    url &&
+    !/^https?:\/\/(www\.)?(maps\.google\.com|google\.com\/maps)\/?$/i.test(url)
+  ) {
+    return url;
+  }
+
+  return buildMapsSearchUrl(address);
+}
+
 function cloudErrorText(error) {
   if (!error) return "Erro desconhecido.";
 
@@ -662,7 +680,7 @@ function mapBusinessFromCloud(row, account) {
     nextBillingDate: account?.next_billing_date || initialBusiness.nextBillingDate,
     whatsapp: row.whatsapp,
     address: repairText(row.address || ""),
-    mapsUrl: row.maps_url || "",
+    mapsUrl: normalizeMapsUrl(row.maps_url || "", row.address || ""),
     themeColor: row.theme_color || initialBusiness.themeColor,
     themeColorSecondary: row.theme_color_secondary || initialBusiness.themeColorSecondary,
     clientBackgroundUrl: row.client_background_url || "",
@@ -708,6 +726,7 @@ function normalizeBusiness(value) {
     name: repairText(business.name),
     logo: repairText(business.logo),
     address: repairText(business.address),
+    mapsUrl: normalizeMapsUrl(business.mapsUrl, business.address),
     promotions,
     promotionTitle: repairText(primaryPromotion.title || business.promotionTitle),
     promotionDescription: repairText(primaryPromotion.description || business.promotionDescription),
@@ -2560,7 +2579,7 @@ function CoreAgendaProApp() {
         logo_url_input: business.logoImage || null,
         whatsapp_input: business.whatsapp,
         address_input: business.address || "",
-        maps_url_input: business.mapsUrl || "",
+        maps_url_input: normalizeMapsUrl(business.mapsUrl, business.address),
         theme_color_input: business.themeColor,
         theme_color_secondary_input: business.themeColorSecondary,
         client_background_url_input: business.clientBackgroundUrl || "",

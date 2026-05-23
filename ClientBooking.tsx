@@ -84,11 +84,16 @@ export default function ClientBooking({ model }) {
   } = model;
 
   const cleanAddress = repairText(business.address || "");
+  const rawMapsUrl = String(business.mapsUrl || "").trim();
+  const hasSpecificMapsUrl =
+    rawMapsUrl &&
+    !/^https?:\/\/(www\.)?(maps\.google\.com|google\.com\/maps)\/?$/i.test(rawMapsUrl);
   const mapsHref =
-    business.mapsUrl ||
-    (cleanAddress
-      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cleanAddress)}`
-      : "");
+    hasSpecificMapsUrl
+      ? rawMapsUrl
+      : cleanAddress
+        ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cleanAddress)}`
+        : "";
   const instagramAvailable =
     Boolean(business.instagramUrl) &&
     Boolean(
@@ -535,7 +540,7 @@ export default function ClientBooking({ model }) {
           </div>
           {mapsHref && (
             <a href={mapsHref} target="_blank" rel="noreferrer">
-              Como chegar
+              Abrir rota
             </a>
           )}
         </section>

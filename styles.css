@@ -401,6 +401,41 @@ h3 {
   box-shadow: 0 14px 38px rgba(34, 197, 94, 0.12);
 }
 
+.locationEditor {
+  margin-top: 14px;
+}
+
+.locationEditor .black {
+  margin-bottom: 12px;
+}
+
+.addressActions {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr 1fr;
+  margin-top: 10px;
+}
+
+.addressActions .outline,
+.addressActions a {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 900;
+  justify-content: center;
+  min-height: 44px;
+  padding: 11px 12px;
+  text-align: center;
+  text-decoration: none;
+}
+
+.addressActions a {
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.24);
+  color: var(--success);
+}
+
 .brandPreview {
   align-items: center;
   background: linear-gradient(135deg, var(--primary-soft), var(--surface));
@@ -2909,5 +2944,9 @@ button:disabled {
   .clientFloatingWhatsapp {
     left: 16px;
     right: 16px;
+  }
+
+  .addressActions {
+    grid-template-columns: 1fr;
   }
 }

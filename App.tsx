@@ -2074,95 +2074,78 @@ function CoreAgendaProApp() {
     setCloudSaving("appointment");
     setCloudStatus("Verificando disponibilidade online...");
 
-    let latestAppointments = appointments;
-
     try {
-      latestAppointments = (await refreshCloudAppointments()) || appointments;
-    } catch (error) {
-      const detail = cloudErrorText(error);
-      console.error(error);
-      setCloudSaving("");
-      setCloudStatus(`Não foi possível confirmar a disponibilidade: ${detail}`);
-      showNotice(
-        `Não foi possível conferir a agenda online agora.\n\nPara evitar horário duplicado, tente novamente em instantes.\n\nDetalhe: ${detail}`
+      const latestAppointments = (await refreshCloudAppointments()) || appointments;
+      const freshSlot = buildSlotsForDate(selectedDate, latestAppointments).find(
+        (slot) => slot.time === selectedTime
       );
-      return;
-    }
 
-    const freshSlot = buildSlotsForDate(selectedDate, latestAppointments).find(
-      (slot) => slot.time === selectedTime
-    );
+      if (!freshSlot?.available) {
+        showNotice("Esse horário acabou de ficar indisponível. Escolha outro horário.");
+        setScreen("home");
+        setSelectedTime("");
+        setCloudStatus("Horário indisponível. Escolha outra opção.");
+        return;
+      }
 
-    if (!freshSlot?.available) {
-      showNotice("Esse horário acabou de ficar indisponível. Escolha outro horário.");
-      setScreen("home");
-      setSelectedTime("");
-      setCloudSaving("");
-      setCloudStatus("Horário indisponível. Escolha outra opção.");
-      return;
-    }
+      const finalProfessional =
+        professional === "Primeiro disponível" ? freshSlot.professional : professional;
 
-    const finalProfessional =
-      professional === "Primeiro disponível" ? freshSlot.professional : professional;
+      const id = makeId("ag");
+      const finalPayment = payment === "pix" && pixAvailable ? "pix" : "local";
+      const finalTotal = selectedPaymentTotal;
 
-    const id = makeId("ag");
-    const finalPayment = payment === "pix" && pixAvailable ? "pix" : "local";
-    const finalTotal = selectedPaymentTotal;
+      const appointmentData = {
+        id,
+        clientName,
+        whatsapp,
+        professional: finalProfessional,
+        date: selectedDate,
+        time: selectedTime,
+        duration: totalDuration,
+        services: servicesText,
+        total: finalTotal,
+        payment: finalPayment,
+        paid: finalPayment === "pix",
+        status: "confirmed",
+        rescheduleRequested: false,
+        note: appointmentNote.trim(),
+      };
 
-    const appointmentData = {
-      id,
-      clientName,
-      whatsapp,
-      professional: finalProfessional,
-      date: selectedDate,
-      time: selectedTime,
-      duration: totalDuration,
-      services: servicesText,
-      total: finalTotal,
-      payment: finalPayment,
-      paid: finalPayment === "pix",
-      status: "confirmed",
-      rescheduleRequested: false,
-      note: appointmentNote.trim(),
-    };
+      const cloudBooking = await saveAppointmentToCloud(appointmentData, finalProfessional);
 
-    let cloudBooking = { id: "", token: "" };
+      if (!cloudBooking.id) {
+        return;
+      }
 
-    try {
-      cloudBooking = await saveAppointmentToCloud(appointmentData, finalProfessional);
+      const savedAppointment = {
+        ...appointmentData,
+        id: cloudBooking.id,
+        publicToken: cloudBooking.token,
+      };
+
+      setAppointments((current) =>
+        current.some((item) => item.id === savedAppointment.id)
+          ? current
+          : current.concat(savedAppointment)
+      );
+      setConfirmedId(cloudBooking.id);
+      setConfirmedToken(cloudBooking.token);
+      setProfessional(finalProfessional);
+      const notificationSent = await sendBarberConfirmation(savedAppointment, cloudBooking.id);
+      setConfirmationSent(notificationSent);
+      setScreen("success");
+      window.scrollTo(0, 0);
     } catch (error) {
       const detail = cloudErrorText(error);
       console.error(error);
+      setCloudStatus(`Não foi possível confirmar o agendamento: ${detail}`);
+      showNotice(
+        `Não foi possível confirmar este horário.\n\nPara evitar horário duplicado, tente novamente em instantes.\n\nDetalhe: ${detail}`
+      );
+    } finally {
       setCloudSaving("");
-      setCloudStatus(`O horário não foi reservado: ${detail}`);
-      showNotice(`Não foi possível confirmar este horário.\n\n${detail}`);
-      return;
     }
-
-    if (!cloudBooking.id) {
-      setCloudSaving("");
-      return;
-    }
-
-    const savedAppointment = {
-      ...appointmentData,
-      id: cloudBooking.id,
-      publicToken: cloudBooking.token,
-    };
-
-    setAppointments((current) =>
-      current.some((item) => item.id === savedAppointment.id)
-        ? current
-        : current.concat(savedAppointment)
-    );
-    setConfirmedId(cloudBooking.id);
-    setConfirmedToken(cloudBooking.token);
-    setProfessional(finalProfessional);
-    const notificationSent = await sendBarberConfirmation(savedAppointment, cloudBooking.id);
-    setConfirmationSent(notificationSent);
-    setScreen("success");
-    setCloudSaving("");
-    window.scrollTo(0, 0);
   }
 
   function buildBarberConfirmationMessage(appointmentData, appointmentId) {
@@ -2428,28 +2411,32 @@ function CoreAgendaProApp() {
 
     setPublicActionSaving("load");
 
-    const { data, error } = await callCloudFunction("get_public_appointment", {
-      target_slug: targetSlug,
-      public_token_input: cleanToken,
-    });
+    try {
+      const { data, error } = await callCloudFunction("get_public_appointment", {
+        target_slug: targetSlug,
+        public_token_input: cleanToken,
+      });
 
-    setPublicActionSaving("");
+      if (error) throw error;
 
-    if (error) {
+      const nextAppointment = mapPublicAppointment(data);
+
+      if (!nextAppointment) {
+        setPublicAppointment(null);
+        showNotice("Agendamento não encontrado para este link.");
+        return;
+      }
+
+      setPublicAppointment(nextAppointment);
+    } catch (error) {
+      console.error(error);
       setPublicAppointment(null);
-      showNotice("Não foi possível carregar este agendamento. Confira o link ou fale com a barbearia.");
-      return;
+      showNotice(
+        `Não foi possível carregar este agendamento. Confira o link ou fale com a barbearia.\n\nDetalhe: ${cloudErrorText(error)}`
+      );
+    } finally {
+      setPublicActionSaving("");
     }
-
-    const nextAppointment = mapPublicAppointment(data);
-
-    if (!nextAppointment) {
-      setPublicAppointment(null);
-      showNotice("Agendamento não encontrado para este link.");
-      return;
-    }
-
-    setPublicAppointment(nextAppointment);
   }
 
   async function updatePublicAppointment(action) {
@@ -2465,23 +2452,25 @@ function CoreAgendaProApp() {
       ? "cancel_appointment_public"
       : "request_appointment_reschedule";
 
-    const { error } = await callCloudFunction(functionName, {
-      target_slug: targetSlug,
-      public_token_input: token,
-    });
+    try {
+      const { error } = await callCloudFunction(functionName, {
+        target_slug: targetSlug,
+        public_token_input: token,
+      });
 
-    setPublicActionSaving("");
+      if (error) throw error;
 
-    if (error) {
+      showNotice(isCancel ? "Agendamento cancelado." : "Pedido de remarcação enviado.");
+      await loadPublicAppointment(token);
+      await refreshCloudAppointments().catch(() => null);
+    } catch (error) {
+      console.error(error);
       showNotice(
         `Não foi possível atualizar o agendamento online.\n\nDetalhe: ${cloudErrorText(error)}`
       );
-      return;
+    } finally {
+      setPublicActionSaving("");
     }
-
-    showNotice(isCancel ? "Agendamento cancelado." : "Pedido de remarcação enviado.");
-    await loadPublicAppointment(token);
-    await refreshCloudAppointments().catch(() => null);
   }
 
   async function runCloudSave(kind, successMessage, action) {
@@ -2506,8 +2495,9 @@ function CoreAgendaProApp() {
       return true;
     } catch (error) {
       console.error(error);
-      setCloudStatus("Não foi possível salvar online.");
-      showNotice("Não foi possível salvar online.");
+      const detail = cloudErrorText(error);
+      setCloudStatus(`Não foi possível salvar online: ${detail}`);
+      showNotice(`Não foi possível salvar online.\n\nDetalhe: ${detail}`);
       return false;
     } finally {
       setCloudSaving("");
@@ -2834,21 +2824,24 @@ function CoreAgendaProApp() {
   async function syncAppointmentAction(id, patch) {
     if (!isUuid(id)) return;
 
-    const { error } = await callCloudFunction("update_appointment_action", {
-      target_slug: loadedCloudSlug(),
-      appointment_id_input: id,
-      paid_input: patch.paid ?? null,
-      status_input: patch.status ?? null,
-      reschedule_requested_input: patch.rescheduleRequested ?? null,
-    });
+    try {
+      const { error } = await callCloudFunction("update_appointment_action", {
+        target_slug: loadedCloudSlug(),
+        appointment_id_input: id,
+        paid_input: patch.paid ?? null,
+        status_input: patch.status ?? null,
+        reschedule_requested_input: patch.rescheduleRequested ?? null,
+      });
 
-    if (error) {
+      if (error) throw error;
+
+      setCloudStatus("Agendamento atualizado online");
+    } catch (error) {
       console.error(error);
-      setCloudStatus("A ação foi salva neste aparelho, mas não foi sincronizada online.");
-      return;
+      setCloudStatus(
+        `A ação foi salva neste aparelho, mas não foi sincronizada online: ${cloudErrorText(error)}`
+      );
     }
-
-    setCloudStatus("Agendamento atualizado online");
   }
 
   async function joinWaitlist() {
@@ -2875,30 +2868,36 @@ function CoreAgendaProApp() {
     setWaitlist((current) => [waitlistData].concat(current));
     setWaitlistSent(true);
     setCloudStatus("Pedido adicionado à lista de espera localmente.");
+    setCloudSaving("waitlist");
 
-    const { data, error } = await callCloudFunction("join_waitlist", {
-      target_slug: loadedCloudSlug(),
-      client_name_input: clientName,
-      whatsapp_input: whatsapp,
-      preferred_date_input: selectedDate,
-      service_text_input: servicesText,
-    });
+    try {
+      const { data, error } = await callCloudFunction("join_waitlist", {
+        target_slug: loadedCloudSlug(),
+        client_name_input: clientName,
+        whatsapp_input: whatsapp,
+        preferred_date_input: selectedDate,
+        service_text_input: servicesText,
+      });
 
-    if (error) {
+      if (error) throw error;
+
+      if (data) {
+        setWaitlist((current) =>
+          current.map((item) =>
+            item.id === waitlistData.id ? { ...item, id: String(data) } : item
+          )
+        );
+      }
+
+      setCloudStatus("Cliente adicionado à lista de espera online.");
+    } catch (error) {
       console.error(error);
-      setCloudStatus("A lista de espera foi salva neste aparelho, mas não foi sincronizada online.");
-      return;
-    }
-
-    if (data) {
-      setWaitlist((current) =>
-        current.map((item) =>
-          item.id === waitlistData.id ? { ...item, id: String(data) } : item
-        )
+      setCloudStatus(
+        `A lista de espera foi salva neste aparelho, mas não foi sincronizada online: ${cloudErrorText(error)}`
       );
+    } finally {
+      setCloudSaving("");
     }
-
-    setCloudStatus("Cliente adicionado à lista de espera online.");
   }
 
   async function updateWaitlistStatus(id, status) {
@@ -2910,19 +2909,26 @@ function CoreAgendaProApp() {
 
     if (!isUuid(id)) return;
 
-    const { error } = await callCloudFunction("update_waitlist_status", {
-      target_slug: loadedCloudSlug(),
-      waitlist_id_input: id,
-      status_input: status,
-    });
+    setCloudSaving("waitlist-status");
 
-    if (error) {
+    try {
+      const { error } = await callCloudFunction("update_waitlist_status", {
+        target_slug: loadedCloudSlug(),
+        waitlist_id_input: id,
+        status_input: status,
+      });
+
+      if (error) throw error;
+
+      setCloudStatus("Lista de espera atualizada online.");
+    } catch (error) {
       console.error(error);
-      setCloudStatus("A lista de espera foi atualizada neste aparelho, mas não foi sincronizada online.");
-      return;
+      setCloudStatus(
+        `A lista de espera foi atualizada neste aparelho, mas não foi sincronizada online: ${cloudErrorText(error)}`
+      );
+    } finally {
+      setCloudSaving("");
     }
-
-    setCloudStatus("Lista de espera atualizada online.");
   }
 
   function copyText(text) {
@@ -3258,20 +3264,27 @@ function CoreAgendaProApp() {
     if (!service.id) return;
 
     setCloudSaving("services");
-    const { error } = await callCloudFunction("soft_delete_service", {
-      target_slug: loadedCloudSlug(),
-      service_id_input: service.id,
-    });
-    setCloudSaving("");
 
-    if (error) {
+    try {
+      const { error } = await callCloudFunction("soft_delete_service", {
+        target_slug: loadedCloudSlug(),
+        service_id_input: service.id,
+      });
+
+      if (error) throw error;
+
+      setCloudStatus("Serviço excluído online com segurança.");
+      showNotice("Serviço excluído com segurança.");
+    } catch (error) {
       console.error(error);
-      setCloudStatus("Serviço excluído neste aparelho, mas ainda não sincronizou online.");
-      showNotice("Serviço ocultado neste aparelho. Tente salvar serviços para sincronizar online.");
-      return;
+      const detail = cloudErrorText(error);
+      setCloudStatus(`Serviço excluído neste aparelho, mas ainda não sincronizou online: ${detail}`);
+      showNotice(
+        `Serviço ocultado neste aparelho. Tente salvar serviços para sincronizar online.\n\nDetalhe: ${detail}`
+      );
+    } finally {
+      setCloudSaving("");
     }
-
-    setCloudStatus("Serviço excluído online com segurança.");
   }
 
   function updateProfessional(index, field, value) {

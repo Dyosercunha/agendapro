@@ -175,6 +175,24 @@ const platformFeatures = [
     released: true,
   },
   {
+    key: "service_delete",
+    title: "Excluir serviço seguro",
+    description: "Remove serviços da vitrine sem apagar histórico ou agendamentos antigos.",
+    released: false,
+  },
+  {
+    key: "backplate",
+    title: "Plano de fundo personalizado",
+    description: "Libera imagem de fundo para a tela do cliente e para o painel da barbearia.",
+    released: false,
+  },
+  {
+    key: "appearance_media",
+    title: "Fotos Antes / Processo / Finalizado",
+    description: "Mostra fotos de portfólio na vitrine de agendamento do cliente.",
+    released: false,
+  },
+  {
     key: "promotions",
     title: "Promoções inteligentes",
     description: "Campanhas e descontos configuráveis para clientes.",
@@ -967,7 +985,8 @@ function CoreAgendaProApp() {
   );
   const publicScheduleLink = `${appOrigin}/${routeSlug || "barbearia"}`;
   const adminPanelLink = `${appOrigin}/painel/${routeSlug || "barbearia"}`;
-  const appointmentManagementLink = confirmedToken
+  const uniqueLinkAvailable = featureFlags.unique_link?.released && featureFlags.unique_link?.enabled;
+  const appointmentManagementLink = uniqueLinkAvailable && confirmedToken
     ? `${publicScheduleLink}?agendamento=${encodeURIComponent(confirmedToken)}`
     : "";
   const scheduleBlocked = business.monthlyStatus === "blocked";
@@ -3079,8 +3098,7 @@ function CoreAgendaProApp() {
   function isFutureOnlyFeature(featureKey) {
     return (
       featureKey === "google_login" ||
-      featureKey === "instagram_booking" ||
-      featureKey === "unique_link"
+      featureKey === "instagram_booking"
     );
   }
 
@@ -3103,6 +3121,18 @@ function CoreAgendaProApp() {
       return { label: "Editar mensagem final", tab: "appearance", disabled: false };
     }
 
+    if (featureKey === "service_delete") {
+      return { label: "Gerenciar serviços", tab: "services", disabled: false };
+    }
+
+    if (featureKey === "backplate") {
+      return { label: "Configurar fundos", tab: "appearance", disabled: false };
+    }
+
+    if (featureKey === "appearance_media") {
+      return { label: "Configurar fotos", tab: "appearance", disabled: false };
+    }
+
     if (featureKey === "promotions") {
       return { label: "Configurar promoção", tab: "payments", disabled: false };
     }
@@ -3121,6 +3151,10 @@ function CoreAgendaProApp() {
 
     if (featureKey === "instagram_booking") {
       return { label: "Instagram em preparação", tab: "", disabled: true };
+    }
+
+    if (featureKey === "unique_link") {
+      return { label: "Link ativo no cliente", tab: "", disabled: true };
     }
 
     return { label: "Em breve", tab: "", disabled: true };

@@ -204,6 +204,25 @@ function StatCard({ label, value, hint }) {
   );
 }
 
+function checkedAtText() {
+  return new Date().toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function HealthItem({ label, status, detail, tone = "neutral" }) {
+  return (
+    <article className={`platformHealthItem ${tone}`}>
+      <span>{label}</span>
+      <strong>{status}</strong>
+      {detail ? <small>{detail}</small> : null}
+    </article>
+  );
+}
+
 export default function PlatformDashboard() {
   const [loading, setLoading] = useState(true);
   const [checking, setChecking] = useState(true);
@@ -218,6 +237,12 @@ export default function PlatformDashboard() {
   const [filter, setFilter] = useState("all");
   const [platformLogin, setPlatformLogin] = useState({ email: "appagenda.pro@gmail.com", password: "" });
   const [cloudAudit, setCloudAudit] = useState({ barbershops: [] });
+  const [systemHealth, setSystemHealth] = useState({
+    loading: false,
+    checkedAt: "",
+    auth: null,
+    whatsapp: null,
+  });
 
   const auditActiveShops = useMemo(
     () => (cloudAudit?.barbershops || []).filter((shop) => !shop.archived_at).map(normalizeAuditShop),
@@ -304,11 +329,45 @@ export default function PlatformDashboard() {
     setIsDeveloper(true);
     setMessage("");
     await loadDashboard();
+    await checkSystemHealth();
     } catch (error) {
       setIsDeveloper(false);
       setLoading(false);
       setMessage("Não foi possível validar o acesso do desenvolvedor: " + errorText(error));
     }
+  }
+
+  async function fetchHealthJson(url) {
+    const response = await fetch(url);
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(data?.error || `Falha ao verificar ${url}.`);
+    }
+
+    return data;
+  }
+
+  async function checkSystemHealth() {
+    setSystemHealth((current) => ({ ...current, loading: true }));
+
+    const [authResult, whatsappResult] = await Promise.allSettled([
+      fetchHealthJson("/api/admin-auth-user"),
+      fetchHealthJson("/api/send-whatsapp?status=1"),
+    ]);
+
+    setSystemHealth({
+      loading: false,
+      checkedAt: checkedAtText(),
+      auth:
+        authResult.status === "fulfilled"
+          ? authResult.value
+          : { ok: false, error: errorText(authResult.reason) },
+      whatsapp:
+        whatsappResult.status === "fulfilled"
+          ? whatsappResult.value
+          : { ok: false, error: errorText(whatsappResult.reason), missing: [] },
+    });
   }
 
   async function loadDashboard() {
@@ -848,7 +907,16 @@ export default function PlatformDashboard() {
           {session?.user?.email ? <small>Logado como {session.user.email}</small> : null}
         </div>
         <div className="platformHeroActions">
-          <button type="button" className="platformSecondary" onClick={loadDashboard}>Atualizar</button>
+          <button
+            type="button"
+            className="platformSecondary"
+            onClick={async () => {
+              await loadDashboard();
+              await checkSystemHealth();
+            }}
+          >
+            Atualizar
+          </button>
           <button type="button" className="platformSecondary" disabled={saving === "reminders"} onClick={sendBillingReminders}>{saving === "reminders" ? "Enviando..." : "Enviar avisos de vencimento"}</button>
           <button type="button" className="platformDangerGhost" disabled={saving === "purge-archived" || !(archivedShops.length || Number(dashboard.stats?.archived || 0))} onClick={purgeArchivedShops}>{saving === "purge-archived" ? "Limpando..." : `Limpar arquivadas (${archivedShops.length || dashboard.stats?.archived || 0})`}</button>
           <button type="button" className="platformSecondary" onClick={logout}>Sair</button>
@@ -863,6 +931,60 @@ export default function PlatformDashboard() {
         <StatCard label="Ativas" value={dashboard.stats?.active || 0} hint={`${dashboard.stats?.trial || 0} em teste`} />
         <StatCard label="Desativadas" value={dashboard.stats?.blocked || 0} hint={`Próximo: ${dateText(dashboard.stats?.next_billing)}`} />
         <StatCard label="Arquivadas" value={dashboard.stats?.archived || 0} hint="fora da lista principal" />
+      </section>
+
+      <section className="platformCard platformHealthCard">
+        <div className="platformTitle">
+          <div>
+            <span>Diagnóstico</span>
+            <h2>Sistema</h2>
+          </div>
+          <button
+            type="button"
+            className="platformSecondary"
+            disabled={systemHealth.loading}
+            onClick={checkSystemHealth}
+          >
+            {systemHealth.loading ? "Verificando..." : "Verificar sistema"}
+          </button>
+        </div>
+
+        <div className="platformHealthGrid">
+          <HealthItem
+            label="Login e senha"
+            tone={systemHealth.auth?.serviceRoleConfigured ? "ready" : "danger"}
+            status={systemHealth.auth?.serviceRoleConfigured ? "Pronto" : "Atenção"}
+            detail={
+              systemHealth.auth?.serviceRoleConfigured
+                ? "SUPABASE_SERVICE_ROLE_KEY ativa para criar logins de donos."
+                : systemHealth.auth?.error || "Falta SUPABASE_SERVICE_ROLE_KEY na Vercel."
+            }
+          />
+          <HealthItem
+            label="WhatsApp automático"
+            tone={systemHealth.whatsapp?.ready ? "ready" : "warning"}
+            status={systemHealth.whatsapp?.ready ? "Pronto" : "Pendente"}
+            detail={
+              systemHealth.whatsapp?.ready
+                ? `${systemHealth.whatsapp.providerLabel || "WhatsApp Cloud API"} configurado.`
+                : (systemHealth.whatsapp?.missing || []).length
+                ? `Falta configurar: ${(systemHealth.whatsapp.missing || []).join(", ")}.`
+                : systemHealth.whatsapp?.error || "Aguardando verificação das chaves."
+            }
+          />
+          <HealthItem
+            label="Dados da plataforma"
+            tone="ready"
+            status="Conectado"
+            detail={`${filteredShops.length} barbearia(s) na lista atual. ${archivedShops.length || 0} arquivada(s).`}
+          />
+        </div>
+
+        <p className="platformHealthFooter">
+          {systemHealth.checkedAt
+            ? `Última verificação: ${systemHealth.checkedAt}.`
+            : "Clique em verificar para atualizar o diagnóstico."}
+        </p>
       </section>
 
       <section className="platformFilters">

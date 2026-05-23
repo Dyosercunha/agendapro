@@ -18,6 +18,7 @@ export default function ClientBooking({ model }) {
     copyText,
     dateOptions,
     dateParts,
+    featureFlags,
     finishSchedule,
     formatDate,
     formatDateForMessage,
@@ -81,6 +82,42 @@ export default function ClientBooking({ model }) {
     whatsapp,
     withNotice,
   } = model;
+
+  const cleanAddress = repairText(business.address || "");
+  const mapsHref =
+    business.mapsUrl ||
+    (cleanAddress
+      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cleanAddress)}`
+      : "");
+  const instagramAvailable =
+    Boolean(business.instagramUrl) &&
+    Boolean(
+      business.proInstagramEnabled ||
+        (featureFlags?.instagram_booking?.released && featureFlags?.instagram_booking?.enabled)
+    );
+  const instagramHref =
+    business.instagramUrl && /^https?:\/\//i.test(String(business.instagramUrl))
+      ? business.instagramUrl
+      : business.instagramUrl
+        ? `https://${business.instagramUrl}`
+        : "";
+  const mediaAvailable = Boolean(
+    business.proAppearanceMediaEnabled ||
+      (featureFlags?.appearance_media?.released && featureFlags?.appearance_media?.enabled)
+  );
+  const portfolioImages = mediaAvailable
+    ? [
+        { url: business.beforeImageUrl, label: repairText(business.beforeImageLabel || "Antes") },
+        { url: business.processImageUrl, label: repairText(business.processImageLabel || "Processo") },
+        { url: business.finalImageUrl, label: repairText(business.finalImageLabel || "Final") },
+      ].filter((item) => item.url)
+    : [];
+  const statusNotice =
+    business.monthlyStatus === "overdue"
+      ? "Esta barbearia está com a assinatura em regularização. Se algum horário não aparecer, fale diretamente pelo WhatsApp."
+      : business.monthlyStatus === "trial"
+        ? "Agenda em período de teste. Os horários podem ser ajustados pela barbearia a qualquer momento."
+        : "";
 
   if (screen === "manage") {
     return withNotice(
@@ -442,15 +479,16 @@ export default function ClientBooking({ model }) {
   }
 
   return withNotice(
-    <main className="app">
-      <header className="appHeader">
+    <main className="app clientBookingApp">
+      <header className="appHeader clientHeroHeader">
         <div className="brand">
-          <div className={business.logoImage ? "logo logoWithImage" : "logo"}>
+          <div className={business.logoImage ? "logo logoWithImage clientHeroLogo" : "logo clientHeroLogo"}>
             {business.logoImage ? <img src={business.logoImage} alt="Logo" /> : business.logo}
           </div>
           <div>
             <span>Agendamento online</span>
-            <h1>{business.name}</h1>
+            <h1>{repairText(business.name)}</h1>
+            {cleanAddress && <small>{cleanAddress}</small>}
           </div>
         </div>
 
@@ -458,40 +496,74 @@ export default function ClientBooking({ model }) {
           <a className="miniWhatsapp" href={`https://wa.me/${business.whatsapp}`} target="_blank" rel="noreferrer">
             WhatsApp
           </a>
+          {instagramAvailable && (
+            <a className="miniInstagram" href={instagramHref} target="_blank" rel="noreferrer">
+              Instagram
+            </a>
+          )}
           <button type="button" className="ownerLoginButton" onClick={openAdminArea}>
             Entrar
           </button>
         </div>
       </header>
 
-      <section className="heroPanel">
+      {statusNotice && (
+        <section className="clientStatusNotice">
+          <strong>Aviso da agenda</strong>
+          <p>{statusNotice}</p>
+        </section>
+      )}
+
+      <section className="heroPanel clientHeroPanel">
         <div>
-          <span>Agendamento online</span>
+          <span>Reserve pelo app</span>
           <strong>Escolha seu atendimento</strong>
         </div>
-        <p>Informe seus dados, escolha os serviços e receba uma sugestão de horário ideal.</p>
+        <p>Informe seus dados, escolha serviços ou promoções e veja os horários disponíveis por profissional.</p>
+        <div className="clientHeroMetrics">
+          <span>{activeServices.length} serviços</span>
+          <span>{clientProfessionals.length} profissionais</span>
+          <span>{recommendedTime || "Agenda aberta"}</span>
+        </div>
       </section>
 
-      <section className="addressCard">
-        <div>
-          <span>Endereço</span>
-          <strong>{business.address}</strong>
-        </div>
-        <a href={business.mapsUrl} target="_blank" rel="noreferrer">
-          Como chegar
-        </a>
-      </section>
+      {cleanAddress && (
+        <section className="addressCard premiumAddressCard">
+          <div>
+            <span>Endereço</span>
+            <strong>{cleanAddress}</strong>
+          </div>
+          {mapsHref && (
+            <a href={mapsHref} target="_blank" rel="noreferrer">
+              Como chegar
+            </a>
+          )}
+        </section>
+      )}
 
-      <section className="portfolio">
-        <div>
-          <span>Antes</span>
-        </div>
-        <div>
-          <span>Processo</span>
-        </div>
-        <div>
-          <span>Final</span>
-        </div>
+      <section className={portfolioImages.length ? "portfolio premiumPortfolio" : "portfolio"}>
+        {(portfolioImages.length
+          ? portfolioImages
+          : [
+              { label: "Antes" },
+              { label: "Processo" },
+              { label: "Final" },
+            ]
+        ).map((image, index) => (
+          <div
+            key={`${image.label}-${index}`}
+            className={image.url ? "portfolioPhoto" : ""}
+            style={
+              image.url
+                ? {
+                    backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.02), rgba(0,0,0,0.62)), url(${image.url})`,
+                  }
+                : undefined
+            }
+          >
+            <span>{image.label}</span>
+          </div>
+        ))}
       </section>
 
       <section className="stepper">
@@ -501,6 +573,61 @@ export default function ClientBooking({ model }) {
         </span>
         <span>3 Pagamento</span>
       </section>
+
+      {promotionAvailable && activePromotions.length > 0 && (
+        <section className="promoBanner promoListBanner clientPromoShowcase">
+          <div>
+            <span>Promoções disponíveis</span>
+            <strong>
+              {promotionValue > 0
+                ? `Você economiza ${money(promotionValue)}`
+                : `${activePromotions.length} promoção disponível`}
+            </strong>
+            <small>Abra, escolha uma promoção e adicione ao seu agendamento.</small>
+          </div>
+          <button
+            type="button"
+            className="promoToggle"
+            onClick={() => setPromotionsOpen(!promotionsOpen)}
+          >
+            {promotionsOpen ? "Ocultar" : "Ver promoções"}
+          </button>
+
+          {promotionsOpen && (
+            <div className="clientPromoList">
+              {promotionDetails.map((promotion) => (
+                <div
+                  className={
+                    selectedPromotions.includes(promotion.id)
+                      ? "clientPromoItem selectedPromoItem"
+                      : "clientPromoItem"
+                  }
+                  key={promotion.id}
+                >
+                  <div>
+                    <strong>{promotion.title || "Promoção"}</strong>
+                    {promotion.description && <p>{promotion.description}</p>}
+                    <span>
+                      {promotion.type === "price"
+                        ? `Valor promocional: ${money(promotion.promotionalPrice || 0)}`
+                        : [
+                            promotion.discountPercent > 0 ? `${promotion.discountPercent}%` : "",
+                            promotion.discountValue > 0 ? `${money(promotion.discountValue)}` : "",
+                          ]
+                            .filter(Boolean)
+                            .join(" + ")}
+                      {promotion.savings > 0 && ` de economia neste agendamento`}
+                    </span>
+                  </div>
+                  <button type="button" onClick={() => togglePromotion(promotion.id)}>
+                    {selectedPromotions.includes(promotion.id) ? "Remover" : "Adicionar"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       <section className="card">
         <h2>Seus dados</h2>
@@ -544,13 +671,19 @@ export default function ClientBooking({ model }) {
         {activeServices.map((service) => (
           <button type="button"
             key={service.originalIndex}
-            className={selectedServices.includes(service.originalIndex) ? "service selected" : "service"}
+            aria-pressed={selectedServices.includes(service.originalIndex)}
+            className={
+              selectedServices.includes(service.originalIndex)
+                ? "service premiumService selected"
+                : "service premiumService"
+            }
             onClick={() => toggleService(service.originalIndex)}
           >
-            <span>
+            <span className="serviceInfo">
               <strong>{service.name}</strong>
               <small>
-                {service.duration} min - {money(service.price)}
+                <span>{service.duration} min</span>
+                <span>{money(service.price)}</span>
               </small>
             </span>
             <span className="serviceCheck">
@@ -559,61 +692,6 @@ export default function ClientBooking({ model }) {
           </button>
         ))}
       </section>
-
-      {promotionAvailable && activePromotions.length > 0 && (
-        <section className="promoBanner promoListBanner">
-          <div>
-            <span>Promoções disponíveis</span>
-            <strong>
-              {promotionValue > 0
-                ? `Você economiza ${money(promotionValue)}`
-                : `${activePromotions.length} promoção disponível`}
-            </strong>
-            <small>Abra para ver as condições ativas desta barbearia.</small>
-          </div>
-          <button
-            type="button"
-            className="promoToggle"
-            onClick={() => setPromotionsOpen(!promotionsOpen)}
-          >
-            {promotionsOpen ? "Ocultar" : "Ver promos"}
-          </button>
-
-          {promotionsOpen && (
-            <div className="clientPromoList">
-              {promotionDetails.map((promotion) => (
-                <div
-                  className={
-                    selectedPromotions.includes(promotion.id)
-                      ? "clientPromoItem selectedPromoItem"
-                      : "clientPromoItem"
-                  }
-                  key={promotion.id}
-                >
-                  <div>
-                    <strong>{promotion.title || "Promoção"}</strong>
-                    {promotion.description && <p>{promotion.description}</p>}
-                    <span>
-                      {promotion.type === "price"
-                        ? `Valor promocional: ${money(promotion.promotionalPrice || 0)}`
-                        : [
-                            promotion.discountPercent > 0 ? `${promotion.discountPercent}%` : "",
-                            promotion.discountValue > 0 ? `${money(promotion.discountValue)}` : "",
-                          ]
-                            .filter(Boolean)
-                            .join(" + ")}
-                      {promotion.savings > 0 && ` de economia neste agendamento`}
-                    </span>
-                  </div>
-                  <button type="button" onClick={() => togglePromotion(promotion.id)}>
-                    {selectedPromotions.includes(promotion.id) ? "Remover" : "Adicionar"}
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      )}
 
       {hasChosenService && (
         <section className="recommendBox bestTimePanel">
@@ -717,6 +795,17 @@ export default function ClientBooking({ model }) {
           <span>{formatDate(selectedDate)}</span>
         </div>
 
+        {hasChosenService && slots.some((slot) => slot.available) && (
+          <div className="scheduleProfessionalHint">
+            <span>Horários por profissional</span>
+            <strong>
+              {professional === "Primeiro disponível"
+                ? "Cada horário mostra quem pode atender"
+                : `Filtrando por ${professional}`}
+            </strong>
+          </div>
+        )}
+
         {!hasChosenService ? (
           <div className="emptySchedule">
             <strong>Escolha um serviço para ver os horários.</strong>
@@ -747,7 +836,11 @@ export default function ClientBooking({ model }) {
                 onClick={() => setSelectedTime(slot.time)}
               >
                 <strong>{slot.time}</strong>
-                <small>{slot.label}</small>
+                <small>
+                  {slot.status === "recommended" && slot.professional
+                    ? `${slot.professional} · Recomendado`
+                    : slot.label}
+                </small>
               </button>
             ))}
           </div>
@@ -788,6 +881,15 @@ export default function ClientBooking({ model }) {
           {hasChosenService ? "Continuar →" : "Escolha serviço ou promo"}
         </button>
       </section>
+
+      <a
+        className="clientFloatingWhatsapp"
+        href={`https://wa.me/${business.whatsapp}`}
+        target="_blank"
+        rel="noreferrer"
+      >
+        Falar no WhatsApp
+      </a>
     </main>
   );
 }

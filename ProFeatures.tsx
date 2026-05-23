@@ -880,9 +880,7 @@ export default function AppProFeatures() {
     }))
     .filter((item) => item.url);
 
-  if (!context.admin && proClient()) {
-    return <ClientFeatureBanner growth={growth} images={images} />;
-  }
+  if (!context.admin && proClient()) return null;
 
   if (!context.admin) return null;
   if (context.tab === "services") return null;

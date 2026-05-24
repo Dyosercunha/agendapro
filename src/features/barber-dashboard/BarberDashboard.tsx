@@ -57,6 +57,8 @@ type WhatsAppIntegrationStatus = {
   ready: boolean;
 };
 
+type BackgroundField = "adminBackgroundUrl" | "clientBackgroundUrl";
+
 type BarberDashboardModel = {
   accessAccounts: AccessAccount[];
   activeAdminTab: string;
@@ -87,6 +89,11 @@ type BarberDashboardModel = {
   featureStatusCards: FeatureStatusCard[];
   formatDate: (date?: string) => string;
   goToClientView: () => void;
+  handleBackgroundUpload: (
+    field: BackgroundField,
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => void | Promise<void>;
+  handleLogoUpload: (event: React.ChangeEvent<HTMLInputElement>) => void | Promise<void>;
   isFutureOnlyFeature: (feature: FeatureKey | string) => boolean;
   isServiceDeleted: (service: Service) => boolean;
   loyaltyFeatureEnabled: boolean;
@@ -103,6 +110,7 @@ type BarberDashboardModel = {
   returningCustomers: Client[];
   removeProfessional: (index: number) => void;
   removeService: (index: number) => void;
+  saveBackgroundsToCloud: () => void;
   saveBusinessToCloud: () => void;
   saveFeatureFlagsToCloud: () => void;
   saveProfessionalsToCloud: () => void;
@@ -119,6 +127,7 @@ type BarberDashboardModel = {
   topCustomer?: Client | null;
   upcomingAppointments: Appointment[];
   updateFeatureFlag: (feature: FeatureKey | string, field: keyof FeatureFlag, value: boolean) => void;
+  updateBusinessName: (value: string) => void;
   updateProfessional: (index: number, field: keyof Professional | string, value: unknown) => void;
   updateService: (index: number, field: keyof Service | string, value: unknown) => void;
   visibleAdminTabs: AdminTab[];

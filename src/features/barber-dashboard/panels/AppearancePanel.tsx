@@ -1,5 +1,40 @@
-// @ts-nocheck
 import React, { useState } from "react";
+import type { Barbershop } from "../../../types/app";
+
+type BackgroundField = "adminBackgroundUrl" | "clientBackgroundUrl";
+
+type AddressLookup = {
+  cep: string;
+  complement: string;
+  number: string;
+};
+
+type CepAddressResponse = {
+  bairro?: string;
+  erro?: boolean;
+  localidade?: string;
+  logradouro?: string;
+  uf?: string;
+};
+
+type AppearancePanelModel = {
+  activeAdminTab: string;
+  business: Barbershop;
+  cloudSaving: string;
+  handleBackgroundUpload: (
+    field: BackgroundField,
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => void | Promise<void>;
+  handleLogoUpload: (event: React.ChangeEvent<HTMLInputElement>) => void | Promise<void>;
+  saveBackgroundsToCloud: () => void;
+  saveBusinessToCloud: () => void;
+  setBusiness: React.Dispatch<React.SetStateAction<Barbershop>>;
+  updateBusinessName: (value: string) => void;
+};
+
+type AppearancePanelProps = {
+  model: AppearancePanelModel;
+};
 
 function onlyDigits(value = "") {
   return String(value || "").replace(/\D/g, "");
@@ -17,7 +52,7 @@ function hasSpecificMapsUrl(value = "") {
   return !/^https?:\/\/(www\.)?(maps\.google\.com|google\.com\/maps)\/?$/i.test(url);
 }
 
-function buildCepAddress(cepData, number, complement) {
+function buildCepAddress(cepData: CepAddressResponse, number: string, complement: string) {
   const street = cepData?.logradouro || "";
   const neighborhood = cepData?.bairro || "";
   const city = cepData?.localidade || "";
@@ -36,7 +71,7 @@ function buildCepAddress(cepData, number, complement) {
     .join(" - ");
 }
 
-async function fetchCepAddress(cep, number, complement) {
+async function fetchCepAddress(cep: string, number: string, complement: string) {
   const cleanCep = onlyDigits(cep);
   const cleanNumber = String(number || "").trim();
 
@@ -49,7 +84,7 @@ async function fetchCepAddress(cep, number, complement) {
   }
 
   const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
-  const data = await response.json().catch(() => null);
+  const data = (await response.json().catch(() => null)) as CepAddressResponse | null;
 
   if (!response.ok || !data || data.erro) {
     throw new Error("CEP não encontrado. Confira o número ou cadastre o endereço manualmente.");
@@ -63,7 +98,11 @@ async function fetchCepAddress(cep, number, complement) {
   return address;
 }
 
-export default function AppearancePanel({ model }) {
+function errorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
+
+export default function AppearancePanel({ model }: AppearancePanelProps) {
   const {
     activeAdminTab,
     business,
@@ -75,7 +114,11 @@ export default function AppearancePanel({ model }) {
     setBusiness,
     updateBusinessName,
   } = model;
-  const [addressLookup, setAddressLookup] = useState({ cep: "", number: "", complement: "" });
+  const [addressLookup, setAddressLookup] = useState<AddressLookup>({
+    cep: "",
+    complement: "",
+    number: "",
+  });
   const [addressMessage, setAddressMessage] = useState("");
   const [addressLoading, setAddressLoading] = useState(false);
 
@@ -100,13 +143,13 @@ export default function AppearancePanel({ model }) {
       });
       setAddressMessage("Endereço encontrado pelo CEP. Confira e salve a aparência.");
     } catch (error) {
-      setAddressMessage(error?.message || "Não foi possível buscar o endereço pelo CEP.");
+      setAddressMessage(errorMessage(error, "Não foi possível buscar o endereço pelo CEP."));
     } finally {
       setAddressLoading(false);
     }
   }
 
-  function updateAddressManually(value) {
+  function updateAddressManually(value: string) {
     setBusiness({
       ...business,
       address: value,

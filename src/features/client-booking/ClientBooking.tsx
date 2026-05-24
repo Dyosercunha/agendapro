@@ -1,7 +1,154 @@
-// @ts-nocheck
 import React from "react";
+import type {
+  Appointment,
+  Barbershop,
+  FeatureFlags,
+  PaymentMode,
+  Professional,
+  Promotion,
+  Service,
+} from "../../types/app";
 
-export default function ClientBooking({ model }) {
+type ActiveService = Service & {
+  originalIndex: number;
+};
+
+type PromotionDetail = Promotion & {
+  discountPercent: number;
+  discountValue: number;
+  id: string;
+  promotionalPrice: number;
+  savings: number;
+  selected: boolean;
+  title: string;
+};
+
+type ClientHistory = {
+  lastServiceText?: string;
+  lastServices: number[];
+  name: string;
+};
+
+type DateInfo = {
+  day: string;
+  month: string;
+  weekday: string;
+};
+
+type DateAvailability = {
+  available: boolean;
+  label: string;
+};
+
+type ScheduleSlot = {
+  available: boolean;
+  label: string;
+  professional?: string;
+  status: string;
+  time: string;
+};
+
+type ClientProfessional = Pick<Professional, "name">;
+
+type ClientSchedule = {
+  slotInterval: number;
+};
+
+type PortfolioImage = {
+  label: string;
+  url?: string;
+};
+
+type PublicAppointment = Appointment & {
+  rescheduleRequested?: boolean;
+};
+
+type ClientBookingModel = {
+  activePromotions: Promotion[];
+  activeServices: ActiveService[];
+  appointmentManagementLink: string;
+  appointmentNote: string;
+  barberConfirmationMessage: string;
+  business: Barbershop;
+  canContinue: boolean;
+  chosenServices: Service[];
+  clientName: string;
+  clientProfessionals: ClientProfessional[];
+  cloudSaving: string;
+  confirmationSent: boolean;
+  copyText: (text?: string) => void;
+  dateOptions: string[];
+  dateParts: (date: string) => DateInfo;
+  featureFlags: FeatureFlags;
+  finishSchedule: () => void;
+  formatDate: (date?: string) => string;
+  formatDateForMessage: (date?: string) => string;
+  formatPhone: (value: string) => string;
+  getDateAvailability: (date: string) => DateAvailability;
+  goCheckout: () => void;
+  hasChosenService: boolean;
+  history?: ClientHistory | null;
+  joinWaitlist: () => void;
+  money: (value?: number) => string;
+  openAdminArea: () => void;
+  payment: PaymentMode;
+  pixAvailable: boolean;
+  pixDiscount: number;
+  pixDiscountValue: number;
+  pixPrice: number;
+  professional: string;
+  promotionalTotal: number;
+  promotionAvailable: boolean;
+  promotionDetails: PromotionDetail[];
+  promotionValue: number;
+  promotionsOpen: boolean;
+  publicActionSaving: string;
+  publicAppointment?: PublicAppointment | null;
+  range: string;
+  recommendedTime: string;
+  repairText: (value?: string) => string;
+  repeatLastService: () => void;
+  schedule: ClientSchedule;
+  scheduleBlocked: boolean;
+  screen: "home" | "confirm" | "success" | "manage" | string;
+  selectedDate: string;
+  selectedPaymentTotal: number;
+  selectedPromotionDetails: PromotionDetail[];
+  selectedPromotions: string[];
+  selectedServices: number[];
+  selectedTime: string;
+  services: Service[];
+  servicesText: string;
+  setAppointmentNote: (value: string) => void;
+  setClientName: (value: string) => void;
+  setPayment: (value: PaymentMode) => void;
+  setProfessional: (value: string) => void;
+  setPromotionsOpen: (value: boolean) => void;
+  setRange: (value: string) => void;
+  setScreen: (value: string) => void;
+  setSelectedDate: (value: string) => void;
+  setSelectedTime: (value: string) => void;
+  setWhatsapp: (value: string) => void;
+  showProfessionalChoice: boolean;
+  slots: ScheduleSlot[];
+  startNewSchedule: () => void;
+  today: string;
+  togglePromotion: (promotionId: string) => void;
+  toggleService: (serviceIndex: number) => void;
+  totalDuration: number;
+  totalPrice: number;
+  updatePublicAppointment: (action: "reschedule" | "cancel") => void;
+  waitlistAvailable: boolean;
+  waitlistSent: boolean;
+  whatsapp: string;
+  withNotice: (content: React.ReactNode) => React.ReactNode;
+};
+
+type ClientBookingProps = {
+  model: ClientBookingModel;
+};
+
+export default function ClientBooking({ model }: ClientBookingProps) {
   const {
     activeServices,
     activePromotions,
@@ -110,7 +257,7 @@ export default function ClientBooking({ model }) {
     business.proAppearanceMediaEnabled ||
       (featureFlags?.appearance_media?.released && featureFlags?.appearance_media?.enabled)
   );
-  const portfolioImages = mediaAvailable
+  const portfolioImages: PortfolioImage[] = mediaAvailable
     ? [
         { url: business.beforeImageUrl, label: repairText(business.beforeImageLabel || "Antes") },
         { url: business.processImageUrl, label: repairText(business.processImageLabel || "Processo") },
@@ -550,9 +697,9 @@ export default function ClientBooking({ model }) {
         {(portfolioImages.length
           ? portfolioImages
           : [
-              { label: "Antes" },
-              { label: "Processo" },
-              { label: "Final" },
+              { label: "Antes", url: undefined },
+              { label: "Processo", url: undefined },
+              { label: "Final", url: undefined },
             ]
         ).map((image, index) => (
           <div

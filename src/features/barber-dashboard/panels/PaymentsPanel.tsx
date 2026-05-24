@@ -1,7 +1,19 @@
 import React from "react";
+import type { Barbershop, FeatureFlag, FeatureFlags, FeatureKey, Promotion } from "../../../types/app";
 
 type PaymentsPanelProps = {
-  model: Record<string, any>;
+  model: {
+    activeAdminTab: string;
+    business: Barbershop;
+    clampPercentage: (value: unknown) => number;
+    cloudSaving: string;
+    featureFlags: FeatureFlags;
+    pixAvailable: boolean;
+    promotionAvailable: boolean;
+    saveBusinessToCloud: () => void;
+    setBusiness: (business: Barbershop) => void;
+    updateFeatureFlag: (feature: FeatureKey | string, field: keyof FeatureFlag, value: boolean) => void;
+  };
 };
 
 export default function PaymentsPanel({ model }: PaymentsPanelProps) {
@@ -18,10 +30,10 @@ export default function PaymentsPanel({ model }: PaymentsPanelProps) {
     updateFeatureFlag,
   } = model;
 
-  const promotions = Array.isArray(business.promotions) ? business.promotions : [];
+  const promotions: Promotion[] = Array.isArray(business.promotions) ? business.promotions : [];
   const promotionsReleased = Boolean(featureFlags.promotions?.released);
 
-  function updatePromotion(index, key, value) {
+  function updatePromotion(index: number, key: keyof Promotion, value: Promotion[keyof Promotion]) {
     const nextPromotions = promotions.map((promotion, itemIndex) =>
       itemIndex === index ? { ...promotion, [key]: value } : promotion
     );
@@ -44,7 +56,7 @@ export default function PaymentsPanel({ model }: PaymentsPanelProps) {
     });
   }
 
-  function removePromotion(index) {
+  function removePromotion(index: number) {
     setBusiness({
       ...business,
       promotions: promotions.filter((_, itemIndex) => itemIndex !== index),

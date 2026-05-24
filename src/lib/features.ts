@@ -1,4 +1,6 @@
-export const platformFeatures = [
+import type { FeatureDefinition, FeatureFlag, FeatureKey } from "../types/app";
+
+export const platformFeatures: FeatureDefinition[] = [
   {
     key: "pix",
     title: "PIX antecipado",
@@ -69,7 +71,7 @@ export const platformFeatures = [
 
 export const featureLabels = Object.fromEntries(
   platformFeatures.map((feature) => [feature.key, feature.title])
-);
+) as Record<FeatureKey, string>;
 
 export function defaultFeatureFlags() {
   return platformFeatures.reduce((result, feature) => {
@@ -79,5 +81,5 @@ export function defaultFeatureFlags() {
     };
 
     return result;
-  }, {} as Record<string, { enabled: boolean; released: boolean }>);
+  }, {} as Record<FeatureKey, FeatureFlag>);
 }

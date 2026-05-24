@@ -1,6 +1,6 @@
-import type { PlanKey, SubscriptionStatus } from "../types/app";
+import type { PlanKey, PlanOption, SubscriptionStatus } from "../types/app";
 
-export const planOptions = [
+export const planOptions: PlanOption[] = [
   {
     id: "starter" as PlanKey,
     name: "Inicial",

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
+import type { GrowthSettings, LoyaltyClient, WaitlistEntry } from "../../types/app";
 
 function slugFromUrl() {
   const parts = window.location.pathname.split("/").filter(Boolean);
@@ -8,15 +9,15 @@ function slugFromUrl() {
 function isPanel() { return window.location.pathname.includes("/painel/"); }
 function isClient() { return window.location.pathname.includes("/agendamento/"); }
 function todayIso() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
-function promoActive(s: Record<string, any>) { const t = todayIso(); return !!s.promotion_active && (!s.promotion_start_date || t >= s.promotion_start_date) && (!s.promotion_end_date || t <= s.promotion_end_date); }
+function promoActive(settings: GrowthSettings) { const t = todayIso(); return !!settings.promotion_active && (!settings.promotion_start_date || t >= settings.promotion_start_date) && (!settings.promotion_end_date || t <= settings.promotion_end_date); }
 
 export default function SafeGrowthPanel() {
   const slug = slugFromUrl();
   const panel = isPanel();
   const client = isClient();
-  const [data, setData] = useState<Record<string, any>>({ promotion_active:false, promotion_title:"Promoção online", promotion_description:"", promotion_discount:10, promotion_start_date:"", promotion_end_date:"", loyalty_enabled:false, loyalty_reward_description:"", loyalty_visit_goal:5, loyalty_discount:20, instagram_url:"", google_client_login_enabled:false });
-  const [waitlist, setWaitlist] = useState<Array<Record<string, any>>>([]);
-  const [clients, setClients] = useState<Array<Record<string, any>>>([]);
+  const [data, setData] = useState<GrowthSettings>({ promotion_active:false, promotion_title:"Promoção online", promotion_description:"", promotion_discount:10, promotion_start_date:"", promotion_end_date:"", loyalty_enabled:false, loyalty_reward_description:"", loyalty_visit_goal:5, loyalty_discount:20, instagram_url:"", google_client_login_enabled:false });
+  const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([]);
+  const [clients, setClients] = useState<LoyaltyClient[]>([]);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -30,7 +31,7 @@ export default function SafeGrowthPanel() {
     setClients(loyal || []);
   }
   useEffect(() => { load(); }, [slug]);
-  function setField(key: string, value: any) { setData((current) => ({ ...current, [key]: value })); }
+  function setField(key: keyof GrowthSettings, value: string | number | boolean) { setData((current) => ({ ...current, [key]: value })); }
 
   async function save() {
     setSaving(true); setMessage("");
@@ -53,7 +54,7 @@ export default function SafeGrowthPanel() {
       setMessage("Promoções, fidelidade e canais salvos.");
       await load();
     } catch (error) {
-      setMessage(error?.message || "Não foi possível salvar as melhorias.");
+      setMessage(error instanceof Error ? error.message : "Não foi possível salvar as melhorias.");
     } finally { setSaving(false); }
   }
 

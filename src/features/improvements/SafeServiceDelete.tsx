@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
+import type { Service } from "../../types/app";
 
 function slugFromUrl() {
   const parts = window.location.pathname.split("/").filter(Boolean);
@@ -9,7 +10,7 @@ function slugFromUrl() {
 export default function SafeServiceDelete() {
   const panel = window.location.pathname.includes("/painel/");
   const slug = slugFromUrl();
-  const [services, setServices] = useState<Array<Record<string, any>>>([]);
+  const [services, setServices] = useState<Service[]>([]);
   const [saving, setSaving] = useState("");
   const [message, setMessage] = useState("");
 
@@ -26,9 +27,9 @@ export default function SafeServiceDelete() {
 
   useEffect(() => { load(); }, [slug]);
 
-  async function removeService(service: Record<string, any>) {
+  async function removeService(service: Service) {
     if (!window.confirm(`Excluir o serviço "${service.name}"? O histórico antigo será mantido.`)) return;
-    setSaving(service.id);
+    setSaving(service.id || "");
     setMessage("");
     try {
       const { error } = await supabase.rpc("soft_delete_service_by_name", {
@@ -39,7 +40,7 @@ export default function SafeServiceDelete() {
       setServices((current) => current.filter((item) => item.id !== service.id));
       setMessage("Serviço excluído com segurança.");
     } catch (error) {
-      setMessage(error?.message || "Não foi possível excluir o serviço.");
+      setMessage(error instanceof Error ? error.message : "Não foi possível excluir o serviço.");
     } finally {
       setSaving("");
     }

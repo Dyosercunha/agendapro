@@ -1,7 +1,19 @@
 import React from "react";
+import type { Barbershop, Client } from "../../../types/app";
 
 type CustomersPanelProps = {
-  model: Record<string, any>;
+  model: {
+    activeAdminTab: string;
+    business: Barbershop;
+    canUseAdminTab: (tabId: string) => boolean;
+    customerProfiles: Client[];
+    formatDate: (date?: string) => string;
+    loyaltyFeatureEnabled: boolean;
+    money: (value?: number) => string;
+    returningCustomers: Client[];
+    setAdminTab: (tabId: string) => void;
+    topCustomer?: Client | null;
+  };
 };
 
 export default function CustomersPanel({ model }: CustomersPanelProps) {

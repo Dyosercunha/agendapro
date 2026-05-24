@@ -1,7 +1,17 @@
 import React from "react";
+import type { Service } from "../../../types/app";
 
 type ServicesPanelProps = {
-  model: Record<string, any>;
+  model: {
+    activeAdminTab: string;
+    addService: () => void;
+    cloudSaving: string;
+    isServiceDeleted: (service: Service) => boolean;
+    removeService: (index: number) => void;
+    saveServicesToCloud: () => void;
+    services: Service[];
+    updateService: (index: number, field: keyof Service | string, value: unknown) => void;
+  };
 };
 
 export default function ServicesPanel({ model }: ServicesPanelProps) {

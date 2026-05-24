@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
+import type { BackgroundSettings, SuccessTextSettings } from "../../types/app";
 
 function routeSlug() {
   const parts = window.location.pathname.split("/").filter(Boolean);
@@ -12,8 +13,8 @@ export default function SafeBackplatePanel() {
   const slug = routeSlug();
   const panel = inPanel();
   const client = inClient();
-  const [bg, setBg] = useState<Record<string, any>>({ client_background_url: "", admin_background_url: "", client_background_opacity: 0.18, admin_background_opacity: 0.12 });
-  const [txt, setTxt] = useState<Record<string, any>>({ success_title: "Agendamento confirmado!", success_message: "Seu horário já está reservado.", success_footer: "A barbearia já recebeu os detalhes do atendimento." });
+  const [bg, setBg] = useState<BackgroundSettings>({ client_background_url: "", admin_background_url: "", client_background_opacity: 0.18, admin_background_opacity: 0.12 });
+  const [txt, setTxt] = useState<SuccessTextSettings>({ success_title: "Agendamento confirmado!", success_message: "Seu horário já está reservado.", success_footer: "A barbearia já recebeu os detalhes do atendimento." });
   const [saving, setSaving] = useState("");
   const [message, setMessage] = useState("");
 
@@ -50,8 +51,8 @@ export default function SafeBackplatePanel() {
     layer.style.backgroundImage = `linear-gradient(rgba(7,10,13,.72),rgba(7,10,13,.72)), url('${String(url).replace(/'/g, "%27")}')`;
   }, [bg, panel]);
 
-  function setBgField(key: string, value: any) { setBg((current) => ({ ...current, [key]: value })); }
-  function setTxtField(key: string, value: any) { setTxt((current) => ({ ...current, [key]: value })); }
+  function setBgField(key: keyof BackgroundSettings, value: string | number) { setBg((current) => ({ ...current, [key]: value })); }
+  function setTxtField(key: keyof SuccessTextSettings, value: string) { setTxt((current) => ({ ...current, [key]: value })); }
 
   async function saveBackground() {
     setSaving("background"); setMessage("");
@@ -66,7 +67,7 @@ export default function SafeBackplatePanel() {
       if (error) throw error;
       setMessage("Backplate salvo.");
       await load();
-    } catch (error) { setMessage(error?.message || "Não foi possível salvar o backplate."); }
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível salvar o backplate."); }
     finally { setSaving(""); }
   }
 
@@ -76,7 +77,7 @@ export default function SafeBackplatePanel() {
       const { error } = await supabase.rpc("save_success_texts", { target_slug: slug, success_title_input: txt.success_title, success_message_input: txt.success_message, success_footer_input: txt.success_footer });
       if (error) throw error;
       setMessage("Textos salvos.");
-    } catch (error) { setMessage(error?.message || "Não foi possível salvar os textos."); }
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível salvar os textos."); }
     finally { setSaving(""); }
   }
 

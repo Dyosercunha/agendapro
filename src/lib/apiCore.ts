@@ -1,8 +1,30 @@
 import { supabase, supabaseAnonKey, supabaseUrl } from "./supabaseClient";
 
-export function apiErrorText(error: any) {
+export function apiErrorText(error: unknown) {
   if (!error) return "Erro desconhecido.";
-  return error.message || error.details || error.hint || error.error_description || String(error);
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (typeof error === "object") {
+    const errorData = error as {
+      details?: string;
+      error_description?: string;
+      hint?: string;
+      message?: string;
+    };
+
+    return (
+      errorData.message ||
+      errorData.details ||
+      errorData.hint ||
+      errorData.error_description ||
+      String(error)
+    );
+  }
+
+  return String(error);
 }
 
 export function apiResultError(message: string, extra: Record<string, unknown> = {}) {
@@ -56,7 +78,7 @@ export async function callRpc(functionName: string, payload: Record<string, unkn
 export async function callRpcWithRestFallback(
   functionName: string,
   payload: Record<string, unknown> = {},
-  options: { shouldFallback?: (error: any) => boolean } = {}
+  options: { shouldFallback?: (error: unknown) => boolean } = {}
 ) {
   const result = await callRpc(functionName, payload);
 

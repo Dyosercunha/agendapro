@@ -1,10 +1,16 @@
 const DEFAULT_TIMEOUT_MS = 9000;
 
+declare global {
+  interface Window {
+    __agendaProNetworkTimeoutGuard?: boolean;
+  }
+}
+
 function shouldTimeout(url: string): boolean {
   return /supabase\.co|\/rest\/v1|\/rpc\//i.test(url);
 }
 
-if (typeof window !== "undefined" && !(window as any).__agendaProNetworkTimeoutGuard) {
+if (typeof window !== "undefined" && !window.__agendaProNetworkTimeoutGuard) {
   const originalFetch = window.fetch.bind(window);
 
   window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
@@ -24,7 +30,7 @@ if (typeof window !== "undefined" && !(window as any).__agendaProNetworkTimeoutG
     return originalFetch(input, mergedInit).finally(() => window.clearTimeout(timeout));
   };
 
-  (window as any).__agendaProNetworkTimeoutGuard = true;
+  window.__agendaProNetworkTimeoutGuard = true;
 }
 
 export {};

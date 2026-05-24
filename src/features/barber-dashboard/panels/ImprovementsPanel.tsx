@@ -1,7 +1,34 @@
 import React from "react";
+import type {
+  AdminRole,
+  Barbershop,
+  FeatureDefinition,
+  FeatureFlag,
+  FeatureFlags,
+  FeatureKey,
+  PlanOption,
+} from "../../../types/app";
 
 type ImprovementsPanelProps = {
-  model: Record<string, any>;
+  model: {
+    activeAdminTab: string;
+    autoConfirmationFeatureEnabled: boolean;
+    business: Barbershop;
+    canManageBilling: boolean;
+    cloudSaving: string;
+    currentAdminRole: AdminRole | string;
+    currentPlan: PlanOption;
+    featureFlags: FeatureFlags;
+    featureShortcut: (feature: FeatureKey | string) => { disabled?: boolean; label: string; tab?: string };
+    isFutureOnlyFeature: (feature: FeatureKey | string) => boolean;
+    pixAvailable: boolean;
+    platformFeatures: FeatureDefinition[];
+    saveFeatureFlagsToCloud: () => void;
+    setAdminTab: (tabId: string) => void;
+    setBusiness: (business: Barbershop) => void;
+    setFeatureRelease: (feature: FeatureKey | string, released: boolean) => void;
+    updateFeatureFlag: (feature: FeatureKey | string, field: keyof FeatureFlag, value: boolean) => void;
+  };
 };
 
 export default function ImprovementsPanel({ model }: ImprovementsPanelProps) {

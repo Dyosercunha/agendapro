@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from "react";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -54,10 +53,70 @@ import { saveServices as saveServicesRequest, softDeleteService } from "./lib/se
 import AppProFeatures from "./features/improvements/ProFeatures";
 import BarberDashboard from "./features/barber-dashboard/BarberDashboard";
 import ClientBooking from "./features/client-booking/ClientBooking";
+import type {
+  AccessAccount,
+  Appointment,
+  Barbershop,
+  Client,
+  FeatureFlags,
+  PaymentMode,
+  Professional,
+  Promotion,
+  PromotionType,
+  Service,
+  WaitlistEntry,
+} from "./types/app";
 import "./styles.css";
 
 const platformDeveloperEmails = ["dyoser2@gmail.com", "appagenda.pro@gmail.com"];
 const primaryPlatformDeveloperEmail = platformDeveloperEmails[0];
+
+type BusinessState = Barbershop & {
+  promotionDescription?: string;
+  promotionDiscount?: number;
+  promotionTitle?: string;
+  promotionValue?: number;
+};
+
+type LocalAppointment = Appointment & {
+  clientName: string;
+  date: string;
+  duration?: number;
+  id: string;
+  note?: string;
+  professional: string;
+  publicToken?: string;
+  services: string;
+  time: string;
+  token?: string;
+  total?: number;
+};
+
+type LocalWaitlistEntry = WaitlistEntry & {
+  clientName: string;
+  createdAt: string;
+  date: string;
+  id: string;
+  services: string;
+  status: string;
+  whatsapp: string;
+};
+
+type PublicAppointmentState = LocalAppointment & {
+  payment?: string;
+  token: string;
+};
+
+type NoticeState = {
+  message: string;
+  title?: string;
+  type?: "error" | "success" | "warning" | string;
+};
+
+type PasswordFormState = {
+  confirm: string;
+  next: string;
+};
 
 function isPlatformDeveloperEmail(value = "") {
   return platformDeveloperEmails.includes(String(value || "").trim().toLowerCase());
@@ -65,7 +124,7 @@ function isPlatformDeveloperEmail(value = "") {
 
 const fallbackProfessionalName = "Profissional disponível";
 
-const initialBusiness = {
+const initialBusiness: BusinessState = {
   name: "AgendaPro",
   logo: "A",
   logoImage: "",
@@ -116,7 +175,7 @@ const initialBusiness = {
   successFooter: "A barbearia já recebeu os detalhes do atendimento.",
 };
 
-const initialAccessAccounts = platformDeveloperEmails.map((email, index) => ({
+const initialAccessAccounts: AccessAccount[] = platformDeveloperEmails.map((email, index) => ({
   id: `developer-local-${index + 1}`,
   email,
   role: "Desenvolvedor",
@@ -126,10 +185,10 @@ const initialAccessAccounts = platformDeveloperEmails.map((email, index) => ({
   passwordConfirm: "",
 }));
 
-function normalizeRole(value){return normalizeAdminRole(value);}
-function roleLabel(value){const r=normalizeRole(value);return r==="desenvolvedor"?"Desenvolvedor":r==="dono"?"Dono":"Funcionário";}
-function cloudRoleFromLabel(value){const r=normalizeRole(value);if(r==="desenvolvedor")return"platform";if(r==="dono")return"owner";return"manager";}
-function canAccessAdminTab(roleValue,tabId,isOwnerEmail=false){return canAccessAdminTabByRole(roleValue,tabId,isOwnerEmail);}
+function normalizeRole(value?: string){return normalizeAdminRole(value);}
+function roleLabel(value?: string){const r=normalizeRole(value);return r==="desenvolvedor"?"Desenvolvedor":r==="dono"?"Dono":"Funcionário";}
+function cloudRoleFromLabel(value?: string){const r=normalizeRole(value);if(r==="desenvolvedor")return"platform";if(r==="dono")return"owner";return"manager";}
+function canAccessAdminTab(roleValue: string,tabId: string,isOwnerEmail=false){return canAccessAdminTabByRole(roleValue,tabId,isOwnerEmail);}
 
 const initialServices = [
   { name: "Corte de cabelo", duration: 30, price: 35, active: true },
@@ -180,9 +239,9 @@ const initialSchedule = {
   ],
 };
 
-const initialAppointments = [];
+const initialAppointments: LocalAppointment[] = [];
 
-const initialWaitlist = [];
+const initialWaitlist: LocalWaitlistEntry[] = [];
 
 const clientHistory = {};
 
@@ -266,7 +325,7 @@ function formatDateOnly(dateText) {
 function repairText(value) {
   if (typeof value !== "string") return value;
 
-  const fixes = [
+  const fixes: Array<[RegExp, string]> = [
     [/\u00c3\u00a1/g, "á"],
     [/\u00c3 /g, "à"],
     [/\u00c3\u00a3/g, "ã"],
@@ -406,8 +465,16 @@ function currentTimeMinutes() {
   return now.getHours() * 60 + now.getMinutes();
 }
 
-function normalizePromotion(item, index = 0) {
-  const promotion = isPlainObject(item) ? item : {};
+function normalizePromotion(item: unknown, index = 0): Promotion & {
+  active: boolean;
+  discountPercent: number;
+  discountValue: number;
+  id: string;
+  promotionalPrice: number;
+  title: string;
+  type: PromotionType;
+} {
+  const promotion = (isPlainObject(item) ? item : {}) as Record<string, any>;
   const fallback = initialBusiness.promotions[index] || initialBusiness.promotions[0];
 
   return {
@@ -443,7 +510,7 @@ function normalizePromotion(item, index = 0) {
   };
 }
 
-function normalizePromotions(value, legacy = {}) {
+function normalizePromotions(value: unknown, legacy: Record<string, any> = {}) {
   let list = value;
 
   if (typeof list === "string") {
@@ -897,55 +964,55 @@ function CoreAgendaProApp() {
   const [adminEmail, setAdminEmail] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
   const [adminLoginError, setAdminLoginError] = useState("");
-  const [adminContext, setAdminContext] = useState(null);
-  const [passwordForm, setPasswordForm] = useState({ next: "", confirm: "" });
+  const [adminContext, setAdminContext] = useState<Record<string, any> | null>(null);
+  const [passwordForm, setPasswordForm] = useState<PasswordFormState>({ next: "", confirm: "" });
   const [passwordSaving, setPasswordSaving] = useState("");
   const [passwordMessage, setPasswordMessage] = useState("");
-  const [passwordEditorOpen, setPasswordEditorOpen] = useState({});
+  const [passwordEditorOpen, setPasswordEditorOpen] = useState<Record<string, boolean>>({});
   const [barberGateWhatsapp, setBarberGateWhatsapp] = useState("");
   const [barberGateName, setBarberGateName] = useState("");
   const [barberGateError, setBarberGateError] = useState("");
   const [screen, setScreen] = useState("home");
-  const [business, setBusiness] = useState(() =>
+  const [business, setBusiness] = useState<BusinessState>(() =>
     normalizeBusiness(readSavedData(storageKeys.business, initialBusiness))
   );
-  const [accessAccounts, setAccessAccounts] = useState(() =>
+  const [accessAccounts, setAccessAccounts] = useState<AccessAccount[]>(() =>
     readSavedData(storageKeys.accessAccounts, initialAccessAccounts)
   );
-  const [featureFlags, setFeatureFlags] = useState(() =>
+  const [featureFlags, setFeatureFlags] = useState<FeatureFlags>(() =>
     readSavedData(storageKeys.featureFlags, initialFeatureFlags())
   );
-  const [services, setServices] = useState(() =>
+  const [services, setServices] = useState<Service[]>(() =>
     readSavedData(storageKeys.services, initialServices)
   );
-  const [professionals, setProfessionals] = useState(() =>
+  const [professionals, setProfessionals] = useState<Professional[]>(() =>
     readSavedData(storageKeys.professionals, initialProfessionals)
   );
-  const [schedule, setSchedule] = useState(() =>
+  const [schedule, setSchedule] = useState<typeof initialSchedule>(() =>
     readSavedData(storageKeys.schedule, initialSchedule)
   );
-  const [appointments, setAppointments] = useState(() =>
+  const [appointments, setAppointments] = useState<LocalAppointment[]>(() =>
     readSavedData(storageKeys.appointments, initialAppointments)
   );
-  const [waitlist, setWaitlist] = useState(() =>
+  const [waitlist, setWaitlist] = useState<LocalWaitlistEntry[]>(() =>
     readSavedData(storageKeys.waitlist, initialWaitlist)
   );
   const [whatsapp, setWhatsapp] = useState("");
   const [clientName, setClientName] = useState("");
-  const [selectedServices, setSelectedServices] = useState([]);
-  const [selectedPromotions, setSelectedPromotions] = useState([]);
+  const [selectedServices, setSelectedServices] = useState<number[]>([]);
+  const [selectedPromotions, setSelectedPromotions] = useState<string[]>([]);
   const [professional, setProfessional] = useState("Primeiro disponível");
   const [range, setRange] = useState("today");
   const [selectedDate, setSelectedDate] = useState(getDateAfterDays(0));
   const [selectedTime, setSelectedTime] = useState("");
-  const [payment, setPayment] = useState("");
+  const [payment, setPayment] = useState<PaymentMode>("");
   const [appointmentNote, setAppointmentNote] = useState("");
   const [promotionsOpen, setPromotionsOpen] = useState(false);
   const [clockTick, setClockTick] = useState(0);
   const [confirmationSent, setConfirmationSent] = useState(false);
   const [confirmedId, setConfirmedId] = useState("");
   const [confirmedToken, setConfirmedToken] = useState("");
-  const [publicAppointment, setPublicAppointment] = useState(null);
+  const [publicAppointment, setPublicAppointment] = useState<PublicAppointmentState | null>(null);
   const [publicAppointmentToken, setPublicAppointmentToken] = useState("");
   const [publicActionSaving, setPublicActionSaving] = useState("");
   const [dataSavedAt, setDataSavedAt] = useState("");
@@ -955,9 +1022,9 @@ function CoreAgendaProApp() {
   const [cloudStatus, setCloudStatus] = useState("Conectando à nuvem...");
   const [cloudSaving,setRawCloudSaving]=useState("");
   function setCloudSaving(value){setRawCloudSaving(value);if(value&&typeof window!=="undefined"){window.setTimeout(()=>setRawCloudSaving(c=>c===value?"":c),12000);}}
-  const [cloudHistory, setCloudHistory] = useState(null);
+  const [cloudHistory, setCloudHistory] = useState<Record<string, any> | null>(null);
   const [waitlistSent, setWaitlistSent] = useState(false);
-  const [notice, setNotice] = useState(null);
+  const [notice, setNotice] = useState<NoticeState | null>(null);
   const [barberConfirmationMessage, setBarberConfirmationMessage] = useState("");
   const [whatsappIntegrationStatus, setWhatsappIntegrationStatus] = useState({
     checked: false,
@@ -1033,7 +1100,7 @@ function CoreAgendaProApp() {
     window.setTimeout(() => window.location.reload(), 350);
   }
 
-  function isAdminEmailAllowed(email) {
+  function isAdminEmailAllowed(email: string) {
     const normalizedEmail = String(email || "").trim().toLowerCase();
 
     return (
@@ -1044,7 +1111,7 @@ function CoreAgendaProApp() {
     );
   }
 
-  function enterAdminWithEmail(email, options = {}) {
+  function enterAdminWithEmail(email: string, options: { resetTab?: boolean } = {}) {
     const resetTab = options.resetTab !== false;
 
     setAdminEmail(email || "");
@@ -1261,7 +1328,7 @@ function CoreAgendaProApp() {
       }
     });
 
-    const { data: authListener } = onAuthStateChange((_event, session) => {
+    const { data: authListener } = onAuthStateChange(async (_event, session) => {
       if (session) {
         handleAuthSession(session);
       }
@@ -1460,8 +1527,8 @@ function CoreAgendaProApp() {
     .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`))
     .slice(0, 5);
 
-  const customerProfiles = useMemo(() => {
-    const profiles = {};
+  const customerProfiles = useMemo<Client[]>(() => {
+    const profiles: Record<string, Client> = {};
 
     appointments.forEach((appointment) => {
       const phone = String(appointment.whatsapp || "").replace(/\D/g, "");
@@ -2271,12 +2338,13 @@ function CoreAgendaProApp() {
     return booking;
   }
 
-  function mapPublicAppointment(row) {
+  function mapPublicAppointment(row: any): PublicAppointmentState | null {
     if (!row) return null;
     const item = Array.isArray(row) ? row[0] : row;
     if (!item) return null;
 
     return {
+      id: item.id || item.public_token || item.publicToken || publicAppointmentToken,
       token: item.public_token || item.publicToken || publicAppointmentToken,
       clientName: item.client_name || item.clientName || "",
       whatsapp: item.whatsapp || "",
@@ -3777,7 +3845,7 @@ function CoreAgendaProApp() {
     screen,
     selectedDate,
     selectedPaymentTotal,
-    selectedPromotionDetails,
+    selectedPromotionDetails: promotionDetails.filter((promotion) => promotion.selected),
     selectedPromotions,
     selectedServices,
     selectedTime,

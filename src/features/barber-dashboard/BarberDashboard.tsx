@@ -480,7 +480,7 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
 
         <CustomersPanel model={model} />
 
-        <AgendaPanel model={model} />
+        <AgendaPanel model={model as any} />
 
         <ServicesPanel model={model} />
 
@@ -490,7 +490,7 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
 
         <ImprovementsPanel model={model} />
 
-        <AccountPanel model={model} />
+        <AccountPanel model={model as any} />
 
         <AppearancePanel model={model} />
       </main>

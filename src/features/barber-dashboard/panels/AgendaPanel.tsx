@@ -1,7 +1,113 @@
-// @ts-nocheck
 import React from "react";
+import type { Appointment, Barbershop } from "../../../types/app";
 
-export default function AgendaPanel({ model }) {
+type WeekDayKey = "sun" | "mon" | "tue" | "wed" | "thu" | "fri" | "sat";
+
+type WeekDay = {
+  key: WeekDayKey;
+  label: string;
+  short: string;
+};
+
+type WorkingDayConfig = {
+  enabled: boolean;
+  end: string;
+  start: string;
+};
+
+type ScheduleBreak = {
+  end: string;
+  id: string;
+  name: string;
+  start: string;
+};
+
+type ScheduleDayOff = {
+  date: string;
+  id: string;
+  reason: string;
+};
+
+type ScheduleBlock = {
+  date: string;
+  end: string;
+  id: string;
+  professional: string;
+  reason: string;
+  start: string;
+};
+
+type RealSchedule = {
+  blocks: ScheduleBlock[];
+  breaks: ScheduleBreak[];
+  daysOff: ScheduleDayOff[];
+  slotInterval: number;
+  workingHours: Record<WeekDayKey, WorkingDayConfig>;
+};
+
+type AgendaAppointment = Appointment & {
+  clientName: string;
+  date: string;
+  duration?: number;
+  id: string;
+  note?: string;
+  paid?: boolean;
+  professional: string;
+  rescheduleRequested?: boolean;
+  services: string;
+  time: string;
+  total?: number;
+};
+
+type AgendaWaitlistEntry = {
+  clientName: string;
+  date: string;
+  id: string;
+  services: string;
+  status: "waiting" | "contacted" | string;
+  whatsapp: string;
+};
+
+type AgendaPanelModel = {
+  activeAdminTab: string;
+  addBlock: () => void;
+  addBreak: () => void;
+  addDayOff: () => void;
+  appointments: AgendaAppointment[];
+  business: Barbershop;
+  cancelAppointment: (id: string) => void;
+  canManageBusinessSettings: boolean;
+  cloudSaving: string;
+  confirmAppointmentPayment: (id: string) => void;
+  formatDate: (date?: string) => string;
+  money: (value?: number) => string;
+  realProfessionals: () => string[];
+  removeBlock: (index: number) => void;
+  removeBreak: (index: number) => void;
+  removeDayOff: (index: number) => void;
+  rescheduleAppointment: (id: string) => void;
+  saveScheduleToCloud: () => void;
+  schedule: RealSchedule;
+  setSchedule: React.Dispatch<React.SetStateAction<RealSchedule>>;
+  updateBlock: (index: number, field: keyof ScheduleBlock, value: string) => void;
+  updateBreak: (index: number, field: keyof ScheduleBreak, value: string) => void;
+  updateDayOff: (index: number, field: keyof ScheduleDayOff, value: string) => void;
+  updateWaitlistStatus: (id: string, status: "waiting" | "contacted" | "removed") => void;
+  updateWorkingDay: (
+    dayKey: WeekDayKey,
+    field: keyof WorkingDayConfig,
+    value: string | boolean
+  ) => void;
+  waitlist: AgendaWaitlistEntry[];
+  waitlistAvailable: boolean;
+  weekDays: WeekDay[];
+};
+
+type AgendaPanelProps = {
+  model: AgendaPanelModel;
+};
+
+export default function AgendaPanel({ model }: AgendaPanelProps) {
   const {
     activeAdminTab,
     addBlock,

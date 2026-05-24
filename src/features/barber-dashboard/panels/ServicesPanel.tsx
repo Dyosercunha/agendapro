@@ -1,7 +1,10 @@
-// @ts-nocheck
 import React from "react";
 
-export default function ServicesPanel({ model }) {
+type ServicesPanelProps = {
+  model: Record<string, any>;
+};
+
+export default function ServicesPanel({ model }: ServicesPanelProps) {
   const {
     activeAdminTab,
     addService,

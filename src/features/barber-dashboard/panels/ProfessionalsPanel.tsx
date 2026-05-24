@@ -1,7 +1,10 @@
-// @ts-nocheck
 import React from "react";
 
-export default function ProfessionalsPanel({ model }) {
+type ProfessionalsPanelProps = {
+  model: Record<string, any>;
+};
+
+export default function ProfessionalsPanel({ model }: ProfessionalsPanelProps) {
   const {
     activeAdminTab,
     addProfessional,

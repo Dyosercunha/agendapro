@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 
@@ -9,15 +8,15 @@ function slugFromUrl() {
 function isPanel() { return window.location.pathname.includes("/painel/"); }
 function isClient() { return window.location.pathname.includes("/agendamento/"); }
 function todayIso() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
-function promoActive(s) { const t = todayIso(); return !!s.promotion_active && (!s.promotion_start_date || t >= s.promotion_start_date) && (!s.promotion_end_date || t <= s.promotion_end_date); }
+function promoActive(s: Record<string, any>) { const t = todayIso(); return !!s.promotion_active && (!s.promotion_start_date || t >= s.promotion_start_date) && (!s.promotion_end_date || t <= s.promotion_end_date); }
 
 export default function SafeGrowthPanel() {
   const slug = slugFromUrl();
   const panel = isPanel();
   const client = isClient();
-  const [data, setData] = useState({ promotion_active:false, promotion_title:"Promoção online", promotion_description:"", promotion_discount:10, promotion_start_date:"", promotion_end_date:"", loyalty_enabled:false, loyalty_reward_description:"", loyalty_visit_goal:5, loyalty_discount:20, instagram_url:"", google_client_login_enabled:false });
-  const [waitlist, setWaitlist] = useState([]);
-  const [clients, setClients] = useState([]);
+  const [data, setData] = useState<Record<string, any>>({ promotion_active:false, promotion_title:"Promoção online", promotion_description:"", promotion_discount:10, promotion_start_date:"", promotion_end_date:"", loyalty_enabled:false, loyalty_reward_description:"", loyalty_visit_goal:5, loyalty_discount:20, instagram_url:"", google_client_login_enabled:false });
+  const [waitlist, setWaitlist] = useState<Array<Record<string, any>>>([]);
+  const [clients, setClients] = useState<Array<Record<string, any>>>([]);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -31,7 +30,7 @@ export default function SafeGrowthPanel() {
     setClients(loyal || []);
   }
   useEffect(() => { load(); }, [slug]);
-  function setField(key, value) { setData((current) => ({ ...current, [key]: value })); }
+  function setField(key: string, value: any) { setData((current) => ({ ...current, [key]: value })); }
 
   async function save() {
     setSaving(true); setMessage("");

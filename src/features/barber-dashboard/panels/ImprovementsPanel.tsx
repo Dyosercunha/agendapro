@@ -1,7 +1,10 @@
-// @ts-nocheck
 import React from "react";
 
-export default function ImprovementsPanel({ model }) {
+type ImprovementsPanelProps = {
+  model: Record<string, any>;
+};
+
+export default function ImprovementsPanel({ model }: ImprovementsPanelProps) {
   const {
     activeAdminTab,
     autoConfirmationFeatureEnabled,

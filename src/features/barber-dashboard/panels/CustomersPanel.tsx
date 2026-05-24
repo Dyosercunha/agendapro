@@ -1,7 +1,10 @@
-// @ts-nocheck
 import React from "react";
 
-export default function CustomersPanel({ model }) {
+type CustomersPanelProps = {
+  model: Record<string, any>;
+};
+
+export default function CustomersPanel({ model }: CustomersPanelProps) {
   const {
     activeAdminTab,
     business,

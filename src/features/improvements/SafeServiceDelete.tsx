@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 
@@ -10,7 +9,7 @@ function slugFromUrl() {
 export default function SafeServiceDelete() {
   const panel = window.location.pathname.includes("/painel/");
   const slug = slugFromUrl();
-  const [services, setServices] = useState([]);
+  const [services, setServices] = useState<Array<Record<string, any>>>([]);
   const [saving, setSaving] = useState("");
   const [message, setMessage] = useState("");
 
@@ -27,7 +26,7 @@ export default function SafeServiceDelete() {
 
   useEffect(() => { load(); }, [slug]);
 
-  async function removeService(service) {
+  async function removeService(service: Record<string, any>) {
     if (!window.confirm(`Excluir o serviço "${service.name}"? O histórico antigo será mantido.`)) return;
     setSaving(service.id);
     setMessage("");

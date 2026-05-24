@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 
@@ -13,8 +12,8 @@ export default function SafeBackplatePanel() {
   const slug = routeSlug();
   const panel = inPanel();
   const client = inClient();
-  const [bg, setBg] = useState({ client_background_url: "", admin_background_url: "", client_background_opacity: 0.18, admin_background_opacity: 0.12 });
-  const [txt, setTxt] = useState({ success_title: "Agendamento confirmado!", success_message: "Seu horário já está reservado.", success_footer: "A barbearia já recebeu os detalhes do atendimento." });
+  const [bg, setBg] = useState<Record<string, any>>({ client_background_url: "", admin_background_url: "", client_background_opacity: 0.18, admin_background_opacity: 0.12 });
+  const [txt, setTxt] = useState<Record<string, any>>({ success_title: "Agendamento confirmado!", success_message: "Seu horário já está reservado.", success_footer: "A barbearia já recebeu os detalhes do atendimento." });
   const [saving, setSaving] = useState("");
   const [message, setMessage] = useState("");
 
@@ -51,8 +50,8 @@ export default function SafeBackplatePanel() {
     layer.style.backgroundImage = `linear-gradient(rgba(7,10,13,.72),rgba(7,10,13,.72)), url('${String(url).replace(/'/g, "%27")}')`;
   }, [bg, panel]);
 
-  function setBgField(key, value) { setBg((current) => ({ ...current, [key]: value })); }
-  function setTxtField(key, value) { setTxt((current) => ({ ...current, [key]: value })); }
+  function setBgField(key: string, value: any) { setBg((current) => ({ ...current, [key]: value })); }
+  function setTxtField(key: string, value: any) { setTxt((current) => ({ ...current, [key]: value })); }
 
   async function saveBackground() {
     setSaving("background"); setMessage("");

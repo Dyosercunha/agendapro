@@ -1,7 +1,10 @@
-// @ts-nocheck
 import React from "react";
 
-export default function PaymentsPanel({ model }) {
+type PaymentsPanelProps = {
+  model: Record<string, any>;
+};
+
+export default function PaymentsPanel({ model }: PaymentsPanelProps) {
   const {
     activeAdminTab,
     business,

@@ -1,8 +1,67 @@
-// @ts-nocheck
 import React from "react";
 import { monthlyStatusLabels, statusOptions } from "../../../lib/commercial";
+import type {
+  AccessAccount,
+  AdminRole,
+  Barbershop,
+  PlanKey,
+  PlanOption,
+  SubscriptionStatus,
+} from "../../../types/app";
 
-export default function AccountPanel({ model }) {
+type PasswordForm = {
+  confirm: string;
+  next: string;
+};
+
+type AccountBusiness = Barbershop & {
+  monthlyStatus?: SubscriptionStatus;
+  nextBillingDate?: string;
+  ownerEmail?: string;
+  plan?: PlanKey | string;
+  slug?: string;
+};
+
+type AccessAccountField = "active" | "email" | "password" | "passwordConfirm" | "role";
+
+type AccountPanelModel = {
+  accessAccounts: AccessAccount[];
+  accessEditorKey: (account: AccessAccount, index: number) => string;
+  activeAdminTab: string;
+  addAccessAccount: () => void;
+  adminPanelLink: string;
+  business: AccountBusiness;
+  canManageAccessAccounts: boolean;
+  canManageBilling: boolean;
+  cloudSaving: string;
+  copyText: (text: string) => void;
+  currentPlan: PlanOption;
+  formatDateOnly: (date?: string) => string;
+  isDeveloperRole: boolean;
+  isUuid: (value?: string) => boolean;
+  normalizeRole: (role?: string) => AdminRole;
+  passwordEditorOpen: Record<string, boolean>;
+  passwordForm?: PasswordForm;
+  passwordMessage: string;
+  passwordSaving: string;
+  planOptions: PlanOption[];
+  publicScheduleLink: string;
+  removeAccessAccount: (index: number) => void;
+  saveAccessAccountsToCloud: () => void;
+  saveBusinessToCloud: () => void;
+  setAccessPasswordEditor: (index: number, account: AccessAccount, open: boolean) => void;
+  setBusiness: React.Dispatch<React.SetStateAction<AccountBusiness>>;
+  setPasswordForm: React.Dispatch<React.SetStateAction<PasswordForm>>;
+  updateAccessAccount: (index: number, field: AccessAccountField, value: boolean | string) => void;
+  updateBusinessSlug: (value: string) => void;
+  updateOwnPassword: () => void;
+};
+
+type AccountPanelProps = {
+  model: AccountPanelModel;
+};
+
+export default function AccountPanel({ model }: AccountPanelProps) {
   const {
     accessAccounts,
     accessEditorKey,
@@ -36,10 +95,10 @@ export default function AccountPanel({ model }) {
     updateBusinessSlug,
   } = model;
 
-  const monthlyStatus = business.monthlyStatus || "active";
+  const monthlyStatus: SubscriptionStatus = business.monthlyStatus || "active";
   const monthlyStatusText = monthlyStatusLabels[monthlyStatus] || monthlyStatusLabels.active;
 
-  function handlePlanSelection(planId) {
+  function handlePlanSelection(planId: PlanKey | string) {
     if (canManageBilling) {
       setBusiness({ ...business, plan: planId });
       return;
@@ -292,7 +351,9 @@ export default function AccountPanel({ model }) {
               <label>Status da mensalidade</label>
               <select
                 value={business.monthlyStatus || "active"}
-                onChange={(event) => setBusiness({ ...business, monthlyStatus: event.target.value })}
+                onChange={(event) =>
+                  setBusiness({ ...business, monthlyStatus: event.target.value as SubscriptionStatus })
+                }
               >
                 <option value="pending">Pagamento pendente</option>
                 {statusOptions.filter((item) => item.value !== "archived").map((item) => (

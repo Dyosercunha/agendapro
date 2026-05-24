@@ -49,7 +49,7 @@ export const platformFeatures = [
   },
   {
     key: "google_login",
-    title: "Login com Google do cliente",
+    title: "Login Google cliente",
     description: "Histórico completo do cliente com uma conta Google.",
     released: false,
   },

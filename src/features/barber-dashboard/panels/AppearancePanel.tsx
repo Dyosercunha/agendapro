@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import type { Barbershop } from "../../../types/app";
 
-type BackgroundField = "adminBackgroundUrl" | "clientBackgroundUrl";
+export type BackgroundField = "adminBackgroundUrl" | "clientBackgroundUrl";
 
 type AddressLookup = {
   cep: string;
@@ -17,7 +17,7 @@ type CepAddressResponse = {
   uf?: string;
 };
 
-type AppearancePanelModel = {
+export type AppearancePanelModel = {
   activeAdminTab: string;
   business: Barbershop;
   cloudSaving: string;

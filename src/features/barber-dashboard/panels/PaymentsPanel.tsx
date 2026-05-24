@@ -1,19 +1,21 @@
 import React from "react";
 import type { Barbershop, FeatureFlag, FeatureFlags, FeatureKey, Promotion } from "../../../types/app";
 
+export type PaymentsPanelModel = {
+  activeAdminTab: string;
+  business: Barbershop;
+  clampPercentage: (value: unknown) => number;
+  cloudSaving: string;
+  featureFlags: FeatureFlags;
+  pixAvailable: boolean;
+  promotionAvailable: boolean;
+  saveBusinessToCloud: () => void;
+  setBusiness: (business: Barbershop) => void;
+  updateFeatureFlag: (feature: FeatureKey | string, field: keyof FeatureFlag, value: boolean) => void;
+};
+
 type PaymentsPanelProps = {
-  model: {
-    activeAdminTab: string;
-    business: Barbershop;
-    clampPercentage: (value: unknown) => number;
-    cloudSaving: string;
-    featureFlags: FeatureFlags;
-    pixAvailable: boolean;
-    promotionAvailable: boolean;
-    saveBusinessToCloud: () => void;
-    setBusiness: (business: Barbershop) => void;
-    updateFeatureFlag: (feature: FeatureKey | string, field: keyof FeatureFlag, value: boolean) => void;
-  };
+  model: PaymentsPanelModel;
 };
 
 export default function PaymentsPanel({ model }: PaymentsPanelProps) {

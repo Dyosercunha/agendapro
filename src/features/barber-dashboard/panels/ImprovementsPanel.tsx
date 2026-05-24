@@ -9,26 +9,30 @@ import type {
   PlanOption,
 } from "../../../types/app";
 
+export type FeatureShortcut = { disabled?: boolean; label: string; tab?: string };
+
+export type ImprovementsPanelModel = {
+  activeAdminTab: string;
+  autoConfirmationFeatureEnabled: boolean;
+  business: Barbershop;
+  canManageBilling: boolean;
+  cloudSaving: string;
+  currentAdminRole: AdminRole | string;
+  currentPlan: PlanOption;
+  featureFlags: FeatureFlags;
+  featureShortcut: (feature: FeatureKey | string) => FeatureShortcut;
+  isFutureOnlyFeature: (feature: FeatureKey | string) => boolean;
+  pixAvailable: boolean;
+  platformFeatures: FeatureDefinition[];
+  saveFeatureFlagsToCloud: () => void;
+  setAdminTab: (tabId: string) => void;
+  setBusiness: (business: Barbershop) => void;
+  setFeatureRelease: (feature: FeatureKey | string, released: boolean) => void;
+  updateFeatureFlag: (feature: FeatureKey | string, field: keyof FeatureFlag, value: boolean) => void;
+};
+
 type ImprovementsPanelProps = {
-  model: {
-    activeAdminTab: string;
-    autoConfirmationFeatureEnabled: boolean;
-    business: Barbershop;
-    canManageBilling: boolean;
-    cloudSaving: string;
-    currentAdminRole: AdminRole | string;
-    currentPlan: PlanOption;
-    featureFlags: FeatureFlags;
-    featureShortcut: (feature: FeatureKey | string) => { disabled?: boolean; label: string; tab?: string };
-    isFutureOnlyFeature: (feature: FeatureKey | string) => boolean;
-    pixAvailable: boolean;
-    platformFeatures: FeatureDefinition[];
-    saveFeatureFlagsToCloud: () => void;
-    setAdminTab: (tabId: string) => void;
-    setBusiness: (business: Barbershop) => void;
-    setFeatureRelease: (feature: FeatureKey | string, released: boolean) => void;
-    updateFeatureFlag: (feature: FeatureKey | string, field: keyof FeatureFlag, value: boolean) => void;
-  };
+  model: ImprovementsPanelModel;
 };
 
 export default function ImprovementsPanel({ model }: ImprovementsPanelProps) {

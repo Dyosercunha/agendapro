@@ -24,6 +24,12 @@ import ProfessionalsPanel from "./panels/ProfessionalsPanel";
 import ServicesPanel from "./panels/ServicesPanel";
 import type { AccountPanelModel } from "./panels/AccountPanel";
 import type { AgendaPanelModel } from "./panels/AgendaPanel";
+import type { AppearancePanelModel } from "./panels/AppearancePanel";
+import type { CustomersPanelModel } from "./panels/CustomersPanel";
+import type { ImprovementsPanelModel } from "./panels/ImprovementsPanel";
+import type { PaymentsPanelModel } from "./panels/PaymentsPanel";
+import type { ProfessionalsPanelModel } from "./panels/ProfessionalsPanel";
+import type { ServicesPanelModel } from "./panels/ServicesPanel";
 
 type AdminTab = {
   id: AdminTabId | string;
@@ -61,7 +67,15 @@ type WhatsAppIntegrationStatus = {
 
 type BackgroundField = "adminBackgroundUrl" | "clientBackgroundUrl";
 
-type BarberDashboardModel = AccountPanelModel & AgendaPanelModel & {
+type BarberDashboardModel =
+  AccountPanelModel &
+  AgendaPanelModel &
+  AppearancePanelModel &
+  CustomersPanelModel &
+  ImprovementsPanelModel &
+  PaymentsPanelModel &
+  ProfessionalsPanelModel &
+  ServicesPanelModel & {
   accessAccounts: AccessAccount[];
   activeAdminTab: string;
   activeFeatureCount: number;

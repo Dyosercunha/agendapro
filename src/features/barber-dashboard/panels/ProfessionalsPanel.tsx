@@ -1,16 +1,18 @@
 import React from "react";
 import type { Professional } from "../../../types/app";
 
+export type ProfessionalsPanelModel = {
+  activeAdminTab: string;
+  addProfessional: () => void;
+  cloudSaving: string;
+  professionals: Professional[];
+  removeProfessional: (index: number) => void;
+  saveProfessionalsToCloud: () => void;
+  updateProfessional: (index: number, field: keyof Professional | string, value: unknown) => void;
+};
+
 type ProfessionalsPanelProps = {
-  model: {
-    activeAdminTab: string;
-    addProfessional: () => void;
-    cloudSaving: string;
-    professionals: Professional[];
-    removeProfessional: (index: number) => void;
-    saveProfessionalsToCloud: () => void;
-    updateProfessional: (index: number, field: keyof Professional | string, value: unknown) => void;
-  };
+  model: ProfessionalsPanelModel;
 };
 
 export default function ProfessionalsPanel({ model }: ProfessionalsPanelProps) {

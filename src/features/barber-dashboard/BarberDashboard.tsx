@@ -22,6 +22,8 @@ import ImprovementsPanel from "./panels/ImprovementsPanel";
 import PaymentsPanel from "./panels/PaymentsPanel";
 import ProfessionalsPanel from "./panels/ProfessionalsPanel";
 import ServicesPanel from "./panels/ServicesPanel";
+import type { AccountPanelModel } from "./panels/AccountPanel";
+import type { AgendaPanelModel } from "./panels/AgendaPanel";
 
 type AdminTab = {
   id: AdminTabId | string;
@@ -59,7 +61,7 @@ type WhatsAppIntegrationStatus = {
 
 type BackgroundField = "adminBackgroundUrl" | "clientBackgroundUrl";
 
-type BarberDashboardModel = {
+type BarberDashboardModel = AccountPanelModel & AgendaPanelModel & {
   accessAccounts: AccessAccount[];
   activeAdminTab: string;
   activeFeatureCount: number;
@@ -480,7 +482,7 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
 
         <CustomersPanel model={model} />
 
-        <AgendaPanel model={model as any} />
+        <AgendaPanel model={model} />
 
         <ServicesPanel model={model} />
 
@@ -490,7 +492,7 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
 
         <ImprovementsPanel model={model} />
 
-        <AccountPanel model={model as any} />
+        <AccountPanel model={model} />
 
         <AppearancePanel model={model} />
       </main>

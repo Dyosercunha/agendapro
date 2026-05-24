@@ -9,12 +9,12 @@ import type {
   SubscriptionStatus,
 } from "../../../types/app";
 
-type PasswordForm = {
+export type PasswordForm = {
   confirm: string;
   next: string;
 };
 
-type AccountBusiness = Barbershop & {
+export type AccountBusiness = Barbershop & {
   monthlyStatus?: SubscriptionStatus;
   nextBillingDate?: string;
   ownerEmail?: string;
@@ -22,9 +22,9 @@ type AccountBusiness = Barbershop & {
   slug?: string;
 };
 
-type AccessAccountField = "active" | "email" | "password" | "passwordConfirm" | "role";
+export type AccessAccountField = "active" | "email" | "password" | "passwordConfirm" | "role";
 
-type AccountPanelModel = {
+export type AccountPanelModel = {
   accessAccounts: AccessAccount[];
   accessEditorKey: (account: AccessAccount, index: number) => string;
   activeAdminTab: string;

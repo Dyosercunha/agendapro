@@ -53,6 +53,7 @@ import { saveServices as saveServicesRequest, softDeleteService } from "./lib/se
 import AppProFeatures from "./features/improvements/ProFeatures";
 import BarberDashboard from "./features/barber-dashboard/BarberDashboard";
 import ClientBooking from "./features/client-booking/ClientBooking";
+import type { WeekDay } from "./features/barber-dashboard/panels/AgendaPanel";
 import type {
   AccessAccount,
   Appointment,
@@ -117,6 +118,8 @@ type PasswordFormState = {
   confirm: string;
   next: string;
 };
+
+type UnknownRecord = Record<string, unknown>;
 
 function isPlatformDeveloperEmail(value = "") {
   return platformDeveloperEmails.includes(String(value || "").trim().toLowerCase());
@@ -202,7 +205,7 @@ const initialProfessionals = [
   { name: "Primeiro disponível", active: true, fixed: true },
 ];
 
-const weekDays = [
+const weekDays: WeekDay[] = [
   { key: "mon", label: "Segunda", short: "Seg" },
   { key: "tue", label: "Terça", short: "Ter" },
   { key: "wed", label: "Quarta", short: "Qua" },
@@ -474,7 +477,7 @@ function normalizePromotion(item: unknown, index = 0): Promotion & {
   title: string;
   type: PromotionType;
 } {
-  const promotion = (isPlainObject(item) ? item : {}) as Record<string, any>;
+  const promotion = isPlainObject(item) ? item : {};
   const fallback = initialBusiness.promotions[index] || initialBusiness.promotions[0];
 
   return {
@@ -510,7 +513,7 @@ function normalizePromotion(item: unknown, index = 0): Promotion & {
   };
 }
 
-function normalizePromotions(value: unknown, legacy: Record<string, any> = {}) {
+function normalizePromotions(value: unknown, legacy: UnknownRecord = {}) {
   let list = value;
 
   if (typeof list === "string") {
@@ -595,8 +598,13 @@ function storageKey(key) {
   return `${storagePrefix}:${key}`;
 }
 
-function isPlainObject(value) {
+function isPlainObject(value: unknown): value is UnknownRecord {
   return value && typeof value === "object" && !Array.isArray(value);
+}
+
+function textFrom(value: unknown, fallback = "") {
+  if (value === undefined || value === null || value === "") return fallback;
+  return String(value);
 }
 
 function mergeWithDefault(defaultValue, savedValue) {
@@ -964,7 +972,7 @@ function CoreAgendaProApp() {
   const [adminEmail, setAdminEmail] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
   const [adminLoginError, setAdminLoginError] = useState("");
-  const [adminContext, setAdminContext] = useState<Record<string, any> | null>(null);
+  const [adminContext, setAdminContext] = useState<UnknownRecord | null>(null);
   const [passwordForm, setPasswordForm] = useState<PasswordFormState>({ next: "", confirm: "" });
   const [passwordSaving, setPasswordSaving] = useState("");
   const [passwordMessage, setPasswordMessage] = useState("");
@@ -1022,7 +1030,7 @@ function CoreAgendaProApp() {
   const [cloudStatus, setCloudStatus] = useState("Conectando à nuvem...");
   const [cloudSaving,setRawCloudSaving]=useState("");
   function setCloudSaving(value){setRawCloudSaving(value);if(value&&typeof window!=="undefined"){window.setTimeout(()=>setRawCloudSaving(c=>c===value?"":c),12000);}}
-  const [cloudHistory, setCloudHistory] = useState<Record<string, any> | null>(null);
+  const [cloudHistory, setCloudHistory] = useState<UnknownRecord | null>(null);
   const [waitlistSent, setWaitlistSent] = useState(false);
   const [notice, setNotice] = useState<NoticeState | null>(null);
   const [barberConfirmationMessage, setBarberConfirmationMessage] = useState("");
@@ -2338,27 +2346,27 @@ function CoreAgendaProApp() {
     return booking;
   }
 
-  function mapPublicAppointment(row: any): PublicAppointmentState | null {
+  function mapPublicAppointment(row: unknown): PublicAppointmentState | null {
     if (!row) return null;
-    const item = Array.isArray(row) ? row[0] : row;
+    const item = (Array.isArray(row) ? row[0] : row) as UnknownRecord | null | undefined;
     if (!item) return null;
 
     return {
-      id: item.id || item.public_token || item.publicToken || publicAppointmentToken,
-      token: item.public_token || item.publicToken || publicAppointmentToken,
-      clientName: item.client_name || item.clientName || "",
-      whatsapp: item.whatsapp || "",
-      services: item.service_text || item.services || "",
-      professional: item.professional_name || item.professional || "Profissional disponível",
-      date: item.appointment_date || item.date || "",
-      time: shortTime(item.appointment_time || item.time || ""),
+      id: textFrom(item.id || item.public_token || item.publicToken, publicAppointmentToken),
+      token: textFrom(item.public_token || item.publicToken, publicAppointmentToken),
+      clientName: textFrom(item.client_name || item.clientName),
+      whatsapp: textFrom(item.whatsapp),
+      services: textFrom(item.service_text || item.services),
+      professional: textFrom(item.professional_name || item.professional, "Profissional disponível"),
+      date: textFrom(item.appointment_date || item.date),
+      time: shortTime(textFrom(item.appointment_time || item.time)),
       duration: Number(item.duration || 0),
       total: Number(item.total || 0),
-      payment: item.payment_method || item.payment || "local",
+      payment: textFrom(item.payment_method || item.payment, "local"),
       paid: Boolean(item.paid),
-      status: item.status || "confirmed",
+      status: textFrom(item.status, "confirmed"),
       rescheduleRequested: Boolean(item.reschedule_requested || item.rescheduleRequested),
-      note: item.customer_note || item.note || "",
+      note: textFrom(item.customer_note || item.note),
     };
   }
 

@@ -1,34 +1,34 @@
 import React from "react";
 import type { Appointment, Barbershop } from "../../../types/app";
 
-type WeekDayKey = "sun" | "mon" | "tue" | "wed" | "thu" | "fri" | "sat";
+export type WeekDayKey = "sun" | "mon" | "tue" | "wed" | "thu" | "fri" | "sat";
 
-type WeekDay = {
+export type WeekDay = {
   key: WeekDayKey;
   label: string;
   short: string;
 };
 
-type WorkingDayConfig = {
+export type WorkingDayConfig = {
   enabled: boolean;
   end: string;
   start: string;
 };
 
-type ScheduleBreak = {
+export type ScheduleBreak = {
   end: string;
   id: string;
   name: string;
   start: string;
 };
 
-type ScheduleDayOff = {
+export type ScheduleDayOff = {
   date: string;
   id: string;
   reason: string;
 };
 
-type ScheduleBlock = {
+export type ScheduleBlock = {
   date: string;
   end: string;
   id: string;
@@ -37,7 +37,7 @@ type ScheduleBlock = {
   start: string;
 };
 
-type RealSchedule = {
+export type RealSchedule = {
   blocks: ScheduleBlock[];
   breaks: ScheduleBreak[];
   daysOff: ScheduleDayOff[];
@@ -45,7 +45,7 @@ type RealSchedule = {
   workingHours: Record<WeekDayKey, WorkingDayConfig>;
 };
 
-type AgendaAppointment = Appointment & {
+export type AgendaAppointment = Appointment & {
   clientName: string;
   date: string;
   duration?: number;
@@ -59,7 +59,7 @@ type AgendaAppointment = Appointment & {
   total?: number;
 };
 
-type AgendaWaitlistEntry = {
+export type AgendaWaitlistEntry = {
   clientName: string;
   date: string;
   id: string;
@@ -68,7 +68,7 @@ type AgendaWaitlistEntry = {
   whatsapp: string;
 };
 
-type AgendaPanelModel = {
+export type AgendaPanelModel = {
   activeAdminTab: string;
   addBlock: () => void;
   addBreak: () => void;

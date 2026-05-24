@@ -1,19 +1,6 @@
 import React from "react";
 import type { AdminTabId } from "../../lib/permissions";
-import type {
-  AccessAccount,
-  Appointment,
-  Barbershop,
-  Client,
-  FeatureDefinition,
-  FeatureFlag,
-  FeatureFlags,
-  FeatureKey,
-  PlanOption,
-  Professional,
-  Service,
-  WaitlistEntry,
-} from "../../types/app";
+import type { Appointment, FeatureDefinition, FeatureFlag } from "../../types/app";
 import AgendaPanel from "./panels/AgendaPanel";
 import AccountPanel from "./panels/AccountPanel";
 import AppearancePanel from "./panels/AppearancePanel";
@@ -26,7 +13,7 @@ import type { AccountPanelModel } from "./panels/AccountPanel";
 import type { AgendaPanelModel } from "./panels/AgendaPanel";
 import type { AppearancePanelModel } from "./panels/AppearancePanel";
 import type { CustomersPanelModel } from "./panels/CustomersPanel";
-import type { ImprovementsPanelModel } from "./panels/ImprovementsPanel";
+import type { FeatureShortcut, ImprovementsPanelModel } from "./panels/ImprovementsPanel";
 import type { PaymentsPanelModel } from "./panels/PaymentsPanel";
 import type { ProfessionalsPanelModel } from "./panels/ProfessionalsPanel";
 import type { ServicesPanelModel } from "./panels/ServicesPanel";
@@ -43,20 +30,10 @@ type SetupItem = {
   tab: string;
 };
 
-type FeatureShortcut = {
-  disabled?: boolean;
-  label: string;
-  tab?: string;
-};
-
 type FeatureStatusCard = FeatureDefinition & {
   shortcut: FeatureShortcut;
   state: FeatureFlag;
   statusLabel: string;
-};
-
-type DashboardWaitlistEntry = WaitlistEntry & {
-  status?: string;
 };
 
 type WhatsAppIntegrationStatus = {
@@ -64,8 +41,6 @@ type WhatsAppIntegrationStatus = {
   providerLabel?: string;
   ready: boolean;
 };
-
-type BackgroundField = "adminBackgroundUrl" | "clientBackgroundUrl";
 
 type BarberDashboardModel =
   AccountPanelModel &
@@ -76,78 +51,30 @@ type BarberDashboardModel =
   PaymentsPanelModel &
   ProfessionalsPanelModel &
   ServicesPanelModel & {
-  accessAccounts: AccessAccount[];
-  activeAdminTab: string;
   activeFeatureCount: number;
-  addProfessional: () => void;
-  addService: () => void;
   adminLoggedIn: boolean;
   adminTabs: AdminTab[];
   agendaStatus: string;
-  autoConfirmationFeatureEnabled: boolean;
   blockNextAvailableTime: () => void;
-  business: Barbershop;
-  canManageBilling: boolean;
-  canManageBusinessSettings: boolean;
-  canUseAdminTab: (tabId: string) => boolean;
   clientName?: string;
   closeToday: () => void;
-  cloudSaving: string;
   cloudStatus: string;
-  clampPercentage: (value: unknown) => number;
   completedSetupItems: number;
-  currentAdminRole: string;
-  currentPlan: PlanOption;
-  customerProfiles: Client[];
   dataSavedAt: string;
-  featureFlags: FeatureFlags;
-  featureShortcut: (feature: FeatureKey | string) => FeatureShortcut;
   featureStatusCards: FeatureStatusCard[];
-  formatDate: (date?: string) => string;
   goToClientView: () => void;
-  handleBackgroundUpload: (
-    field: BackgroundField,
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => void | Promise<void>;
-  handleLogoUpload: (event: React.ChangeEvent<HTMLInputElement>) => void | Promise<void>;
-  isFutureOnlyFeature: (feature: FeatureKey | string) => boolean;
-  isServiceDeleted: (service: Service) => boolean;
-  loyaltyFeatureEnabled: boolean;
   logoutAdmin: () => void;
-  money: (value?: number) => string;
   openToday: () => void;
-  pixAvailable: boolean;
-  platformFeatures: FeatureDefinition[];
   professional?: string;
-  professionals: Professional[];
-  promotionAvailable: boolean;
   refreshWhatsappIntegrationStatus: () => void;
   resetDemoData: () => void;
-  returningCustomers: Client[];
-  removeProfessional: (index: number) => void;
-  removeService: (index: number) => void;
-  saveBackgroundsToCloud: () => void;
-  saveBusinessToCloud: () => void;
-  saveFeatureFlagsToCloud: () => void;
-  saveProfessionalsToCloud: () => void;
-  saveServicesToCloud: () => void;
-  services: Service[];
-  setAdminTab: (tabId: string) => void;
-  setBusiness: React.Dispatch<React.SetStateAction<Barbershop>>;
-  setFeatureRelease: (feature: FeatureKey | string, released: boolean) => void;
   setupItems: SetupItem[];
   setupProgress: number;
   setViewMode: (viewMode: string) => void;
   todayAppointments: Appointment[];
   todayRevenue: number;
-  topCustomer?: Client | null;
   upcomingAppointments: Appointment[];
-  updateFeatureFlag: (feature: FeatureKey | string, field: keyof FeatureFlag, value: boolean) => void;
-  updateBusinessName: (value: string) => void;
-  updateProfessional: (index: number, field: keyof Professional | string, value: unknown) => void;
-  updateService: (index: number, field: keyof Service | string, value: unknown) => void;
   visibleAdminTabs: AdminTab[];
-  waitlist: DashboardWaitlistEntry[];
   whatsappIntegrationStatus: WhatsAppIntegrationStatus;
   withNotice: (content: React.ReactNode) => React.ReactNode;
 };

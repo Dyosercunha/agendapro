@@ -41,7 +41,15 @@ import {
   updateWaitlistStatus as updateWaitlistStatusRequest,
 } from "./lib/appointmentsApi";
 import { blocksClientScheduling, planOptions } from "./lib/commercial";
-import { defaultFeatureFlags, platformFeatures } from "./lib/features";
+import { defaultFeatureFlags, normalizeFeatureKey, platformFeatures } from "./lib/features";
+import {
+  canAccessAdminTab as canAccessAdminTabByRole,
+  canManageAccessAccounts as canManageAccessAccountsByRole,
+  canManageBilling as canManageBillingByRole,
+  canManageBusinessSettings as canManageBusinessSettingsByRole,
+  getVisibleAdminTabs,
+  normalizeAdminRole,
+} from "./lib/permissions";
 import { saveServices as saveServicesRequest, softDeleteService } from "./lib/servicesApi";
 import AppProFeatures from "./features/improvements/ProFeatures";
 import BarberDashboard from "./features/barber-dashboard/BarberDashboard";
@@ -118,10 +126,10 @@ const initialAccessAccounts = platformDeveloperEmails.map((email, index) => ({
   passwordConfirm: "",
 }));
 
-function normalizeRole(value){const r=String(value||"").trim().toLowerCase();if(["desenvolvedor","developer","platform","plataforma"].includes(r))return"desenvolvedor";if(["dono","owner"].includes(r))return"dono";return"funcionario";}
+function normalizeRole(value){return normalizeAdminRole(value);}
 function roleLabel(value){const r=normalizeRole(value);return r==="desenvolvedor"?"Desenvolvedor":r==="dono"?"Dono":"Funcionário";}
 function cloudRoleFromLabel(value){const r=normalizeRole(value);if(r==="desenvolvedor")return"platform";if(r==="dono")return"owner";return"manager";}
-function canAccessAdminTab(roleValue,tabId,isOwnerEmail=false){const r=normalizeRole(roleValue);if(r==="desenvolvedor")return true;if(r==="dono"||isOwnerEmail)return true;return["dashboard","agenda","customers"].includes(tabId);}
+function canAccessAdminTab(roleValue,tabId,isOwnerEmail=false){return canAccessAdminTabByRole(roleValue,tabId,isOwnerEmail);}
 
 const initialServices = [
   { name: "Corte de cabelo", duration: 30, price: 35, active: true },
@@ -746,7 +754,11 @@ function mapFeatureFlagsFromCloud(rows) {
   const flags = initialFeatureFlags();
 
   (rows || []).forEach((item) => {
-    flags[item.feature_key] = {
+    const featureKey = normalizeFeatureKey(item.feature_key);
+
+    if (!featureKey) return;
+
+    flags[featureKey] = {
       enabled: Boolean(item.enabled),
       released: Boolean(item.released),
     };
@@ -992,11 +1004,11 @@ function CoreAgendaProApp() {
     : normalizeRole(currentAdminAccount?.role);
   const isDeveloperRole = currentAdminRole === "desenvolvedor";
   const isOwnerRole = currentAdminRole === "dono" || isOwnerEmail;
-  const canManageBilling = isDeveloperRole;
-  const canManageAccessAccounts = isDeveloperRole || isOwnerRole;
-  const canManageBusinessSettings = isDeveloperRole || isOwnerRole;
+  const canManageBilling = canManageBillingByRole(currentAdminRole);
+  const canManageAccessAccounts = canManageAccessAccountsByRole(currentAdminRole, isOwnerEmail);
+  const canManageBusinessSettings = canManageBusinessSettingsByRole(currentAdminRole, isOwnerEmail);
   const canUseAdminTab = (tabId) => canAccessAdminTab(currentAdminRole, tabId, isOwnerEmail);
-  const visibleAdminTabs = adminTabs.filter((tab) => canUseAdminTab(tab.id));
+  const visibleAdminTabs = getVisibleAdminTabs(adminTabs, currentAdminRole, isOwnerEmail);
   const activeAdminTab = canUseAdminTab(adminTab) ? adminTab : "dashboard";
 
   useEffect(() => {
@@ -2938,75 +2950,87 @@ function CoreAgendaProApp() {
   }
 
   function updateFeatureFlag(featureKey, field, value) {
+    const normalizedFeatureKey = normalizeFeatureKey(featureKey);
+
+    if (!normalizedFeatureKey) return;
+
     setFeatureFlags((current) => ({
       ...current,
-      [featureKey]: {
-        enabled: Boolean(current[featureKey]?.enabled),
-        released: Boolean(current[featureKey]?.released),
+      [normalizedFeatureKey]: {
+        enabled: Boolean(current[normalizedFeatureKey]?.enabled),
+        released: Boolean(current[normalizedFeatureKey]?.released),
         [field]: Boolean(value),
       },
     }));
   }
 
   function isFutureOnlyFeature(featureKey) {
+    const normalizedFeatureKey = normalizeFeatureKey(featureKey);
+
     return (
-      featureKey === "google_login" ||
-      featureKey === "instagram_booking"
+      normalizedFeatureKey === "google_login" ||
+      normalizedFeatureKey === "instagram_booking"
     );
   }
 
   function setFeatureRelease(featureKey, released) {
+    const normalizedFeatureKey = normalizeFeatureKey(featureKey);
+
+    if (!normalizedFeatureKey) return;
+
     setFeatureFlags((current) => ({
       ...current,
-      [featureKey]: {
-        enabled: released ? !isFutureOnlyFeature(featureKey) : false,
+      [normalizedFeatureKey]: {
+        enabled: released ? !isFutureOnlyFeature(normalizedFeatureKey) : false,
         released,
       },
     }));
   }
 
   function featureShortcut(featureKey) {
-    if (featureKey === "pix") {
+    const normalizedFeatureKey = normalizeFeatureKey(featureKey);
+
+    if (normalizedFeatureKey === "pix") {
       return { label: "Configurar pagamentos", tab: "payments", disabled: false };
     }
 
-    if (featureKey === "auto_confirmation") {
+    if (normalizedFeatureKey === "auto_confirmation") {
       return { label: "Editar mensagem final", tab: "appearance", disabled: false };
     }
 
-    if (featureKey === "service_delete") {
+    if (normalizedFeatureKey === "service_delete") {
       return { label: "Gerenciar serviços", tab: "services", disabled: false };
     }
 
-    if (featureKey === "backplate") {
+    if (normalizedFeatureKey === "backplate") {
       return { label: "Configurar fundos", tab: "appearance", disabled: false };
     }
 
-    if (featureKey === "appearance_media") {
+    if (normalizedFeatureKey === "appearance_media") {
       return { label: "Configurar fotos", tab: "appearance", disabled: false };
     }
 
-    if (featureKey === "promotions") {
+    if (normalizedFeatureKey === "promotions") {
       return { label: "Configurar promoção", tab: "payments", disabled: false };
     }
 
-    if (featureKey === "waitlist") {
+    if (normalizedFeatureKey === "waitlist") {
       return { label: "Ver lista de espera", tab: "agenda", disabled: false };
     }
 
-    if (featureKey === "loyalty") {
+    if (normalizedFeatureKey === "loyalty") {
       return { label: "Ver clientes", tab: "customers", disabled: false };
     }
 
-    if (featureKey === "google_login") {
+    if (normalizedFeatureKey === "google_login") {
       return { label: "Login em preparação", tab: "", disabled: true };
     }
 
-    if (featureKey === "instagram_booking") {
+    if (normalizedFeatureKey === "instagram_booking") {
       return { label: "Instagram em preparação", tab: "", disabled: true };
     }
 
-    if (featureKey === "unique_link") {
+    if (normalizedFeatureKey === "unique_link") {
       return { label: "Link ativo no cliente", tab: "", disabled: true };
     }
 

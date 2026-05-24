@@ -31,6 +31,7 @@ import {
   statusOptions,
 } from "../../lib/commercial";
 import { featureLabels } from "../../lib/features";
+import { permissionScenarioMatrix } from "../../lib/permissions";
 import "../../styles.css";
 
 const creationStatusOptions = statusOptions.filter((item) => item.value !== "archived");
@@ -1082,6 +1083,33 @@ export default function PlatformDashboard() {
             status={lastError ? "Registrado" : "Sem erro recente"}
             detail={lastError || "Nenhum erro capturado nesta sessão do painel."}
           />
+        </div>
+
+        <div className="platformPermissionMatrix">
+          <div className="platformTitle compactTitle">
+            <div>
+              <span>Permissões</span>
+              <h3>Teste prático por cargo</h3>
+            </div>
+          </div>
+
+          {permissionScenarioMatrix().map((scenario) => (
+            <article className="platformPermissionCard" key={scenario.role}>
+              <div>
+                <strong>{scenario.label}</strong>
+                <small>{scenario.visibleTabs.join(", ")}</small>
+              </div>
+              <span className={scenario.canManageBilling ? "readyPill" : "lockedPill"}>
+                {scenario.canManageBilling ? "Plano liberado" : "Sem plano"}
+              </span>
+              <span className={scenario.canManageFeatures ? "readyPill" : "lockedPill"}>
+                {scenario.canManageFeatures ? "Melhorias liberadas" : "Sem melhorias"}
+              </span>
+              <span className={scenario.canManageSensitiveAccount ? "readyPill" : "lockedPill"}>
+                {scenario.canManageSensitiveAccount ? "Conta sensível" : "Conta limitada"}
+              </span>
+            </article>
+          ))}
         </div>
 
         <p className="platformHealthFooter">

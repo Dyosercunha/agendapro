@@ -1,5 +1,40 @@
 import type { FeatureDefinition, FeatureFlag, FeatureKey } from "../types/app";
 
+export const canonicalFeatureKeys: FeatureKey[] = [
+  "pix",
+  "auto_confirmation",
+  "service_delete",
+  "backplate",
+  "appearance_media",
+  "promotions",
+  "waitlist",
+  "loyalty",
+  "google_login",
+  "instagram_booking",
+  "unique_link",
+];
+
+const featureKeyAliases: Record<string, FeatureKey> = {
+  google_client: "google_login",
+  google_client_login: "google_login",
+  pro_google_client_enabled: "google_login",
+  instagram: "instagram_booking",
+  instagram_booking_enabled: "instagram_booking",
+  pro_instagram_enabled: "instagram_booking",
+  unique_reschedule_link: "unique_link",
+  reschedule_link: "unique_link",
+};
+
+export function normalizeFeatureKey(value: string): FeatureKey | null {
+  const normalized = String(value || "").trim().toLowerCase();
+
+  if ((canonicalFeatureKeys as string[]).includes(normalized)) {
+    return normalized as FeatureKey;
+  }
+
+  return featureKeyAliases[normalized] || null;
+}
+
 export const platformFeatures: FeatureDefinition[] = [
   {
     key: "pix",

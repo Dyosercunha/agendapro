@@ -1,6 +1,127 @@
-// @ts-nocheck
 import React, { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
+import type { LoyaltyClient, WaitlistEntry } from "../../types/app";
+
+declare global {
+  interface Window {
+    __agendaProAdminLoggedIn?: boolean;
+    __agendaProAdminTab?: string;
+    __agendaProViewMode?: string;
+  }
+}
+
+type ProContext = {
+  admin: boolean;
+  tab: string;
+};
+
+type ProBackgroundSettings = {
+  admin_background_opacity: number | string;
+  admin_background_url: string;
+  client_background_opacity: number | string;
+  client_background_url: string;
+};
+
+type ProMediaSettings = {
+  before_image_label: string;
+  before_image_url: string;
+  final_image_label: string;
+  final_image_url: string;
+  logo_url: string;
+  process_image_label: string;
+  process_image_url: string;
+};
+
+type ProGrowthSettings = {
+  google_client_login_enabled: boolean;
+  instagram_url: string;
+  loyalty_discount: number | string;
+  loyalty_enabled: boolean;
+  loyalty_reward_description: string;
+  loyalty_visit_goal: number | string;
+  pro_appearance_media_enabled: boolean;
+  pro_backplate_enabled: boolean;
+  pro_google_client_enabled: boolean;
+  pro_instagram_enabled: boolean;
+  pro_loyalty_enabled: boolean;
+  pro_promotions_enabled: boolean;
+  pro_service_delete_enabled: boolean;
+  pro_waitlist_enabled: boolean;
+  promotion_active: boolean;
+  promotion_description: string;
+  promotion_discount: number | string;
+  promotion_end_date: string;
+  promotion_start_date: string;
+  promotion_title: string;
+  theme_color: string;
+};
+
+type ProShopSettings = Partial<ProBackgroundSettings & ProMediaSettings & ProGrowthSettings>;
+
+type ImageItem = {
+  label: string;
+  url: string;
+};
+
+type ProWaitlistEntry = WaitlistEntry;
+type ProClient = LoyaltyClient;
+
+type AsyncSetter<T> = React.Dispatch<React.SetStateAction<T>>;
+
+type ClientFeatureBannerProps = {
+  growth: ProGrowthSettings;
+  images: ImageItem[];
+};
+
+type AppearancePanelProps = {
+  background: ProBackgroundSettings;
+  growth: ProGrowthSettings;
+  images: ImageItem[];
+  media: ProMediaSettings;
+  message: string;
+  reload: () => Promise<void>;
+  saving: string;
+  setBackground: AsyncSetter<ProBackgroundSettings>;
+  setGrowth: AsyncSetter<ProGrowthSettings>;
+  setMedia: AsyncSetter<ProMediaSettings>;
+  setMessage: AsyncSetter<string>;
+  setSaving: AsyncSetter<string>;
+  slug: string;
+};
+
+type ModuleItem = {
+  desc: string;
+  depends: string;
+  key: keyof ProGrowthSettings;
+  tab: "appearance" | "improvements" | "services";
+  title: string;
+};
+
+type ModuleGroup = {
+  group: string;
+  items: ModuleItem[];
+};
+
+type ImprovementsPanelProps = {
+  clients: ProClient[];
+  growth: ProGrowthSettings;
+  message: string;
+  reload: () => Promise<void>;
+  saving: string;
+  setGrowth: AsyncSetter<ProGrowthSettings>;
+  setMessage: AsyncSetter<string>;
+  setSaving: AsyncSetter<string>;
+  waitlist: ProWaitlistEntry[];
+};
+
+type PhotoFieldConfig = {
+  labelKey: keyof Pick<
+    ProMediaSettings,
+    "before_image_label" | "final_image_label" | "process_image_label"
+  >;
+  title: string;
+  urlKey: keyof Pick<ProMediaSettings, "before_image_url" | "final_image_url" | "process_image_url">;
+};
 
 function makeSlug(value = "") {
   return String(value || "")
@@ -56,7 +177,7 @@ function todayIso() {
   ].join("-");
 }
 
-function promotionIsVisible(settings) {
+function promotionIsVisible(settings: ProGrowthSettings) {
   const today = todayIso();
 
   return Boolean(settings.pro_promotions_enabled) &&
@@ -65,7 +186,7 @@ function promotionIsVisible(settings) {
     (!settings.promotion_end_date || today <= settings.promotion_end_date);
 }
 
-function directImage(url) {
+function directImage(url?: null | string) {
   const value = String(url || "").trim();
 
   if (
@@ -86,6 +207,16 @@ const initialBackground = {
   client_background_opacity: 0.18,
   admin_background_opacity: 0.12,
 };
+
+const photoFields: PhotoFieldConfig[] = [
+  { urlKey: "before_image_url", labelKey: "before_image_label", title: "Antes" },
+  { urlKey: "process_image_url", labelKey: "process_image_label", title: "Processo" },
+  { urlKey: "final_image_url", labelKey: "final_image_label", title: "Finalizado" },
+];
+
+function errorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
 
 const initialMedia = {
   logo_url: "",
@@ -121,7 +252,7 @@ const initialGrowth = {
   theme_color: "#22c55e",
 };
 
-function ClientFeatureBanner({ growth, images }) {
+function ClientFeatureBanner({ growth, images }: ClientFeatureBannerProps) {
   const showPromotion = promotionIsVisible(growth);
 
   if (
@@ -195,7 +326,7 @@ function AppearancePanel({
   setMessage,
   setSaving,
   reload,
-}) {
+}: AppearancePanelProps) {
   async function savePremiumAppearance() {
     setSaving("premiumAppearance");
     setMessage("");
@@ -222,7 +353,7 @@ function AppearancePanel({
       setMessage("Aparência premium salva.");
       await reload();
     } catch (error) {
-      setMessage(error?.message || "Não foi possível salvar a aparência.");
+      setMessage(errorMessage(error, "Não foi possível salvar a aparência."));
     } finally {
       setSaving("");
     }
@@ -346,11 +477,7 @@ function AppearancePanel({
         {growth.pro_appearance_media_enabled ? (
           <div className="safeFeatureCard appearancePhotos">
             <h3>Fotos Antes / Processo / Finalizado</h3>
-            {[
-              ["before_image_url", "before_image_label", "Antes"],
-              ["process_image_url", "process_image_label", "Processo"],
-              ["final_image_url", "final_image_label", "Finalizado"],
-            ].map(([urlKey, labelKey, title]) => (
+            {photoFields.map(({ urlKey, labelKey, title }) => (
               <div className="photoConfig" key={urlKey}>
                 <label>Foto {title}</label>
                 <input
@@ -441,8 +568,8 @@ function ImprovementsPanel({
   setMessage,
   setSaving,
   reload,
-}) {
-  const modules = [
+}: ImprovementsPanelProps) {
+  const modules: ModuleGroup[] = [
     {
       group: "Serviços",
       items: [
@@ -521,14 +648,18 @@ function ImprovementsPanel({
     },
   ];
 
-  function goTab(target) {
+  function goTab(target: ModuleItem["tab"]) {
     try {
       window.__agendaProAdminTab = target;
-      const labels = { services: "Serviços", appearance: "Aparência", improvements: "Melhorias" };
+      const labels: Record<ModuleItem["tab"], string> = {
+        appearance: "Aparência",
+        improvements: "Melhorias",
+        services: "Serviços",
+      };
       const button = [...document.querySelectorAll("button")].find(
         (item) => (item.textContent || "").trim().toLowerCase() === String(labels[target] || target).toLowerCase()
       );
-      if (button) button.click();
+      if (button instanceof HTMLButtonElement) button.click();
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch {
       // Navegação auxiliar: se falhar, o painel principal continua funcionando.
@@ -561,7 +692,7 @@ function ImprovementsPanel({
       setMessage("Configurações salvas. A liberação dos módulos PRO continua no Painel Plataforma.");
       await reload();
     } catch (error) {
-      setMessage(error?.message || "Não foi possível salvar as configurações.");
+      setMessage(errorMessage(error, "Não foi possível salvar as configurações."));
     } finally {
       setSaving("");
     }
@@ -735,12 +866,12 @@ function ImprovementsPanel({
 
 export default function AppProFeatures() {
   const slug = proSlug();
-  const [context, setContext] = useState({ tab: "", admin: false });
-  const [background, setBackground] = useState(initialBackground);
-  const [media, setMedia] = useState(initialMedia);
-  const [growth, setGrowth] = useState(initialGrowth);
-  const [waitlist, setWaitlist] = useState([]);
-  const [clients, setClients] = useState([]);
+  const [context, setContext] = useState<ProContext>({ tab: "", admin: false });
+  const [background, setBackground] = useState<ProBackgroundSettings>(initialBackground);
+  const [media, setMedia] = useState<ProMediaSettings>(initialMedia);
+  const [growth, setGrowth] = useState<ProGrowthSettings>(initialGrowth);
+  const [waitlist, setWaitlist] = useState<ProWaitlistEntry[]>([]);
+  const [clients, setClients] = useState<ProClient[]>([]);
   const [saving, setSaving] = useState("");
   const [message, setMessage] = useState("");
 
@@ -788,7 +919,8 @@ export default function AppProFeatures() {
       supabase.rpc("get_loyalty_clients", { target_slug: slug }),
     ]);
 
-    const shop = shopResult.value?.data;
+    const shop =
+      shopResult.status === "fulfilled" ? (shopResult.value.data as ProShopSettings | null) : null;
 
     if (shop) {
       setBackground({
@@ -809,8 +941,14 @@ export default function AppProFeatures() {
       setGrowth((current) => ({ ...current, ...shop }));
     }
 
-    setWaitlist(waitlistResult.value?.data || []);
-    setClients(clientsResult.value?.data || []);
+    setWaitlist(
+      waitlistResult.status === "fulfilled"
+        ? ((waitlistResult.value.data || []) as ProWaitlistEntry[])
+        : []
+    );
+    setClients(
+      clientsResult.status === "fulfilled" ? ((clientsResult.value.data || []) as ProClient[]) : []
+    );
   }
 
   useEffect(() => {
@@ -869,16 +1007,12 @@ export default function AppProFeatures() {
     ).replace(/'/g, "%27")}')`;
   }, [background, growth.pro_backplate_enabled, context.admin]);
 
-  const images = [
-    ["before_image_url", "before_image_label"],
-    ["process_image_url", "process_image_label"],
-    ["final_image_url", "final_image_label"],
-  ]
-    .map(([urlKey, labelKey]) => ({
+  const images = photoFields
+    .map(({ urlKey, labelKey }) => ({
       url: directImage(media[urlKey]),
       label: media[labelKey],
     }))
-    .filter((item) => item.url);
+    .filter((item): item is ImageItem => Boolean(item.url));
 
   if (!context.admin && proClient()) return null;
 

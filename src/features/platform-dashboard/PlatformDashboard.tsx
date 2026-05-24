@@ -1,5 +1,5 @@
-// @ts-nocheck
 import React, { useEffect, useMemo, useState } from "react";
+import type { Session } from "@supabase/supabase-js";
 import {
   getAdminAuthHealth,
   getAuthSession,
@@ -32,28 +32,189 @@ import {
 } from "../../lib/commercial";
 import { featureLabels } from "../../lib/features";
 import { permissionScenarioMatrix } from "../../lib/permissions";
+import type { FeatureFlag, FeatureKey, PlatformShop, PlanKey, SubscriptionStatus } from "../../types/app";
 import "../../styles.css";
 
 const creationStatusOptions = statusOptions.filter((item) => item.value !== "archived");
+const platformFeatureKeys = Object.keys(featureLabels) as FeatureKey[];
+
+type PlatformTab = "barbershops" | "diagnostics";
+
+type PlatformFilter = "all" | SubscriptionStatus | "pending" | string;
+
+type PlatformStats = {
+  active?: number;
+  archived?: number;
+  blocked?: number;
+  cancelled?: number;
+  monthly_revenue?: number;
+  next_billing?: string | null;
+  overdue?: number;
+  overdue_revenue?: number;
+  total?: number;
+  trial?: number;
+};
+
+type PlatformFeatureFlags = Record<string, FeatureFlag | undefined>;
+
+type PlatformShopRecord = Omit<PlatformShop, "features" | "monthly_status" | "plan" | "plan_price"> & {
+  address?: string;
+  address_number?: string;
+  cep?: string;
+  features?: PlatformFeatureFlags;
+  monthly_status?: SubscriptionStatus | "pending" | string;
+  owner_password?: string;
+  pix_key?: string;
+  plan?: PlanKey | string;
+  plan_price?: number | string;
+  theme_color?: string;
+};
+
+type PlatformDashboardData = {
+  barbershops: PlatformShopRecord[];
+  stats: PlatformStats;
+};
+
+type NewShopForm = {
+  address: string;
+  address_number: string;
+  cep: string;
+  monthly_status: SubscriptionStatus | "pending";
+  name: string;
+  next_billing_date: string;
+  owner_email: string;
+  owner_password: string;
+  pix_key: string;
+  plan: PlanKey | string;
+  plan_price: number | string;
+  slug: string;
+  theme_color: string;
+  whatsapp: string;
+};
+
+type CepAddressResponse = {
+  bairro?: string;
+  erro?: boolean;
+  localidade?: string;
+  logradouro?: string;
+  uf?: string;
+};
+
+type HealthCheck = {
+  detail?: string;
+  error?: string;
+  ok?: boolean;
+};
+
+type AuthHealth = HealthCheck & {
+  serviceRoleConfigured?: boolean;
+};
+
+type WhatsappHealth = HealthCheck & {
+  missing?: string[];
+  providerLabel?: string;
+  ready?: boolean;
+};
+
+type DeployHealth = HealthCheck & {
+  branch?: string;
+  commitSha?: string;
+  environment?: string;
+};
+
+type SystemHealth = {
+  auth: AuthHealth | null;
+  checkedAt: string;
+  data: { active?: number; archived?: number; total?: number } | null;
+  deploy: DeployHealth | null;
+  loading: boolean;
+  rpc: HealthCheck | null;
+  supabase: HealthCheck | null;
+  whatsapp: WhatsappHealth | null;
+};
+
+type PlatformLogin = {
+  email: string;
+  password: string;
+};
+
+type CloudAudit = {
+  barbershops: PlatformShopRecord[];
+};
+
+type MaintenanceResult = {
+  barbershops?: PlatformShopRecord[];
+  data?: unknown;
+  error?: unknown;
+};
+
+type CreateShopResult = {
+  barbershop_id?: string;
+  link_cliente?: string;
+  link_painel?: string;
+  slug?: string;
+};
+
+type OwnerAuthPayload = {
+  email: string;
+  id?: string;
+  password?: string;
+  role?: string;
+  slug?: string;
+};
+
+type BillingReminder = {
+  message: string;
+  slug: string;
+  whatsapp: string;
+};
+
+type PurgeResult = {
+  deleted_appointments?: number;
+  deleted_barbershops?: number;
+  deleted_clients?: number;
+};
+
+type StatCardProps = {
+  hint?: string;
+  label: string;
+  value?: React.ReactNode;
+};
+
+type HealthTone = "danger" | "neutral" | "ready" | "warning";
+
+type HealthItemProps = {
+  detail?: string;
+  label: string;
+  status: React.ReactNode;
+  tone?: HealthTone;
+};
 
 function makeSlug(value = "") {
   return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48);
 }
 
-function onlyDigits(value = "") {
+function onlyDigits(value: unknown = "") {
   return String(value).replace(/\D/g, "");
 }
 
-function errorText(error) {
+function errorText(error: unknown) {
   if (!error) return "Erro desconhecido.";
-  return error.message || error.details || error.hint || String(error);
+  if (error instanceof Error) return error.message;
+
+  if (typeof error === "object") {
+    const errorData = error as { details?: string; hint?: string; message?: string };
+    return errorData.message || errorData.details || errorData.hint || String(error);
+  }
+
+  return String(error);
 }
 
-function isServiceRoleMissing(error) {
+function isServiceRoleMissing(error: unknown) {
   return errorText(error).includes("SUPABASE_SERVICE_ROLE");
 }
 
-function ownerLoginErrorText(error) {
+function ownerLoginErrorText(error: unknown) {
   if (isServiceRoleMissing(error)) {
     return "Barbearia salva, mas o login do dono não foi criado porque falta configurar SUPABASE_SERVICE_ROLE_KEY no Vercel. Depois de configurar, edite a barbearia e preencha a nova senha do dono.";
   }
@@ -61,11 +222,11 @@ function ownerLoginErrorText(error) {
   return errorText(error);
 }
 
-function money(value) {
+function money(value: unknown) {
   return Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-function dateText(value) {
+function dateText(value: unknown) {
   if (!value) return "Sem vencimento";
   const [year, month, day] = String(value).split("-").map(Number);
   return new Date(year, month - 1, day).toLocaleDateString("pt-BR");
@@ -77,18 +238,20 @@ function futureDateText(days = 30) {
   return date.toISOString().slice(0, 10);
 }
 
-function withTimeout(promise, label, timeoutMs = 9000) {
-  let timeoutId;
-  const timeout = new Promise((_, reject) => {
+function withTimeout<T>(promise: PromiseLike<T>, label: string, timeoutMs = 9000) {
+  let timeoutId: ReturnType<typeof window.setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
     timeoutId = window.setTimeout(() => {
       reject(new Error(`${label} demorou para responder. Atualize a página e tente novamente.`));
     }, timeoutMs);
   });
 
-  return Promise.race([promise, timeout]).finally(() => window.clearTimeout(timeoutId));
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timeoutId) window.clearTimeout(timeoutId);
+  });
 }
 
-function buildCepAddress(cepData, number) {
+function buildCepAddress(cepData: CepAddressResponse, number: unknown) {
   const street = cepData?.logradouro || "";
   const neighborhood = cepData?.bairro || "";
   const city = cepData?.localidade || "";
@@ -106,7 +269,7 @@ function buildCepAddress(cepData, number) {
     .join(" - ");
 }
 
-async function fetchCepAddress(cep, number) {
+async function fetchCepAddress(cep: unknown, number: unknown) {
   const cleanCep = onlyDigits(cep);
   const cleanNumber = String(number || "").trim();
 
@@ -119,7 +282,7 @@ async function fetchCepAddress(cep, number) {
   }
 
   const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
-  const data = await response.json().catch(() => null);
+  const data = (await response.json().catch(() => null)) as CepAddressResponse | null;
 
   if (!response.ok || !data || data.erro) {
     throw new Error("CEP não encontrado. Cadastre o endereço manualmente.");
@@ -133,7 +296,7 @@ async function fetchCepAddress(cep, number) {
   return address;
 }
 
-function emptyForm() {
+function emptyForm(): NewShopForm {
   return {
     name: "",
     slug: "",
@@ -152,9 +315,9 @@ function emptyForm() {
   };
 }
 
-function statusBadge(status, label) {
+function statusBadge(status: unknown, label?: unknown) {
   const normalized = String(status || "").toLowerCase();
-  const value = commercialStatusLabel(normalized) || label || status;
+  const value = commercialStatusLabel(normalized) || String(label || status || "");
 
   if (normalized === "archived") return <b className="statusArchived">Arquivado</b>;
   if (normalized === "cancelled") return <b className="statusCancelled">Cancelado</b>;
@@ -166,15 +329,15 @@ function statusBadge(status, label) {
   return <b className="statusActive">{value || "Ativo"}</b>;
 }
 
-function planLabel(plan) {
-  return commercialPlanLabel(plan);
+function planLabel(plan: unknown) {
+  return commercialPlanLabel(String(plan || ""));
 }
 
-function statusLabel(status) {
-  return commercialStatusLabel(status);
+function statusLabel(status: unknown) {
+  return commercialStatusLabel(String(status || ""));
 }
 
-function normalizeAuditShop(shop = {}) {
+function normalizeAuditShop(shop: PlatformShopRecord = {}) {
   return {
     ...shop,
     plan_label: shop.plan_label || planLabel(shop.plan),
@@ -189,16 +352,18 @@ function normalizeAuditShop(shop = {}) {
   };
 }
 
-function mergeShopLists(primary = [], fallback = []) {
-  const map = new Map();
+function mergeShopLists(primary: PlatformShopRecord[] = [], fallback: PlatformShopRecord[] = []) {
+  const map = new Map<string, PlatformShopRecord>();
 
   fallback.forEach((shop) => {
-    if (shop?.id || shop?.slug) map.set(shop.id || shop.slug, normalizeAuditShop(shop));
+    const key = shop?.id || shop?.slug;
+    if (key) map.set(key, normalizeAuditShop(shop));
   });
 
   primary.forEach((shop) => {
     if (shop?.id || shop?.slug) {
       const key = shop.id || shop.slug;
+      if (!key) return;
       map.set(key, normalizeAuditShop({ ...(map.get(key) || {}), ...shop, source: "dashboard" }));
     }
   });
@@ -206,7 +371,7 @@ function mergeShopLists(primary = [], fallback = []) {
   return Array.from(map.values());
 }
 
-function StatCard({ label, value, hint }) {
+function StatCard({ label, value, hint }: StatCardProps) {
   return (
     <div className="platformStat">
       <span>{label}</span>
@@ -225,7 +390,7 @@ function checkedAtText() {
   });
 }
 
-function HealthItem({ label, status, detail, tone = "neutral" }) {
+function HealthItem({ label, status, detail, tone = "neutral" }: HealthItemProps) {
   return (
     <article className={`platformHealthItem ${tone}`}>
       <span>{label}</span>
@@ -235,27 +400,30 @@ function HealthItem({ label, status, detail, tone = "neutral" }) {
   );
 }
 
-function shortCommit(value = "") {
+function shortCommit(value: unknown = "") {
   return value ? String(value).slice(0, 7) : "Não informado";
 }
 
 export default function PlatformDashboard() {
   const [loading, setLoading] = useState(true);
   const [checking, setChecking] = useState(true);
-  const [session, setSession] = useState(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isDeveloper, setIsDeveloper] = useState(false);
   const [message, setMessage] = useState("");
-  const [dashboard, setDashboard] = useState({ stats: {}, barbershops: [] });
+  const [dashboard, setDashboard] = useState<PlatformDashboardData>({ stats: {}, barbershops: [] });
   const [newShop, setNewShop] = useState(emptyForm());
-  const [selectedShop, setSelectedShop] = useState(null);
+  const [selectedShop, setSelectedShop] = useState<PlatformShopRecord | null>(null);
   const [saving, setSaving] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
-  const [filter, setFilter] = useState("all");
-  const [platformTab, setPlatformTab] = useState("barbershops");
+  const [filter, setFilter] = useState<PlatformFilter>("all");
+  const [platformTab, setPlatformTab] = useState<PlatformTab>("barbershops");
   const [lastError, setLastError] = useState("");
-  const [platformLogin, setPlatformLogin] = useState({ email: "appagenda.pro@gmail.com", password: "" });
-  const [cloudAudit, setCloudAudit] = useState({ barbershops: [] });
-  const [systemHealth, setSystemHealth] = useState({
+  const [platformLogin, setPlatformLogin] = useState<PlatformLogin>({
+    email: "appagenda.pro@gmail.com",
+    password: "",
+  });
+  const [cloudAudit, setCloudAudit] = useState<CloudAudit>({ barbershops: [] });
+  const [systemHealth, setSystemHealth] = useState<SystemHealth>({
     loading: false,
     checkedAt: "",
     supabase: null,
@@ -306,7 +474,7 @@ export default function PlatformDashboard() {
       }
     }
 
-    const { data: listener } = onAuthStateChange((event, nextSession) => {
+    const { data: listener } = onAuthStateChange(async (event, nextSession) => {
       if (event === "INITIAL_SESSION") return;
       if (!mounted) return;
 
@@ -332,7 +500,7 @@ export default function PlatformDashboard() {
     };
   }, []);
 
-  async function checkDeveloper(currentSession = session) {
+  async function checkDeveloper(currentSession: Session | null = session) {
     try {
     if (!currentSession?.user?.email) {
       setIsDeveloper(false);
@@ -361,7 +529,7 @@ export default function PlatformDashboard() {
     }
   }
 
-  function rememberError(source, error) {
+  function rememberError(source: string, error: unknown) {
     const text = `${source}: ${errorText(error)}`;
     setLastError(text);
     return text;
@@ -380,9 +548,14 @@ export default function PlatformDashboard() {
         getDeployInfo(),
       ]);
 
-    const dashboardData = dashboardResult.status === "fulfilled" ? dashboardResult.value?.data : null;
+    const dashboardData =
+      dashboardResult.status === "fulfilled"
+        ? (dashboardResult.value?.data as PlatformDashboardData | null)
+        : null;
     const maintenanceData =
-      maintenanceResult.status === "fulfilled" ? maintenanceResult.value?.barbershops || [] : [];
+      maintenanceResult.status === "fulfilled"
+        ? ((maintenanceResult.value as MaintenanceResult)?.barbershops || [])
+        : [];
     const archivedCount = maintenanceData.filter((shop) => shop.archived_at).length;
     const activeCount = maintenanceData.filter((shop) => !shop.archived_at).length;
     const rpcOk =
@@ -391,21 +564,26 @@ export default function PlatformDashboard() {
       adminResult.value?.data === true &&
       dashboardResult.status === "fulfilled" &&
       dashboardResult.value?.error == null;
-    const firstError = [
+    const settledResults = [
       adminResult,
       dashboardResult,
       maintenanceResult,
       authResult,
       whatsappResult,
       deployResult,
-    ].find((item) => item.status === "rejected" || item.value?.error);
+    ];
+    const firstErrorText = settledResults.reduce<string>((current, item) => {
+      if (current) return current;
+      if (item.status === "rejected") return errorText(item.reason);
+      return item.value?.error ? errorText(item.value.error) : "";
+    }, "");
+    const maintenanceError = maintenanceResult.status === "rejected" ? maintenanceResult.reason : null;
+    const dashboardError = dashboardResult.status === "rejected" ? dashboardResult.reason : null;
+    const adminError =
+      adminResult.status === "rejected" ? adminResult.reason : adminResult.value?.error;
 
-    if (firstError) {
-      setLastError(
-        firstError.status === "rejected"
-          ? errorText(firstError.reason)
-          : errorText(firstError.value?.error)
-      );
+    if (firstErrorText) {
+      setLastError(firstErrorText);
     }
 
     setSystemHealth({
@@ -418,30 +596,29 @@ export default function PlatformDashboard() {
             ? "Consulta segura com service role respondeu."
             : dashboardResult.status === "fulfilled"
             ? "RPC principal respondeu pela sessão atual."
-            : errorText(maintenanceResult.reason || dashboardResult.reason),
+            : errorText(maintenanceError || dashboardError),
       },
       rpc: {
         ok: rpcOk,
         detail: rpcOk
           ? "is_platform_admin e get_platform_dashboard responderam."
           : errorText(
-              adminResult.reason ||
-                dashboardResult.reason ||
-                adminResult.value?.error ||
-                dashboardResult.value?.error
+              adminError ||
+                dashboardError ||
+                (dashboardResult.status === "fulfilled" ? dashboardResult.value?.error : null)
             ),
       },
       auth:
         authResult.status === "fulfilled"
-          ? authResult.value
+          ? (authResult.value as AuthHealth)
           : { ok: false, error: errorText(authResult.reason) },
       whatsapp:
         whatsappResult.status === "fulfilled"
-          ? whatsappResult.value
+          ? (whatsappResult.value as WhatsappHealth)
           : { ok: false, error: errorText(whatsappResult.reason), missing: [] },
       deploy:
         deployResult.status === "fulfilled"
-          ? deployResult.value
+          ? (deployResult.value as DeployHealth)
           : { ok: false, error: errorText(deployResult.reason) },
       data: {
         total: maintenanceData.length || dashboardData?.stats?.total || shops.length || 0,
@@ -460,7 +637,7 @@ export default function PlatformDashboard() {
       setMessage("Não foi possível puxar dados da nuvem: " + errorText(error));
       return;
     }
-    setDashboard(data || { stats: {}, barbershops: [] });
+    setDashboard((data as PlatformDashboardData | null) || { stats: {}, barbershops: [] });
     await loadCloudAudit().catch(() => null);
     } catch (error) {
       rememberError("Painel Plataforma", error);
@@ -472,24 +649,25 @@ export default function PlatformDashboard() {
     }
   }
 
-  async function callPlatformMaintenance(payload) {
-    return callPlatformMaintenanceRequest(payload);
+  async function callPlatformMaintenance(payload: Record<string, unknown>) {
+    return callPlatformMaintenanceRequest(payload) as Promise<MaintenanceResult>;
   }
 
-  async function loadCloudAudit(options = {}) {
+  async function loadCloudAudit(options: { allowDashboardFallback?: boolean } = {}) {
     const result = await callPlatformMaintenance({ action: "diagnostics" });
-    const nextAudit = { barbershops: result.barbershops || [] };
+    const resultShops = result.barbershops || [];
+    const nextAudit = { barbershops: resultShops };
     setCloudAudit(nextAudit);
 
-    if (options.allowDashboardFallback && result.barbershops?.length) {
-      const active = result.barbershops.filter((shop) => !shop.archived_at).map(normalizeAuditShop);
+    if (options.allowDashboardFallback && resultShops.length) {
+      const active = resultShops.filter((shop) => !shop.archived_at).map(normalizeAuditShop);
       setDashboard((current) => ({
         ...(current || {}),
         barbershops: active,
         stats: {
           ...(current?.stats || {}),
           total: active.length,
-          archived: result.barbershops.filter((shop) => shop.archived_at).length,
+          archived: resultShops.filter((shop) => shop.archived_at).length,
         },
       }));
     }
@@ -497,7 +675,7 @@ export default function PlatformDashboard() {
     return nextAudit;
   }
 
-  async function restoreArchivedShop(shop) {
+  async function restoreArchivedShop(shop: PlatformShopRecord) {
     if (!shop?.id && !shop?.slug) return;
 
     setSaving("restore-" + (shop.id || shop.slug));
@@ -550,12 +728,12 @@ export default function PlatformDashboard() {
     setMessage("Você saiu do Painel AgendaPro.");
   }
 
-  function updateNewShop(field, value) {
+  function updateNewShop<K extends keyof NewShopForm>(field: K, value: NewShopForm[K]) {
     setNewShop((current) => {
       const next = { ...current, [field]: value };
-      if (field === "name" && !slugTouched) next.slug = makeSlug(value);
-      if (field === "slug") next.slug = makeSlug(value);
-      if (field === "plan") next.plan_price = planPriceFor(value);
+      if (field === "name" && !slugTouched) next.slug = makeSlug(String(value));
+      if (field === "slug") next.slug = makeSlug(String(value));
+      if (field === "plan") next.plan_price = planPriceFor(String(value));
       return next;
     });
   }
@@ -591,7 +769,7 @@ export default function PlatformDashboard() {
     }
   }
 
-  async function syncOwnerAuthUser({ id, slug, email, password, role = "owner" }) {
+  async function syncOwnerAuthUser({ id, slug, email, password, role = "owner" }: OwnerAuthPayload) {
     if (!password) return { skipped: true };
 
     return syncAdminAuthUser({
@@ -604,7 +782,7 @@ export default function PlatformDashboard() {
     });
   }
 
-  async function createShop(event) {
+  async function createShop(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage("");
 
@@ -618,7 +796,7 @@ export default function PlatformDashboard() {
     setSaving("create");
 
     try {
-      const { data, error } = await createBarbershopFull({
+      const { data, error } = (await createBarbershopFull({
         name_input: newShop.name,
         slug_input: newShop.slug || makeSlug(newShop.name),
         whatsapp_input: onlyDigits(newShop.whatsapp),
@@ -629,7 +807,7 @@ export default function PlatformDashboard() {
         address_input: newShop.address,
         pix_key_input: newShop.pix_key,
         theme_color_input: newShop.theme_color || "#22c55e",
-      });
+      })) as { data?: CreateShopResult | null; error?: unknown };
 
       if (error) throw error;
 
@@ -685,9 +863,13 @@ export default function PlatformDashboard() {
     }
   }
 
-  async function saveShop(event) {
+  async function saveShop(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!selectedShop) return;
+    if (!selectedShop.slug) {
+      setMessage("Esta barbearia está sem slug. Corrija o cadastro antes de salvar.");
+      return;
+    }
     setMessage("");
 
     const ownerPassword = String(selectedShop.owner_password || "").trim();
@@ -728,7 +910,7 @@ export default function PlatformDashboard() {
           await syncOwnerAuthUser({
             id: selectedShop.id,
             slug: selectedShop.slug,
-            email: selectedShop.owner_email,
+            email: selectedShop.owner_email || "",
             password: ownerPassword,
             role: "owner",
           });
@@ -755,7 +937,7 @@ export default function PlatformDashboard() {
     }
   }
 
-  async function hideShopFromPlatform(shop) {
+  async function hideShopFromPlatform(shop: PlatformShopRecord) {
     if (!shop?.slug) return;
     setSaving("hide-" + shop.slug);
     setMessage("");
@@ -796,7 +978,7 @@ export default function PlatformDashboard() {
       const { data, error } = await purgeArchivedBarbershops();
       if (error) throw error;
 
-      const result = Array.isArray(data) ? data[0] : data;
+      const result = (Array.isArray(data) ? data[0] : data) as PurgeResult | null;
       setSelectedShop(null);
       setMessage(
         `Limpeza concluída. ${result?.deleted_barbershops || 0} barbearia(s), ${result?.deleted_appointments || 0} agendamento(s) e ${result?.deleted_clients || 0} cliente(s) foram removidos.`
@@ -847,7 +1029,7 @@ export default function PlatformDashboard() {
       const { data, error } = await getPlatformBillingReminders();
       if (error) throw error;
 
-      const reminders = data || [];
+      const reminders = (data || []) as BillingReminder[];
       if (!reminders.length) {
         setMessage("Nenhuma barbearia com vencimento em 3 dias úteis para avisar hoje.");
         return;
@@ -876,19 +1058,33 @@ export default function PlatformDashboard() {
     }
   }
 
-  function updateSelected(field, value) {
+  function updateSelected<K extends keyof PlatformShopRecord>(field: K, value: PlatformShopRecord[K]) {
     setSelectedShop((current) => {
+      if (!current) return current;
       const next = { ...current, [field]: value };
-      if (field === "plan") next.plan_price = planPriceFor(value);
+      if (field === "plan") next.plan_price = planPriceFor(String(value));
       return next;
     });
   }
 
-  function updateFeature(key, field, value) {
-    setSelectedShop((current) => ({
-      ...current,
-      features: { ...(current.features || {}), [key]: { ...(current.features?.[key] || {}), [field]: value } },
-    }));
+  function updateFeature(key: FeatureKey | string, field: keyof FeatureFlag, value: boolean) {
+    setSelectedShop((current) => {
+      if (!current) return current;
+
+      const previousFeature = current.features?.[key];
+
+      return {
+        ...current,
+        features: {
+          ...(current.features || {}),
+          [key]: {
+            enabled: Boolean(previousFeature?.enabled),
+            released: Boolean(previousFeature?.released),
+            [field]: value,
+          },
+        },
+      };
+    });
   }
 
   if (checking || loading) {
@@ -1055,9 +1251,9 @@ export default function PlatformDashboard() {
             status={systemHealth.whatsapp?.ready ? "Pronto" : "Pendente"}
             detail={
               systemHealth.whatsapp?.ready
-                ? `${systemHealth.whatsapp.providerLabel || "WhatsApp Cloud API"} configurado.`
+                ? `${systemHealth.whatsapp?.providerLabel || "WhatsApp Cloud API"} configurado.`
                 : (systemHealth.whatsapp?.missing || []).length
-                ? `Falta configurar: ${(systemHealth.whatsapp.missing || []).join(", ")}.`
+                ? `Falta configurar: ${(systemHealth.whatsapp?.missing || []).join(", ")}.`
                 : systemHealth.whatsapp?.error || "Aguardando verificação das chaves."
             }
           />
@@ -1149,7 +1345,7 @@ export default function PlatformDashboard() {
             <input value={newShop.owner_password || ""} onChange={(event) => updateNewShop("owner_password", event.target.value)} type="password" autoComplete="new-password" minLength={6} placeholder="mínimo 6 caracteres" required />
             <div className="platformTwoCols">
               <span><label>Plano</label><select value={newShop.plan} onChange={(event) => updateNewShop("plan", event.target.value)}>{planOptions.map((plan) => <option key={plan.id} value={plan.id}>{plan.name}</option>)}</select></span>
-              <span><label>Status</label><select value={newShop.monthly_status} onChange={(event) => updateNewShop("monthly_status", event.target.value)}>{creationStatusOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></span>
+              <span><label>Status</label><select value={newShop.monthly_status} onChange={(event) => updateNewShop("monthly_status", event.target.value as SubscriptionStatus)}>{creationStatusOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></span>
             </div>
             <div className="platformTwoCols">
               <span><label>Vencimento</label><input value={newShop.next_billing_date} onChange={(event) => updateNewShop("next_billing_date", event.target.value)} type="date" /></span>
@@ -1298,8 +1494,8 @@ export default function PlatformDashboard() {
             </form>
             <div className="platformFeatures">
               <h3>Funções liberadas por plano</h3><p className="platformMuted">Ative aqui e o recurso aparece automaticamente no lugar certo do painel da barbearia.</p>
-              {Object.keys(featureLabels).map((key) => {
-                const item = selectedShop.features?.[key] || {};
+              {platformFeatureKeys.map((key) => {
+                const item = selectedShop.features?.[key] || { enabled: false, released: false };
                 return <label className="platformFeature" key={key}><span><strong>{featureLabels[key]}</strong><small>{key}</small></span><span className="featureChecks"><em>Liberado</em><input type="checkbox" checked={Boolean(item.released)} onChange={(event) => updateFeature(key, "released", event.target.checked)} /><em>Ativo</em><input type="checkbox" checked={Boolean(item.enabled)} onChange={(event) => updateFeature(key, "enabled", event.target.checked)} /></span></label>;
               })}
               <button type="button" className="platformPrimary" disabled={saving === "features"} onClick={saveFeatures}>{saving === "features" ? "Salvando..." : "Salvar funções"}</button>

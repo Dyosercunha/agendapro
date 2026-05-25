@@ -602,10 +602,6 @@ export default function ClientBooking({ model }: ClientBookingProps) {
               {business.logoImage ? <img src={business.logoImage} alt="Logo" /> : business.logo}
             </div>
             <div>
-              <span className="appBrandMark">
-                <img src={agendaProLogoUrl} alt="AgendaPro" />
-                AgendaPro
-              </span>
               <h1>{business.name}</h1>
             </div>
           </div>
@@ -631,6 +627,15 @@ export default function ClientBooking({ model }: ClientBookingProps) {
           </a>
 
         </section>
+
+        <footer className="clientDeveloperFooter">
+          <span>Desenvolvido por</span>
+          <strong>
+            <img src={agendaProLogoUrl} alt="AgendaPro" />
+            AgendaPro
+          </strong>
+          <a href="mailto:appagenda.pro@gmail.com">Entre em contato com o desenvolvedor</a>
+        </footer>
       </main>
     );
   }
@@ -643,10 +648,6 @@ export default function ClientBooking({ model }: ClientBookingProps) {
             {business.logoImage ? <img src={business.logoImage} alt="Logo" /> : business.logo}
           </div>
           <div>
-            <span className="appBrandMark">
-              <img src={agendaProLogoUrl} alt="AgendaPro" />
-              AgendaPro
-            </span>
             <h1>{repairText(business.name)}</h1>
             {cleanAddress && <small>{cleanAddress}</small>}
           </div>
@@ -1031,6 +1032,15 @@ export default function ClientBooking({ model }: ClientBookingProps) {
           {hasChosenService ? "Continuar →" : "Escolha serviço ou promo"}
         </button>
       </section>
+
+      <footer className="clientDeveloperFooter">
+        <span>Desenvolvido por</span>
+        <strong>
+          <img src={agendaProLogoUrl} alt="AgendaPro" />
+          AgendaPro
+        </strong>
+        <a href="mailto:appagenda.pro@gmail.com">Entre em contato com o desenvolvedor</a>
+      </footer>
 
       <a
         className="clientFloatingWhatsapp"

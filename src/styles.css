@@ -307,25 +307,6 @@ h3 {
   overflow-wrap: anywhere;
 }
 
-.appBrandMark {
-  align-items: center;
-  color: var(--text-secondary);
-  display: inline-flex;
-  gap: 7px;
-  font-size: 12px;
-  font-weight: 900;
-  line-height: 1;
-  margin-bottom: 6px;
-}
-
-.appBrandMark img {
-  border: 1px solid rgba(234, 179, 8, 0.22);
-  border-radius: 10px;
-  height: 26px;
-  object-fit: cover;
-  width: 26px;
-}
-
 .clientStatusNotice {
   background: linear-gradient(135deg, rgba(245, 158, 11, 0.14), rgba(16, 20, 24, 0.94));
   border: 1px solid rgba(245, 158, 11, 0.28);
@@ -1737,6 +1718,50 @@ button:disabled {
 
 .bottomTotal {
   color: var(--success);
+}
+
+.clientDeveloperFooter {
+  align-items: center;
+  background: rgba(16, 20, 24, 0.58);
+  border: 1px solid var(--border-soft);
+  border-radius: 22px;
+  color: var(--text-muted);
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  margin: 14px 0 0;
+  padding: 16px;
+  text-align: center;
+}
+
+.clientDeveloperFooter span {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.clientDeveloperFooter strong {
+  align-items: center;
+  color: var(--text);
+  display: inline-flex;
+  font-size: 15px;
+  gap: 8px;
+}
+
+.clientDeveloperFooter img {
+  border: 1px solid rgba(234, 179, 8, 0.24);
+  border-radius: 12px;
+  height: 30px;
+  object-fit: cover;
+  width: 30px;
+}
+
+.clientDeveloperFooter a {
+  color: var(--success);
+  font-size: 13px;
+  font-weight: 900;
+  text-decoration: none;
 }
 
 .green,

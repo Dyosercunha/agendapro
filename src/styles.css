@@ -273,6 +273,18 @@ h3 {
   width: 100%;
 }
 
+.clientHeaderLoginActions {
+  flex: 0 0 auto;
+  grid-template-columns: repeat(auto-fit, minmax(86px, max-content));
+  justify-content: end;
+  width: auto;
+}
+
+.clientHeaderLoginActions .miniInstagram,
+.clientHeaderLoginActions .ownerLoginButton {
+  min-width: 86px;
+}
+
 .miniInstagram {
   background: rgba(249, 115, 22, 0.12);
   border-color: rgba(249, 115, 22, 0.24);

@@ -649,14 +649,10 @@ export default function ClientBooking({ model }: ClientBookingProps) {
           </div>
           <div>
             <h1>{repairText(business.name)}</h1>
-            {cleanAddress && <small>{cleanAddress}</small>}
           </div>
         </div>
 
-        <div className="clientHeaderActions">
-          <a className="miniWhatsapp" href={`https://wa.me/${business.whatsapp}`} target="_blank" rel="noreferrer">
-            WhatsApp
-          </a>
+        <div className="clientHeaderActions clientHeaderLoginActions">
           {instagramAvailable && (
             <a className="miniInstagram" href={instagramHref} target="_blank" rel="noreferrer">
               Instagram

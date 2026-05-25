@@ -1,5 +1,30 @@
 import React, { useRef, useState } from "react";
 
+const planCards = [
+  {
+    name: "Inicial",
+    price: "R$ 49/mês",
+    description: "Agenda online, serviços, profissionais, link público e painel básico.",
+  },
+  {
+    name: "Profissional",
+    price: "R$ 89/mês",
+    description: "Aparência personalizada, PIX, clientes, promoções e confirmação pelo WhatsApp.",
+  },
+  {
+    name: "Premium",
+    price: "R$ 149/mês",
+    description: "Fidelidade, lista de espera, fotos, Instagram, relatórios e recursos avançados.",
+  },
+];
+
+const productHighlights = [
+  "Agendamento pelo celular",
+  "Painel da barbearia",
+  "Controle de clientes",
+  "Recursos por plano",
+];
+
 function normalizeSlug(value: string) {
   return value
     .toLowerCase()
@@ -32,11 +57,17 @@ export default function LandingPage() {
       <section className="landingHero">
         <div className="landingCopy">
           <h1>AgendaPro</h1>
-          <p className="landingLead">Sistema de agendamento para barbearias</p>
+          <p className="landingLead">Agendamento inteligente para barbearias, salões e estética</p>
           <p>
-            Agenda online, painel da barbearia, pagamentos, clientes e melhorias liberadas
+            Agenda online, painel de gestão, pagamentos, clientes e melhorias liberadas
             por assinatura em uma experiência simples para vender e usar no celular.
           </p>
+
+          <div className="landingProofRow">
+            {productHighlights.map((item) => (
+              <span key={item}>{item}</span>
+            ))}
+          </div>
 
           <div className="landingActions">
             <button type="button" onClick={() => goTo("agendamento")}>
@@ -51,9 +82,11 @@ export default function LandingPage() {
 
         <div className="landingMockup" aria-label="Prévia visual do app AgendaPro">
           <div className="mockHeader">
-            <span>A</span>
+            <span className="mockLogo">
+              <img src="/agenda-pro-logo.png" alt="AgendaPro" />
+            </span>
             <div>
-              <small>Agendamento online</small>
+              <small>Agenda da barbearia</small>
               <strong>AgendaPro</strong>
             </div>
           </div>
@@ -61,6 +94,16 @@ export default function LandingPage() {
             <small>Hoje</small>
             <strong>Melhor horário</strong>
             <b>10:30</b>
+          </div>
+          <div className="mockMiniStats">
+            <span>
+              <strong>12</strong>
+              <small>agendamentos</small>
+            </span>
+            <span>
+              <strong>R$ 420</strong>
+              <small>previsto</small>
+            </span>
           </div>
           <div className="mockSlots">
             <span>09:00</span>
@@ -103,6 +146,21 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <section className="landingPlanGrid" aria-label="Planos do AgendaPro">
+        <div className="landingSectionIntro">
+          <h2>Planos simples para começar e crescer</h2>
+          <p>Você libera recursos conforme a barbearia evolui, sem complicar o uso diário.</p>
+        </div>
+
+        {planCards.map((plan) => (
+          <article className={plan.name === "Profissional" ? "landingPlanCard featuredPlan" : "landingPlanCard"} key={plan.name}>
+            <span>{plan.name}</span>
+            <strong>{plan.price}</strong>
+            <p>{plan.description}</p>
+          </article>
+        ))}
+      </section>
+
       <section className="landingFeatureGrid">
         <article>
           <span>01</span>
@@ -120,6 +178,11 @@ export default function LandingPage() {
           <p>Cadastro de barbearias, planos, vencimentos e liberação de melhorias por conta.</p>
         </article>
       </section>
+
+      <footer className="landingFooter">
+        <strong>AgendaPro</strong>
+        <span>Sistema de agenda online para negócios de atendimento com hora marcada.</span>
+      </footer>
     </main>
   );
 }

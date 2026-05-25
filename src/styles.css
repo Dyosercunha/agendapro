@@ -462,6 +462,42 @@ h3 {
   text-align: center;
 }
 
+.clientTrustStrip {
+  display: grid;
+  gap: 9px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 14px;
+}
+
+.clientTrustStrip div {
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.05), transparent 48%),
+    rgba(16, 20, 24, 0.72);
+  border: 1px solid var(--border-soft);
+  border-radius: 18px;
+  min-height: 78px;
+  padding: 11px;
+}
+
+.clientTrustStrip strong,
+.clientTrustStrip span {
+  display: block;
+}
+
+.clientTrustStrip strong {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.15;
+}
+
+.clientTrustStrip span {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 850;
+  line-height: 1.25;
+  margin-top: 5px;
+}
+
 .addressCard {
   background: linear-gradient(135deg, rgba(34, 197, 94, 0.14), rgba(16, 20, 24, 0.95));
   border: 1px solid rgba(34, 197, 94, 0.24);
@@ -739,6 +775,23 @@ button:disabled {
   margin-top: 22px;
 }
 
+.landingProofRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.landingProofRow span {
+  background: rgba(7, 10, 13, 0.54);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 900;
+  padding: 8px 11px;
+}
+
 .landingActions button,
 .landingActions a,
 .landingSlugActions button {
@@ -799,6 +852,18 @@ button:disabled {
   width: 60px;
 }
 
+.mockHeader .mockLogo {
+  background: #0c0d0f;
+  border: 1px solid rgba(234, 179, 8, 0.22);
+  overflow: hidden;
+}
+
+.mockLogo img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
 .mockHeader small,
 .mockCard small {
   color: var(--text-muted);
@@ -830,6 +895,37 @@ button:disabled {
   margin-top: 6px;
 }
 
+.mockMiniStats {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.mockMiniStats span {
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid var(--border-soft);
+  border-radius: 18px;
+  padding: 12px;
+}
+
+.mockMiniStats strong,
+.mockMiniStats small {
+  display: block;
+}
+
+.mockMiniStats strong {
+  color: var(--text);
+  font-size: 20px;
+  line-height: 1;
+}
+
+.mockMiniStats small {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 900;
+  margin-top: 5px;
+}
+
 .mockSlots {
   display: grid;
   gap: 10px;
@@ -856,7 +952,8 @@ button:disabled {
 }
 
 .landingSlugBox,
-.landingFeatureGrid article {
+.landingFeatureGrid article,
+.landingPlanCard {
   background: linear-gradient(180deg, var(--card), var(--surface));
   border: 1px solid var(--border-soft);
   border-radius: 28px;
@@ -903,6 +1000,72 @@ button:disabled {
   margin-top: 8px;
 }
 
+.landingPlanGrid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 1.2fr repeat(3, minmax(0, 1fr));
+  margin-top: 16px;
+}
+
+.landingSectionIntro {
+  align-self: stretch;
+  background:
+    radial-gradient(circle at top left, rgba(34, 197, 94, 0.14), transparent 38%),
+    linear-gradient(180deg, var(--card), var(--surface));
+  border: 1px solid var(--border-soft);
+  border-radius: 28px;
+  box-shadow: var(--shadow-card);
+  padding: 20px;
+}
+
+.landingSectionIntro h2 {
+  font-size: clamp(24px, 3vw, 34px);
+  line-height: 1.05;
+  margin-bottom: 10px;
+}
+
+.landingSectionIntro p {
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.landingPlanCard {
+  min-height: 190px;
+  padding: 18px;
+}
+
+.landingPlanCard span {
+  color: var(--success);
+  display: block;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.landingPlanCard strong {
+  color: var(--text);
+  display: block;
+  font-size: 27px;
+  line-height: 1;
+  margin: 14px 0 12px;
+}
+
+.landingPlanCard p {
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.featuredPlan {
+  background:
+    radial-gradient(circle at top right, rgba(74, 222, 128, 0.17), transparent 42%),
+    linear-gradient(180deg, #1d2a22, var(--surface));
+  border-color: rgba(34, 197, 94, 0.32);
+  box-shadow: var(--shadow-card), var(--shadow-glow);
+}
+
 .landingFeatureGrid {
   display: grid;
   gap: 14px;
@@ -918,6 +1081,24 @@ button:disabled {
   display: block;
   font-size: 20px;
   margin: 8px 0;
+}
+
+.landingFooter {
+  align-items: center;
+  color: var(--text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  justify-content: space-between;
+  padding: 20px 4px 4px;
+}
+
+.landingFooter strong {
+  color: var(--text);
+}
+
+.landingFooter span {
+  font-size: 13px;
 }
 
 @media (max-width: 900px) {
@@ -955,6 +1136,10 @@ button:disabled {
   }
 
   .landingFeatureGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .landingPlanGrid {
     grid-template-columns: 1fr;
   }
 }
@@ -2193,6 +2378,82 @@ button:disabled {
   overflow-wrap: anywhere;
 }
 
+.dashboardCommandCenter {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  margin-bottom: 14px;
+}
+
+.dashboardMainCard,
+.dashboardSideStack div,
+.dashboardSideStack button {
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.1), transparent 42%),
+    linear-gradient(180deg, var(--card), var(--surface));
+  border: 1px solid var(--border-soft);
+  border-radius: 24px;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.22);
+}
+
+.dashboardMainCard {
+  min-height: 190px;
+  padding: 18px;
+}
+
+.dashboardMainCard span,
+.dashboardSideStack span,
+.dashboardSideStack small {
+  color: var(--text-muted);
+  display: block;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.dashboardMainCard strong {
+  color: var(--text);
+  display: block;
+  font-size: 24px;
+  line-height: 1.08;
+  margin: 10px 0 8px;
+}
+
+.dashboardMainCard p {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.4;
+  margin-bottom: 16px;
+}
+
+.dashboardMainCard button,
+.dashboardSideStack button {
+  background: linear-gradient(135deg, var(--primary), var(--success));
+  border: 0;
+  border-radius: 999px;
+  color: #052e16;
+  font-weight: 900;
+  min-height: 44px;
+  padding: 11px 14px;
+  width: 100%;
+}
+
+.dashboardSideStack {
+  display: grid;
+  gap: 10px;
+}
+
+.dashboardSideStack div {
+  padding: 14px;
+}
+
+.dashboardSideStack strong {
+  color: var(--text);
+  display: block;
+  font-size: 20px;
+  line-height: 1.1;
+  margin: 7px 0 4px;
+}
+
 .storageCard {
   background:
     radial-gradient(circle at top left, var(--primary-soft), transparent 38%),
@@ -3262,6 +3523,7 @@ button:disabled {
   }
 
   .commandGrid,
+  .dashboardCommandCenter,
   .operationStatus,
   .operationChecklist,
   .operationActions,
@@ -3407,6 +3669,10 @@ button:disabled {
   }
 
   .clientHeroMetrics {
+    grid-template-columns: 1fr;
+  }
+
+  .clientTrustStrip {
     grid-template-columns: 1fr;
   }
 

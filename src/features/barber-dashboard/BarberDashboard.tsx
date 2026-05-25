@@ -137,6 +137,9 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
   const visibleSetupItems = setupItems.filter((item) => canUseAdminTab(item.tab));
   const firstPendingSetup = visibleSetupItems.find((item) => !item.done);
   const commercialReady = setupProgress >= 100 && !firstPendingSetup;
+  const nextAppointment = upcomingAppointments[0] || todayAppointments[0];
+  const activeServiceCount = services.filter((item) => item.active).length;
+  const activeProfessionalCount = professionals.filter((item) => item.active && !item.fixed).length;
 
     if (!adminLoggedIn) {
       return withNotice(
@@ -217,6 +220,42 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
                 <span>Espera</span>
                 <strong>{waitlist.filter((item) => item.status !== "contacted").length}</strong>
                 <small>pedidos</small>
+              </div>
+            </section>
+
+            <section className="dashboardCommandCenter">
+              <div className="dashboardMainCard">
+                <span>Próximo atendimento</span>
+                {nextAppointment ? (
+                  <>
+                    <strong>{nextAppointment.time} - {nextAppointment.clientName}</strong>
+                    <p>{nextAppointment.services} com {nextAppointment.professional}</p>
+                  </>
+                ) : (
+                  <>
+                    <strong>Nenhum horário na fila</strong>
+                    <p>Compartilhe o link de agendamento para receber novos clientes.</p>
+                  </>
+                )}
+                <button type="button" onClick={() => setAdminTab("agenda")}>
+                  Abrir agenda
+                </button>
+              </div>
+
+              <div className="dashboardSideStack">
+                <div>
+                  <span>Configuração</span>
+                  <strong>{setupProgress}%</strong>
+                  <small>{firstPendingSetup?.label || "Pronto para vender"}</small>
+                </div>
+                <div>
+                  <span>Estrutura ativa</span>
+                  <strong>{activeServiceCount} serviços</strong>
+                  <small>{activeProfessionalCount} profissionais atendendo</small>
+                </div>
+                <button type="button" onClick={() => copyText(publicScheduleLink)}>
+                  Copiar link de agendamento
+                </button>
               </div>
             </section>
 

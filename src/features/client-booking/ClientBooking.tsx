@@ -684,6 +684,21 @@ export default function ClientBooking({ model }: ClientBookingProps) {
         </div>
       </section>
 
+      <section className="clientTrustStrip" aria-label="Informações da barbearia">
+        <div>
+          <strong>Link oficial</strong>
+          <span>Agenda da barbearia</span>
+        </div>
+        <div>
+          <strong>Rota fácil</strong>
+          <span>{mapsHref ? "Endereço no Maps" : "Endereço no atendimento"}</span>
+        </div>
+        <div>
+          <strong>Confirmação</strong>
+          <span>Resumo antes de finalizar</span>
+        </div>
+      </section>
+
       {cleanAddress && (
         <section className="addressCard premiumAddressCard">
           <div>

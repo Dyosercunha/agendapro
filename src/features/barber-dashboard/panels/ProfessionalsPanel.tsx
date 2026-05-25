@@ -37,7 +37,9 @@ export default function ProfessionalsPanel({ model }: ProfessionalsPanelProps) {
                   <strong>{item.name}</strong>
                   <p>
                     {item.fixed
-                      ? "Escolha automática quando não houver profissional cadastrado"
+                      ? item.active
+                        ? "Escolha automática para distribuir horários entre profissionais"
+                        : "Oculto para o cliente. Ative se quiser oferecer escolha automática"
                       : item.active
                       ? "Disponível para agendamentos"
                       : "Oculto para o cliente"}
@@ -45,10 +47,15 @@ export default function ProfessionalsPanel({ model }: ProfessionalsPanelProps) {
                 </div>
                 <button type="button"
                   className={item.active ? "statusPill activeStatus" : "statusPill"}
-                  disabled={item.fixed}
                   onClick={() => updateProfessional(index, "active", !item.active)}
                 >
-                  {item.active ? "Ativo" : "Inativo"}
+                  {item.active
+                    ? item.fixed
+                      ? "Primeiro disponível ativo"
+                      : "Ativo"
+                    : item.fixed
+                    ? "Primeiro disponível inativo"
+                    : "Inativo"}
                 </button>
               </div>
 
@@ -59,7 +66,9 @@ export default function ProfessionalsPanel({ model }: ProfessionalsPanelProps) {
                 onChange={(event) => updateProfessional(index, "name", event.target.value)}
               />
               {item.fixed && (
-                <p className="hint">Esta opção escolhe automaticamente um profissional disponível.</p>
+                <p className="hint">
+                  Esta opção aparece para o cliente só quando houver mais de um profissional ativo.
+                </p>
               )}
               {!item.fixed && (
                 <button type="button" className="dangerButton" onClick={() => removeProfessional(index)}>

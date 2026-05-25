@@ -126,6 +126,7 @@ function isPlatformDeveloperEmail(value = "") {
   return platformDeveloperEmails.includes(String(value || "").trim().toLowerCase());
 }
 
+const firstAvailableProfessionalName = "Primeiro disponível";
 const fallbackProfessionalName = "Profissional disponível";
 
 const initialBusiness: BusinessState = {
@@ -203,7 +204,7 @@ const initialServices = [
 ];
 
 const initialProfessionals = [
-  { name: "Primeiro disponível", active: true, fixed: true },
+  { name: firstAvailableProfessionalName, active: true, fixed: true },
 ];
 
 const weekDays: WeekDay[] = [
@@ -859,14 +860,14 @@ function mapAppointmentsFromCloud(appointmentRows, professionalRows) {
   const professionalById = {};
 
   (professionalRows || []).forEach((item) => {
-    professionalById[item.id] = item.fixed ? "Primeiro disponível" : item.name;
+    professionalById[item.id] = item.fixed ? firstAvailableProfessionalName : item.name;
   });
 
   return (appointmentRows || []).map((item) => ({
     id: item.id,
     clientName: item.client_name,
     whatsapp: item.whatsapp,
-    professional: professionalById[item.professional_id] || "Primeiro disponível",
+    professional: professionalById[item.professional_id] || firstAvailableProfessionalName,
     date: item.appointment_date,
     time: shortTime(item.appointment_time),
     duration: Number(item.duration),
@@ -1010,7 +1011,7 @@ function CoreAgendaProApp() {
   const [clientName, setClientName] = useState("");
   const [selectedServices, setSelectedServices] = useState<number[]>([]);
   const [selectedPromotions, setSelectedPromotions] = useState<string[]>([]);
-  const [professional, setProfessional] = useState("Primeiro disponível");
+  const [professional, setProfessional] = useState(firstAvailableProfessionalName);
   const [range, setRange] = useState("today");
   const [selectedDate, setSelectedDate] = useState(getDateAfterDays(0));
   const [selectedTime, setSelectedTime] = useState("");
@@ -1379,7 +1380,7 @@ function CoreAgendaProApp() {
         name: data[0].client_name,
         lastServiceText: data[0].last_service_text,
         visitCount: data[0].visit_count,
-        lastProfessional: "Primeiro disponível",
+        lastProfessional: firstAvailableProfessionalName,
       });
     }
 
@@ -1446,11 +1447,35 @@ function CoreAgendaProApp() {
     .map((service, index) => ({ ...service, originalIndex: index }))
     .filter((service) => service.active && !isServiceDeleted(service));
 
-  const clientProfessionals = professionals.filter(
-    (item) => (item.active || item.fixed) && item.name.trim() !== ""
+  const activeRealClientProfessionals = professionals.filter(
+    (item) => !item.fixed && item.active && item.name.trim() !== ""
   );
+  const firstAvailableProfessional = professionals.find((item) => item.fixed);
+  const showFirstAvailableProfessional =
+    Boolean(firstAvailableProfessional?.active) && activeRealClientProfessionals.length !== 1;
+  const clientProfessionals = [
+    ...(showFirstAvailableProfessional && firstAvailableProfessional
+      ? [{ ...firstAvailableProfessional, name: firstAvailableProfessionalName }]
+      : []),
+    ...activeRealClientProfessionals,
+  ];
   const showProfessionalChoice =
     clientProfessionals.length > 1 || clientProfessionals.some((item) => !item.fixed);
+
+  useEffect(() => {
+    if (professional !== firstAvailableProfessionalName) return;
+    if (showFirstAvailableProfessional) return;
+
+    const nextProfessional = activeRealClientProfessionals[0]?.name;
+    if (!nextProfessional) return;
+
+    setProfessional(nextProfessional);
+    setSelectedTime("");
+  }, [
+    activeRealClientProfessionals,
+    professional,
+    showFirstAvailableProfessional,
+  ]);
 
   const chosenServices = useMemo(
     () =>
@@ -1709,7 +1734,7 @@ function CoreAgendaProApp() {
 
       const cloudProfessionals = (professionalsResult.data || []).map((item) => ({
         id: item.id,
-        name: item.fixed ? "Primeiro disponível" : item.name,
+        name: item.fixed ? firstAvailableProfessionalName : item.name,
         active: Boolean(item.active),
         fixed: Boolean(item.fixed),
       }));
@@ -1790,7 +1815,7 @@ function CoreAgendaProApp() {
     if (appointmentProfessional === selectedProfessional) return true;
 
     const unknownProfessionalLabels = [
-      "Primeiro disponível",
+      firstAvailableProfessionalName,
       "Primeiro disponivel",
       "Profissional disponível",
       "Profissional disponivel",
@@ -1897,7 +1922,7 @@ function CoreAgendaProApp() {
         continue;
       }
 
-      if (professional !== "Primeiro disponível") {
+      if (professional !== firstAvailableProfessionalName) {
         const manualBlock = blockConflict(professional, dateText, time, duration);
 
         if (manualBlock) {
@@ -2082,7 +2107,7 @@ function CoreAgendaProApp() {
       }
 
       const finalProfessional =
-        professional === "Primeiro disponível" ? freshSlot.professional : professional;
+        professional === firstAvailableProfessionalName ? freshSlot.professional : professional;
 
       const id = makeId("ag");
       const finalPayment = payment === "pix" && pixAvailable ? "pix" : "local";
@@ -2686,7 +2711,7 @@ function CoreAgendaProApp() {
         target_slug: loadedCloudSlug(),
         professionals_input: professionals.map((item) => ({
           id: item.id || null,
-          name: item.fixed ? "Primeiro disponível" : item.name,
+          name: item.fixed ? firstAvailableProfessionalName : item.name,
           active: Boolean(item.active),
           fixed: Boolean(item.fixed),
         })),
@@ -3266,7 +3291,12 @@ function CoreAgendaProApp() {
     );
 
     if (field === "active" && value === false && currentProfessional?.name === professional) {
-      setProfessional("Primeiro disponível");
+      const nextActiveProfessional = professionals.find(
+        (item, itemIndex) =>
+          itemIndex !== index && !item.fixed && item.active && item.name.trim() !== ""
+      )?.name;
+
+      setProfessional(nextActiveProfessional || firstAvailableProfessionalName);
     }
 
     if (field === "name" && currentProfessional?.name === professional) {
@@ -3290,7 +3320,7 @@ function CoreAgendaProApp() {
     setProfessionals((current) => current.filter((_, itemIndex) => itemIndex !== index));
 
     if (professional === professionalToRemove.name) {
-      setProfessional("Primeiro disponível");
+      setProfessional(firstAvailableProfessionalName);
     }
 
     setSelectedTime("");

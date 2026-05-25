@@ -102,6 +102,7 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
     closeToday,
     cloudStatus,
     completedSetupItems,
+    copyText,
     customerProfiles,
     dataSavedAt,
     featureFlags,
@@ -114,6 +115,7 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
     pixAvailable,
     professional,
     professionals,
+    publicScheduleLink,
     refreshWhatsappIntegrationStatus,
     resetDemoData,
     returningCustomers,
@@ -132,6 +134,9 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
     whatsappIntegrationStatus,
     withNotice,
   } = model;
+  const visibleSetupItems = setupItems.filter((item) => canUseAdminTab(item.tab));
+  const firstPendingSetup = visibleSetupItems.find((item) => !item.done);
+  const commercialReady = setupProgress >= 100 && !firstPendingSetup;
 
     if (!adminLoggedIn) {
       return withNotice(
@@ -271,6 +276,64 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
               </div>
             </section>
 
+            <section className="card operationCard">
+              <div className="sectionTitle">
+                <h2>Operação comercial</h2>
+                <span>{commercialReady ? "Pronta para cliente" : "Falta configuração"}</span>
+              </div>
+
+              <div className="operationStatus">
+                <div className={commercialReady ? "operationBadge ready" : "operationBadge attention"}>
+                  <strong>{commercialReady ? "Pronta para testar" : "Ajuste antes de vender"}</strong>
+                  <span>
+                    {commercialReady
+                      ? "Serviços, profissionais, agenda, acesso e link público estão configurados."
+                      : firstPendingSetup
+                      ? `Primeira pendência: ${firstPendingSetup.label}.`
+                      : "Revise os dados antes de enviar o link ao cliente."}
+                  </span>
+                </div>
+
+                <div className="operationLinkBox">
+                  <span>Link do cliente</span>
+                  <strong>{publicScheduleLink}</strong>
+                  <div className="operationActions">
+                    <button type="button" onClick={() => copyText(publicScheduleLink)}>
+                      Copiar link
+                    </button>
+                    <button type="button" onClick={goToClientView}>
+                      Abrir agenda
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="operationChecklist">
+                <div>
+                  <span>Nuvem</span>
+                  <strong>{cloudStatus}</strong>
+                </div>
+                <div>
+                  <span>Configuração</span>
+                  <strong>{completedSetupItems}/{setupItems.length} itens</strong>
+                </div>
+                <div>
+                  <span>Próxima ação</span>
+                  <strong>{firstPendingSetup?.label || "Teste o agendamento público"}</strong>
+                </div>
+              </div>
+
+              {firstPendingSetup && (
+                <button
+                  type="button"
+                  className="black"
+                  onClick={() => setAdminTab(firstPendingSetup.tab)}
+                >
+                  Resolver {firstPendingSetup.label}
+                </button>
+              )}
+            </section>
+
             {canManageBusinessSettings && (
             <section className="card setupCard">
               <div className="sectionTitle">
@@ -283,7 +346,7 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
               </div>
 
               <div className="setupList">
-                {setupItems.filter((item) => canUseAdminTab(item.tab)).map((item) => (
+                {visibleSetupItems.map((item) => (
                   <button type="button"
                     className={item.done ? "setupItem setupDone" : "setupItem"}
                     key={item.label}

@@ -2207,6 +2207,92 @@ button:disabled {
   border-color: rgba(74, 222, 128, 0.22);
 }
 
+.operationCard {
+  background:
+    radial-gradient(circle at top left, rgba(34, 197, 94, 0.13), transparent 34%),
+    linear-gradient(180deg, var(--card), var(--surface));
+}
+
+.operationStatus {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+}
+
+.operationBadge,
+.operationLinkBox,
+.operationChecklist div {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-soft);
+  border-radius: 20px;
+  padding: 13px;
+}
+
+.operationBadge.ready {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: rgba(34, 197, 94, 0.28);
+}
+
+.operationBadge.attention {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.26);
+}
+
+.operationBadge strong,
+.operationLinkBox strong,
+.operationChecklist strong {
+  color: var(--text);
+  display: block;
+  font-size: 15px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.operationBadge span,
+.operationLinkBox span,
+.operationChecklist span {
+  color: var(--text-muted);
+  display: block;
+  font-size: 12px;
+  font-weight: 900;
+  margin-bottom: 5px;
+}
+
+.operationBadge span {
+  color: var(--text-secondary);
+  font-weight: 700;
+  line-height: 1.35;
+  margin: 7px 0 0;
+}
+
+.operationActions {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr 1fr;
+  margin-top: 11px;
+}
+
+.operationActions button {
+  background: var(--primary-soft);
+  border: 1px solid rgba(34, 197, 94, 0.28);
+  border-radius: 999px;
+  color: var(--text);
+  min-height: 42px;
+  padding: 10px 12px;
+}
+
+.operationActions button + button {
+  background: var(--surface);
+  border-color: var(--border);
+}
+
+.operationChecklist {
+  display: grid;
+  gap: 9px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 10px 0 0;
+}
+
 .setupCard {
   background:
     radial-gradient(circle at top right, rgba(34, 197, 94, 0.12), transparent 36%),
@@ -3043,6 +3129,9 @@ button:disabled {
   }
 
   .commandGrid,
+  .operationStatus,
+  .operationChecklist,
+  .operationActions,
   .storageGrid,
   .customerSummary,
   .setupList,

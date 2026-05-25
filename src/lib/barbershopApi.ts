@@ -93,6 +93,10 @@ export function saveBackgroundSettings(payload: Record<string, unknown>) {
   return callRpcWithRestFallback("save_background_settings", payload);
 }
 
+export function savePremiumAppearance(payload: Record<string, unknown>) {
+  return callRpcWithRestFallback("save_premium_appearance", payload);
+}
+
 export function getClientHistory(payload: Record<string, unknown>) {
   return callRpcWithRestFallback("get_client_history", payload);
 }

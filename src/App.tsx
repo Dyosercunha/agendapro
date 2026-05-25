@@ -20,6 +20,7 @@ import {
   saveBarbershopAccesses,
   saveBusinessSettings,
   saveFeatureFlags,
+  savePremiumAppearance,
   saveProfessionals,
   savePromotionSettings,
   savePromotions,
@@ -1063,6 +1064,9 @@ function CoreAgendaProApp() {
     featureFlags.auto_confirmation?.released && featureFlags.auto_confirmation?.enabled;
   const pixAvailable = business.pixEnabled && pixFeatureEnabled;
   const waitlistAvailable = featureFlags.waitlist?.released && featureFlags.waitlist?.enabled;
+  const appearanceMediaAvailable =
+    Boolean(business.proAppearanceMediaEnabled) ||
+    Boolean(featureFlags.appearance_media?.released && featureFlags.appearance_media?.enabled);
   const normalizedAdminEmail = adminEmail.trim().toLowerCase();
   const normalizedOwnerEmail = (business.ownerEmail || initialBusiness.ownerEmail)
     .trim()
@@ -2934,6 +2938,61 @@ function CoreAgendaProApp() {
     }
   }
 
+  async function handlePortfolioImageUpload(field, event) {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    const folderMap = {
+      beforeImageUrl: "portfolio-before",
+      processImageUrl: "portfolio-process",
+      finalImageUrl: "portfolio-final",
+    };
+    const folder = folderMap[field] || "portfolio";
+
+    setCloudSaving(`asset-${folder}`);
+
+    try {
+      const publicUrl = await uploadBusinessAsset(file, folder);
+      setBusiness((current) => ({ ...current, [field]: publicUrl }));
+      setCloudStatus("Foto enviada para o Supabase Storage. Salve as fotos para aparecerem no cliente.");
+      showNotice("Foto enviada. Agora clique em Salvar fotos do carrossel.");
+    } catch (error) {
+      const message = repairText(error?.message || "Não foi possível enviar a foto.");
+      setCloudStatus(message);
+      showNotice(message);
+    } finally {
+      event.target.value = "";
+      setCloudSaving("");
+    }
+  }
+
+  function saveAppearanceMediaToCloud() {
+    return runCloudSave("appearance-media", "Fotos da tela do cliente salvas online", async () => {
+      const targetSlug = loadedCloudSlug();
+
+      if (!targetSlug) {
+        return missingLoadedBarbershopResult();
+      }
+
+      return savePremiumAppearance({
+        target_slug: targetSlug,
+        logo_url_input: business.logoImage || "",
+        theme_color_input: business.themeColor || "",
+        client_background_url_input: business.clientBackgroundUrl || "",
+        admin_background_url_input: business.adminBackgroundUrl || "",
+        client_background_opacity_input: Number(business.clientBackgroundOpacity || 0.18),
+        admin_background_opacity_input: Number(business.adminBackgroundOpacity || 0.12),
+        before_image_url_input: business.beforeImageUrl || "",
+        process_image_url_input: business.processImageUrl || "",
+        final_image_url_input: business.finalImageUrl || "",
+        before_image_label_input: business.beforeImageLabel || "Antes",
+        process_image_label_input: business.processImageLabel || "Processo",
+        final_image_label_input: business.finalImageLabel || "Finalizado",
+      });
+    });
+  }
+
   function saveBackgroundsToCloud() {
     return runCloudSave("backgrounds", "Planos de fundo salvos online", async () => {
       const targetSlug = loadedCloudSlug();
@@ -3752,6 +3811,7 @@ function CoreAgendaProApp() {
     appointmentManagementLink,
     appointmentNote,
     appointments,
+    appearanceMediaAvailable,
     autoConfirmationFeatureEnabled,
     barberConfirmationMessage,
     blockNextAvailableTime,
@@ -3792,6 +3852,7 @@ function CoreAgendaProApp() {
     goToClientView,
     handleBackgroundUpload,
     handleLogoUpload,
+    handlePortfolioImageUpload,
     hasChosenService,
     history,
     isDeveloperRole,
@@ -3842,6 +3903,7 @@ function CoreAgendaProApp() {
     refreshWhatsappIntegrationStatus,
     returningCustomers,
     saveAccessAccountsToCloud,
+    saveAppearanceMediaToCloud,
     saveBackgroundsToCloud,
     saveBusinessToCloud,
     saveFeatureFlagsToCloud,

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import type { Barbershop } from "../../../types/app";
 
 export type BackgroundField = "adminBackgroundUrl" | "clientBackgroundUrl";
+export type PortfolioImageField = "beforeImageUrl" | "processImageUrl" | "finalImageUrl";
 
 type AddressLookup = {
   cep: string;
@@ -19,6 +20,7 @@ type CepAddressResponse = {
 
 export type AppearancePanelModel = {
   activeAdminTab: string;
+  appearanceMediaAvailable: boolean;
   business: Barbershop;
   cloudSaving: string;
   handleBackgroundUpload: (
@@ -26,6 +28,11 @@ export type AppearancePanelModel = {
     event: React.ChangeEvent<HTMLInputElement>
   ) => void | Promise<void>;
   handleLogoUpload: (event: React.ChangeEvent<HTMLInputElement>) => void | Promise<void>;
+  handlePortfolioImageUpload: (
+    field: PortfolioImageField,
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => void | Promise<void>;
+  saveAppearanceMediaToCloud: () => void;
   saveBackgroundsToCloud: () => void;
   saveBusinessToCloud: () => void;
   setBusiness: React.Dispatch<React.SetStateAction<Barbershop>>;
@@ -105,10 +112,13 @@ function errorMessage(error: unknown, fallback: string) {
 export default function AppearancePanel({ model }: AppearancePanelProps) {
   const {
     activeAdminTab,
+    appearanceMediaAvailable,
     business,
     cloudSaving,
     handleBackgroundUpload,
     handleLogoUpload,
+    handlePortfolioImageUpload,
+    saveAppearanceMediaToCloud,
     saveBackgroundsToCloud,
     saveBusinessToCloud,
     setBusiness,
@@ -125,6 +135,31 @@ export default function AppearancePanel({ model }: AppearancePanelProps) {
   const currentMapsUrl = hasSpecificMapsUrl(business.mapsUrl)
     ? business.mapsUrl
     : buildMapsUrl(business.address);
+  const portfolioFields: Array<{
+    field: PortfolioImageField;
+    labelField: "beforeImageLabel" | "processImageLabel" | "finalImageLabel";
+    title: string;
+    uploadingKey: string;
+  }> = [
+    {
+      field: "beforeImageUrl",
+      labelField: "beforeImageLabel",
+      title: "Antes",
+      uploadingKey: "asset-portfolio-before",
+    },
+    {
+      field: "processImageUrl",
+      labelField: "processImageLabel",
+      title: "Processo",
+      uploadingKey: "asset-portfolio-process",
+    },
+    {
+      field: "finalImageUrl",
+      labelField: "finalImageLabel",
+      title: "Finalizado",
+      uploadingKey: "asset-portfolio-final",
+    },
+  ];
 
   async function fillAddressByCep() {
     setAddressLoading(true);
@@ -293,9 +328,87 @@ export default function AppearancePanel({ model }: AppearancePanelProps) {
               Excluir fundo do painel
             </button>
 
-            <button type="button" className="black" onClick={saveBackgroundsToCloud}>
-              {cloudSaving === "backgrounds" ? "Salvando fundos..." : "Salvar planos de fundo"}
-            </button>
+          <button type="button" className="black" onClick={saveBackgroundsToCloud}>
+            {cloudSaving === "backgrounds" ? "Salvando fundos..." : "Salvar planos de fundo"}
+          </button>
+        </div>
+
+          <div className="adminItem portfolioEditor">
+            <div className="sectionTitle">
+              <h3>Carrossel da tela do cliente</h3>
+              <span>{appearanceMediaAvailable ? "Fotos liberadas" : "Bloqueado em Melhorias"}</span>
+            </div>
+
+            <p className="hint">
+              As fotos só aparecem para o cliente depois que a melhoria estiver liberada e pelo
+              menos uma imagem real for cadastrada.
+            </p>
+
+            {appearanceMediaAvailable ? (
+              <>
+                <div className="portfolioEditorGrid">
+                  {portfolioFields.map(({ field, labelField, title, uploadingKey }) => {
+                    const imageUrl = business[field] || "";
+                    const labelValue = business[labelField] || title;
+
+                    return (
+                      <div className="portfolioEditorItem" key={field}>
+                        <label>Foto {title}</label>
+                        <input
+                          value={imageUrl}
+                          onChange={(event) =>
+                            setBusiness({ ...business, [field]: event.target.value })
+                          }
+                          placeholder={`https://site.com/${title.toLowerCase()}.jpg`}
+                        />
+                        <label>Subir foto {title}</label>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(event) => handlePortfolioImageUpload(field, event)}
+                        />
+                        {cloudSaving === uploadingKey && (
+                          <p className="hint">Enviando foto {title.toLowerCase()}...</p>
+                        )}
+                        <label>Legenda</label>
+                        <input
+                          value={labelValue}
+                          onChange={(event) =>
+                            setBusiness({ ...business, [labelField]: event.target.value })
+                          }
+                        />
+                        {imageUrl ? (
+                          <div
+                            className="portfolioEditorPreview"
+                            style={{ backgroundImage: `url(${imageUrl})` }}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => setBusiness({ ...business, [field]: "" })}
+                            >
+                              Remover
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="portfolioEditorEmpty">Aguardando imagem</div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <button type="button" className="black" onClick={saveAppearanceMediaToCloud}>
+                  {cloudSaving === "appearance-media"
+                    ? "Salvando fotos..."
+                    : "Salvar fotos do carrossel"}
+                </button>
+              </>
+            ) : (
+              <p className="hint">
+                Libere a melhoria Fotos Antes / Processo / Finalizado na aba Melhorias para
+                ativar o upload e o carrossel da tela do cliente.
+              </p>
+            )}
           </div>
 
           <label>WhatsApp</label>

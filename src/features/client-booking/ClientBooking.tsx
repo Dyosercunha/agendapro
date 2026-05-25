@@ -59,6 +59,8 @@ type PortfolioImage = {
   url?: string;
 };
 
+const agendaProLogoUrl = "/agenda-pro-logo.png";
+
 type PublicAppointment = Appointment & {
   rescheduleRequested?: boolean;
 };
@@ -600,7 +602,10 @@ export default function ClientBooking({ model }: ClientBookingProps) {
               {business.logoImage ? <img src={business.logoImage} alt="Logo" /> : business.logo}
             </div>
             <div>
-              <span>Agendamento online</span>
+              <span className="appBrandMark">
+                <img src={agendaProLogoUrl} alt="AgendaPro" />
+                AgendaPro
+              </span>
               <h1>{business.name}</h1>
             </div>
           </div>
@@ -638,7 +643,10 @@ export default function ClientBooking({ model }: ClientBookingProps) {
             {business.logoImage ? <img src={business.logoImage} alt="Logo" /> : business.logo}
           </div>
           <div>
-            <span>Agendamento online</span>
+            <span className="appBrandMark">
+              <img src={agendaProLogoUrl} alt="AgendaPro" />
+              AgendaPro
+            </span>
             <h1>{repairText(business.name)}</h1>
             {cleanAddress && <small>{cleanAddress}</small>}
           </div>
@@ -693,30 +701,21 @@ export default function ClientBooking({ model }: ClientBookingProps) {
         </section>
       )}
 
-      <section className={portfolioImages.length ? "portfolio premiumPortfolio" : "portfolio"}>
-        {(portfolioImages.length
-          ? portfolioImages
-          : [
-              { label: "Antes", url: undefined },
-              { label: "Processo", url: undefined },
-              { label: "Final", url: undefined },
-            ]
-        ).map((image, index) => (
-          <div
-            key={`${image.label}-${index}`}
-            className={image.url ? "portfolioPhoto" : ""}
-            style={
-              image.url
-                ? {
-                    backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.02), rgba(0,0,0,0.62)), url(${image.url})`,
-                  }
-                : undefined
-            }
-          >
-            <span>{image.label}</span>
-          </div>
-        ))}
-      </section>
+      {portfolioImages.length > 0 && (
+        <section className="portfolioCarousel" aria-label="Fotos da barbearia">
+          {portfolioImages.map((image, index) => (
+            <div
+              key={`${image.label}-${index}`}
+              className="portfolioSlide"
+              style={{
+                backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.02), rgba(0,0,0,0.62)), url(${image.url})`,
+              }}
+            >
+              <span>{image.label}</span>
+            </div>
+          ))}
+        </section>
+      )}
 
       <section className="stepper">
         <span className={!hasChosenService ? "activeStep" : ""}>1 Serviços</span>
@@ -859,7 +858,6 @@ export default function ClientBooking({ model }: ClientBookingProps) {
         <section className="card">
           <div className="sectionTitle">
             <h2>Profissional</h2>
-            <span>Opcional</span>
           </div>
 
           <div className="chips">

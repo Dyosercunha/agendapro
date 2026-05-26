@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import type { Appointment, Barbershop } from "../../../types/app";
 
 export type WeekDayKey = "sun" | "mon" | "tue" | "wed" | "thu" | "fri" | "sat";
@@ -107,6 +107,75 @@ type AgendaPanelProps = {
   model: AgendaPanelModel;
 };
 
+type AgendaViewMode = "day" | "week";
+
+type VisualAppointmentStatus =
+  | "confirmed"
+  | "pending"
+  | "cancelled"
+  | "completed"
+  | "missed"
+  | "paid";
+
+const appointmentStatusLabels: Record<VisualAppointmentStatus, string> = {
+  cancelled: "Cancelado",
+  completed: "Finalizado",
+  confirmed: "Confirmado",
+  missed: "Faltou",
+  paid: "Pago",
+  pending: "Pendente",
+};
+
+function toDateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function dateFromKey(dateKey: string) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function addDays(dateKey: string, amount: number) {
+  const date = dateFromKey(dateKey);
+  date.setDate(date.getDate() + amount);
+  return toDateKey(date);
+}
+
+function getVisualStatus(appointment: AgendaAppointment): VisualAppointmentStatus {
+  const status = String(appointment.status || "scheduled").toLowerCase();
+
+  if (status === "cancelled" || status === "canceled" || status === "cancelado") {
+    return "cancelled";
+  }
+
+  if (status === "completed" || status === "finalizado") {
+    return "completed";
+  }
+
+  if (status === "missed" || status === "faltou" || status === "no_show") {
+    return "missed";
+  }
+
+  if (appointment.paid) {
+    return "paid";
+  }
+
+  if (status === "confirmed" || status === "confirmado") {
+    return "confirmed";
+  }
+
+  return "pending";
+}
+
+function sortAppointments(appointments: AgendaAppointment[]) {
+  return [...appointments].sort((first, second) =>
+    `${first.date} ${first.time}`.localeCompare(`${second.date} ${second.time}`)
+  );
+}
+
 export default function AgendaPanel({ model }: AgendaPanelProps) {
   const {
     activeAdminTab,
@@ -138,6 +207,84 @@ export default function AgendaPanel({ model }: AgendaPanelProps) {
     waitlistAvailable,
     weekDays,
   } = model;
+
+  const [agendaView, setAgendaView] = useState<AgendaViewMode>("day");
+  const [selectedAgendaDate, setSelectedAgendaDate] = useState(() => toDateKey(new Date()));
+  const [professionalFilter, setProfessionalFilter] = useState("Todos");
+
+  const professionalOptions = ["Todos", ...realProfessionals()];
+  const filteredAppointments = sortAppointments(
+    appointments.filter(
+      (appointment) =>
+        professionalFilter === "Todos" || appointment.professional === professionalFilter
+    )
+  );
+  const dayAppointments = filteredAppointments.filter(
+    (appointment) => appointment.date === selectedAgendaDate
+  );
+  const weekDateKeys = Array.from({ length: 7 }, (_, index) => addDays(selectedAgendaDate, index));
+  const weekAppointments = weekDateKeys.map((dateKey) => ({
+    appointments: filteredAppointments.filter((appointment) => appointment.date === dateKey),
+    dateKey,
+  }));
+  const visualAppointments =
+    agendaView === "day"
+      ? dayAppointments
+      : filteredAppointments.filter((appointment) => weekDateKeys.includes(appointment.date));
+
+  function renderAppointmentCard(appointment: AgendaAppointment) {
+    const status = getVisualStatus(appointment);
+    const canEditAppointment = status !== "cancelled" && status !== "completed";
+
+    return (
+      <article className={`visualAppointmentCard status-${status}`} key={appointment.id}>
+        <div className="visualAppointmentTop">
+          <div>
+            <strong>{appointment.time}</strong>
+            <span>{formatDate(appointment.date)}</span>
+          </div>
+          <span className={`appointmentStatusPill status-${status}`}>
+            {appointmentStatusLabels[status]}
+          </span>
+        </div>
+
+        <div className="visualAppointmentBody">
+          <strong>{appointment.clientName}</strong>
+          <p>{appointment.services}</p>
+          <div className="visualAppointmentMeta">
+            <span>{appointment.professional}</span>
+            <span>{appointment.duration || 0} min</span>
+            <span>{money(appointment.total)}</span>
+          </div>
+        </div>
+
+        {appointment.note && <p className="visualAppointmentNote">Obs.: {appointment.note}</p>}
+        {appointment.rescheduleRequested && (
+          <p className="rescheduleNotice">Remarcação solicitada</p>
+        )}
+
+        <div className="dragFuture">Arrastar para reagendar em breve</div>
+
+        <div className="appointmentActions">
+          {!appointment.paid && canEditAppointment && (
+            <button type="button" onClick={() => confirmAppointmentPayment(appointment.id)}>
+              Confirmar pagamento
+            </button>
+          )}
+          {canEditAppointment && (
+            <button type="button" onClick={() => rescheduleAppointment(appointment.id)}>
+              {appointment.rescheduleRequested ? "Remarcação marcada" : "Remarcar"}
+            </button>
+          )}
+          {status !== "cancelled" && (
+            <button type="button" className="dangerAction" onClick={() => cancelAppointment(appointment.id)}>
+              Cancelar
+            </button>
+          )}
+        </div>
+      </article>
+    );
+  }
 
   return (
     <>
@@ -305,44 +452,98 @@ export default function AgendaPanel({ model }: AgendaPanelProps) {
         </section>
 
 
-        <section className={activeAdminTab === "agenda" ? "card" : "hiddenPanel"}>
-          <h2>Agenda confirmada</h2>
-          {appointments.length === 0 && <p className="hint">Ainda não há agendamentos confirmados.</p>}
+        <section className={activeAdminTab === "agenda" ? "card visualAgendaPanel" : "hiddenPanel"}>
+          <div className="sectionTitle">
+            <h2>Agenda visual</h2>
+            <span>{visualAppointments.length} agendamentos</span>
+          </div>
 
-          {appointments.map((appointment) => (
-            <div className="adminItem" key={appointment.id}>
-              <strong>
-                {formatDate(appointment.date)} - {appointment.time}
-              </strong>
-              <p>
-                {appointment.clientName} com {appointment.professional}
-              </p>
-              <p>
-                {appointment.services} - {appointment.duration} min
-              </p>
-              <p>
-                {money(appointment.total)} - {appointment.paid ? "Pago" : "Pagamento pendente"}
-              </p>
-              {appointment.note && <p>Observação: {appointment.note}</p>}
-              {appointment.rescheduleRequested && (
-                <p className="rescheduleNotice">Remarcação solicitada</p>
+          <div className="agendaControlBar">
+            <div className="agendaViewToggle" aria-label="Visualização da agenda">
+              <button
+                type="button"
+                className={agendaView === "day" ? "activeView" : ""}
+                onClick={() => setAgendaView("day")}
+              >
+                Dia
+              </button>
+              <button
+                type="button"
+                className={agendaView === "week" ? "activeView" : ""}
+                onClick={() => setAgendaView("week")}
+              >
+                Semana
+              </button>
+            </div>
+
+            <div className="agendaFilters">
+              <label>
+                Data
+                <input
+                  type="date"
+                  value={selectedAgendaDate}
+                  onChange={(event) => {
+                    if (event.target.value) {
+                      setSelectedAgendaDate(event.target.value);
+                    }
+                  }}
+                />
+              </label>
+
+              <label>
+                Profissional
+                <select
+                  value={professionalFilter}
+                  onChange={(event) => setProfessionalFilter(event.target.value)}
+                >
+                  {professionalOptions.map((professional) => (
+                    <option key={professional} value={professional}>
+                      {professional}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          </div>
+
+          <div className="agendaStatusLegend" aria-label="Legenda de status">
+            {(Object.keys(appointmentStatusLabels) as VisualAppointmentStatus[]).map((status) => (
+              <span key={status}>
+                <i className={`statusDot status-${status}`} />
+                {appointmentStatusLabels[status]}
+              </span>
+            ))}
+          </div>
+          {agendaView === "day" && (
+            <div className="visualAgendaBoard">
+              {dayAppointments.length === 0 && (
+                <div className="emptyVisualAgenda">
+                  <strong>Nenhum horário para este dia</strong>
+                  <p>Use os filtros acima ou acompanhe a visão semanal.</p>
+                </div>
               )}
 
-              <div className="appointmentActions">
-                {!appointment.paid && (
-                  <button type="button" onClick={() => confirmAppointmentPayment(appointment.id)}>
-                    Confirmar pagamento
-                  </button>
-                )}
-                <button type="button" onClick={() => rescheduleAppointment(appointment.id)}>
-                  {appointment.rescheduleRequested ? "Remarcação marcada" : "Remarcar"}
-                </button>
-                <button type="button" className="dangerAction" onClick={() => cancelAppointment(appointment.id)}>
-                  Cancelar
-                </button>
-              </div>
+              {dayAppointments.map(renderAppointmentCard)}
             </div>
-          ))}
+          )}
+
+          {agendaView === "week" && (
+            <div className="visualWeekBoard">
+              {weekAppointments.map((group) => (
+                <div className="visualWeekDay" key={group.dateKey}>
+                  <div className="visualWeekDayHeader">
+                    <strong>{formatDate(group.dateKey)}</strong>
+                    <span>{group.appointments.length}</span>
+                  </div>
+
+                  {group.appointments.length === 0 && <p className="weekEmpty">Sem horários</p>}
+
+                  {group.appointments.map(renderAppointmentCard)}
+                </div>
+              ))}
+            </div>
+          )}
+
         </section>
 
         <section className={activeAdminTab === "agenda" ? "card" : "hiddenPanel"}>

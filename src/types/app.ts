@@ -11,7 +11,13 @@ export type SubscriptionStatus =
 
 export type PlanKey = "starter" | "professional" | "premium";
 
-export type AppointmentStatus = "scheduled" | "confirmed" | "completed" | "cancelled";
+export type AppointmentStatus =
+  | "scheduled"
+  | "pending"
+  | "confirmed"
+  | "completed"
+  | "cancelled"
+  | "missed";
 
 export type PaymentMode = "pix" | "local" | "";
 

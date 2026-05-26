@@ -4217,6 +4217,302 @@ button:disabled {
   margin-bottom: 10px;
 }
 
+.visualAgendaPanel {
+  overflow: hidden;
+}
+
+.agendaControlBar {
+  display: grid;
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.agendaViewToggle {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 5px;
+}
+
+.agendaViewToggle button {
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 950;
+  padding: 12px 10px;
+}
+
+.agendaViewToggle .activeView {
+  background: linear-gradient(135deg, var(--primary), var(--success));
+  color: #052e16;
+  box-shadow: 0 12px 30px rgba(34, 197, 94, 0.2);
+}
+
+.agendaFilters {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.agendaFilters label {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 900;
+  margin: 0;
+}
+
+.agendaFilters input,
+.agendaFilters select {
+  margin: 6px 0 0;
+  min-height: 48px;
+}
+
+.agendaStatusLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 14px;
+}
+
+.agendaStatusLegend span {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  color: var(--text-muted);
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 900;
+  gap: 6px;
+  padding: 7px 9px;
+}
+
+.statusDot {
+  border-radius: 50%;
+  display: inline-block;
+  height: 8px;
+  width: 8px;
+}
+
+.visualAgendaBoard {
+  display: grid;
+  gap: 12px;
+}
+
+.visualWeekBoard {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(7, minmax(210px, 1fr));
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scroll-snap-type: x proximity;
+}
+
+.visualWeekDay {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--border-soft);
+  border-radius: 22px;
+  min-height: 190px;
+  padding: 12px;
+  scroll-snap-align: start;
+}
+
+.visualWeekDayHeader {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.visualWeekDayHeader strong {
+  font-size: 13px;
+}
+
+.visualWeekDayHeader span {
+  align-items: center;
+  background: var(--primary-soft);
+  border: 1px solid rgba(34, 197, 94, 0.26);
+  border-radius: 999px;
+  color: var(--success);
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 950;
+  height: 28px;
+  justify-content: center;
+  min-width: 28px;
+  padding: 0 8px;
+}
+
+.weekEmpty,
+.emptyVisualAgenda p {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin: 0;
+}
+
+.emptyVisualAgenda {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed var(--border);
+  border-radius: 22px;
+  padding: 18px;
+  text-align: center;
+}
+
+.emptyVisualAgenda strong {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.visualAppointmentCard {
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.06), transparent 38%),
+    linear-gradient(180deg, var(--surface), rgba(16, 20, 24, 0.96));
+  border: 1px solid var(--border-soft);
+  border-left: 4px solid rgba(148, 163, 184, 0.5);
+  border-radius: 22px;
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.22);
+  padding: 14px;
+}
+
+.visualAppointmentTop {
+  align-items: flex-start;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.visualAppointmentTop strong {
+  display: block;
+  font-size: 26px;
+  line-height: 1;
+}
+
+.visualAppointmentTop span:not(.appointmentStatusPill) {
+  color: var(--text-muted);
+  display: block;
+  font-size: 12px;
+  font-weight: 800;
+  margin-top: 5px;
+}
+
+.appointmentStatusPill {
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 950;
+  padding: 7px 9px;
+  white-space: nowrap;
+}
+
+.visualAppointmentBody {
+  margin-top: 14px;
+}
+
+.visualAppointmentBody > strong {
+  display: block;
+  font-size: 17px;
+}
+
+.visualAppointmentBody p,
+.visualAppointmentNote {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin: 5px 0 0;
+}
+
+.visualAppointmentMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.visualAppointmentMeta span,
+.dragFuture {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 900;
+  padding: 7px 9px;
+}
+
+.dragFuture {
+  display: inline-flex;
+  margin-top: 10px;
+}
+
+.visualAppointmentCard.status-confirmed,
+.statusDot.status-confirmed {
+  border-left-color: #22c55e;
+}
+
+.visualAppointmentCard.status-pending,
+.statusDot.status-pending {
+  border-left-color: #f59e0b;
+}
+
+.visualAppointmentCard.status-cancelled,
+.statusDot.status-cancelled {
+  border-left-color: #ef4444;
+}
+
+.visualAppointmentCard.status-completed,
+.statusDot.status-completed {
+  border-left-color: #38bdf8;
+}
+
+.visualAppointmentCard.status-missed,
+.statusDot.status-missed {
+  border-left-color: #a855f7;
+}
+
+.visualAppointmentCard.status-paid,
+.statusDot.status-paid {
+  border-left-color: #4ade80;
+}
+
+.statusDot.status-confirmed,
+.appointmentStatusPill.status-confirmed {
+  background: rgba(34, 197, 94, 0.14);
+  color: var(--success);
+}
+
+.statusDot.status-pending,
+.appointmentStatusPill.status-pending {
+  background: rgba(245, 158, 11, 0.14);
+  color: var(--warning);
+}
+
+.statusDot.status-cancelled,
+.appointmentStatusPill.status-cancelled {
+  background: rgba(239, 68, 68, 0.14);
+  color: #fca5a5;
+}
+
+.statusDot.status-completed,
+.appointmentStatusPill.status-completed {
+  background: rgba(56, 189, 248, 0.14);
+  color: #7dd3fc;
+}
+
+.statusDot.status-missed,
+.appointmentStatusPill.status-missed {
+  background: rgba(168, 85, 247, 0.14);
+  color: #d8b4fe;
+}
+
+.statusDot.status-paid,
+.appointmentStatusPill.status-paid {
+  background: rgba(74, 222, 128, 0.16);
+  color: var(--success);
+}
+
 .appointmentActions {
   display: grid;
   grid-template-columns: 1fr;
@@ -5087,6 +5383,23 @@ button:disabled {
   .setupList,
   .resourceGrid {
     grid-template-columns: 1fr;
+  }
+
+  .agendaFilters {
+    grid-template-columns: 1fr;
+  }
+
+  .visualWeekBoard {
+    grid-template-columns: repeat(7, minmax(84vw, 1fr));
+  }
+
+  .visualAppointmentTop {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .appointmentStatusPill {
+    width: max-content;
   }
 
   .sectionTitle {

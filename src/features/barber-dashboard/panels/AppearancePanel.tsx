@@ -135,6 +135,25 @@ export default function AppearancePanel({ model }: AppearancePanelProps) {
   const currentMapsUrl = hasSpecificMapsUrl(business.mapsUrl)
     ? business.mapsUrl
     : buildMapsUrl(business.address);
+  const clientPreviewUrl = business.slug ? `/agendamento/${business.slug}` : "/";
+  const themeMode = business.themeMode === "light" ? "light" : "dark";
+  const ratingValue = Number(business.ratingValue || 5).toLocaleString("pt-BR", {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: 1,
+  });
+  const welcomeMessage =
+    business.welcomeMessage ||
+    "Escolha seu atendimento, veja horários disponíveis e agende pelo celular.";
+  const previewBackgroundStyle = business.clientBackgroundUrl
+    ? {
+        backgroundImage: `linear-gradient(180deg, rgba(7,10,13,0.08), rgba(7,10,13,0.9)), url(${business.clientBackgroundUrl})`,
+      }
+    : undefined;
+  const previewButtonStyle = {
+    background: `linear-gradient(135deg, ${business.themeColor || "#22c55e"}, ${
+      business.themeColorSecondary || "#4ade80"
+    })`,
+  };
   const portfolioFields: Array<{
     field: PortfolioImageField;
     labelField: "beforeImageLabel" | "processImageLabel" | "finalImageLabel";
@@ -160,6 +179,12 @@ export default function AppearancePanel({ model }: AppearancePanelProps) {
       uploadingKey: "asset-portfolio-final",
     },
   ];
+  const previewImages = portfolioFields
+    .map(({ field, labelField, title }) => ({
+      label: business[labelField] || title,
+      url: business[field] || "",
+    }))
+    .filter((item) => item.url);
 
   async function fillAddressByCep() {
     setAddressLoading(true);
@@ -203,10 +228,122 @@ export default function AppearancePanel({ model }: AppearancePanelProps) {
         <section className={activeAdminTab === "appearance" ? "card" : "hiddenPanel"}>
           <h2>Aparência</h2>
 
+          <div className="appearanceCenterHero">
+            <div>
+              <span>Central de identidade</span>
+              <strong>Deixe a página da barbearia com cara de app próprio</strong>
+              <p>
+                Ajuste logo, capa, cores, fundos, texto de boas-vindas e fotos. A prévia ao lado
+                mostra como o cliente vai enxergar a vitrine.
+              </p>
+            </div>
+            <a className="outline linkButton" href={clientPreviewUrl} target="_blank" rel="noreferrer">
+              Ver como cliente
+            </a>
+          </div>
+
+          <div className="appearanceCenterGrid">
+            <div className="appearanceControlCard">
+              <div className="sectionTitle">
+                <h3>Identidade visual</h3>
+                <span>{themeMode === "light" ? "Modo claro" : "Modo escuro"}</span>
+              </div>
+
+              <label>Texto de boas-vindas</label>
+              <textarea
+                value={welcomeMessage}
+                onChange={(event) =>
+                  setBusiness({ ...business, welcomeMessage: event.target.value })
+                }
+                placeholder="Mensagem curta para aparecer na tela do cliente"
+              />
+
+              <div className="timePair">
+                <div>
+                  <label>Nota exibida</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="5"
+                    step="0.1"
+                    value={business.ratingValue || 5}
+                    onChange={(event) =>
+                      setBusiness({ ...business, ratingValue: Number(event.target.value) })
+                    }
+                  />
+                </div>
+                <div>
+                  <label>Modo visual</label>
+                  <div className="appearanceModeSwitch">
+                    <button
+                      type="button"
+                      className={themeMode === "dark" ? "selected" : ""}
+                      onClick={() => setBusiness({ ...business, themeMode: "dark" })}
+                    >
+                      Escuro
+                    </button>
+                    <button
+                      type="button"
+                      className={themeMode === "light" ? "selected" : ""}
+                      onClick={() => setBusiness({ ...business, themeMode: "light" })}
+                    >
+                      Claro
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <label>Texto da avaliação</label>
+              <input
+                value={business.ratingText || "Avaliação informada pela barbearia"}
+                onChange={(event) => setBusiness({ ...business, ratingText: event.target.value })}
+                placeholder="Exemplo: Avaliação dos clientes"
+              />
+
+              <p className="hint">
+                Salve a aparência para sincronizar estes textos na nuvem. Se o SQL novo ainda não
+                tiver sido aplicado, os dados antigos continuam salvando normalmente.
+              </p>
+            </div>
+
+            <div className="appearanceLivePreview">
+              <div className={`appearancePhoneFrame ${themeMode === "light" ? "light" : ""}`}>
+                <div className="appearancePhoneCover" style={previewBackgroundStyle}>
+                  <div className={business.logoImage ? "logo logoWithImage appearancePhoneLogo" : "logo appearancePhoneLogo"}>
+                    {business.logoImage ? <img src={business.logoImage} alt="Logo" /> : business.logo}
+                  </div>
+                  <div className="appearancePhoneCopy">
+                    <span>Agenda online</span>
+                    <strong>{business.name}</strong>
+                    <p>{welcomeMessage}</p>
+                    <div className="appearancePreviewRating">
+                      <span>★★★★★</span>
+                      <b>{ratingValue}</b>
+                    </div>
+                  </div>
+                </div>
+
+                {previewImages.length > 0 && (
+                  <div className="appearancePreviewGallery">
+                    {previewImages.slice(0, 3).map((image) => (
+                      <span key={image.label} style={{ backgroundImage: `url(${image.url})` }}>
+                        {image.label}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                <button type="button" style={previewButtonStyle}>
+                  Escolher horário
+                </button>
+              </div>
+            </div>
+          </div>
+
           <label>Nome do estabelecimento</label>
           <input value={business.name} onChange={(event) => updateBusinessName(event.target.value)} />
 
-          <label>Logo/letra</label>
+          <label>Logo da barbearia</label>
           <input value={business.logo} onChange={(event) => setBusiness({ ...business, logo: event.target.value.slice(0, 2) })} />
 
           <label>Subir logo em imagem</label>
@@ -244,7 +381,7 @@ export default function AppearancePanel({ model }: AppearancePanelProps) {
               />
             </div>
             <div>
-              <label>Cor de apoio</label>
+              <label>Cor secundária</label>
               <input
                 className="colorInput"
                 type="color"
@@ -257,8 +394,8 @@ export default function AppearancePanel({ model }: AppearancePanelProps) {
           </div>
 
           <div className="adminItem">
-            <h3>Plano de fundo</h3>
-            <label>Imagem de fundo do cliente</label>
+            <h3>Planos de fundo</h3>
+            <label>Foto de capa da tela do cliente</label>
             <input
               value={business.clientBackgroundUrl || ""}
               onChange={(event) =>
@@ -266,7 +403,7 @@ export default function AppearancePanel({ model }: AppearancePanelProps) {
               }
               placeholder="https://site.com/fundo-cliente.jpg"
             />
-            <label>Subir imagem de fundo do cliente</label>
+            <label>Subir foto de capa do cliente</label>
             <input
               type="file"
               accept="image/*"
@@ -275,7 +412,7 @@ export default function AppearancePanel({ model }: AppearancePanelProps) {
             {cloudSaving === "asset-client-background" && (
               <p className="hint">Enviando fundo do cliente para o Supabase Storage...</p>
             )}
-            <label>Opacidade do fundo do cliente</label>
+            <label>Opacidade da capa do cliente</label>
             <input
               type="number"
               min="0"
@@ -293,7 +430,7 @@ export default function AppearancePanel({ model }: AppearancePanelProps) {
               Excluir fundo do cliente
             </button>
 
-            <label>Imagem de fundo do painel</label>
+            <label>Fundo do painel da barbearia</label>
             <input
               value={business.adminBackgroundUrl || ""}
               onChange={(event) =>
@@ -301,7 +438,7 @@ export default function AppearancePanel({ model }: AppearancePanelProps) {
               }
               placeholder="https://site.com/fundo-painel.jpg"
             />
-            <label>Subir imagem de fundo do painel</label>
+            <label>Subir fundo do painel da barbearia</label>
             <input
               type="file"
               accept="image/*"

@@ -308,6 +308,17 @@ export default function ClientBooking({ model }: ClientBookingProps) {
         backgroundImage: `linear-gradient(180deg, rgba(7,10,13,0.2), rgba(7,10,13,0.88)), url(${coverImageUrl})`,
       }
     : undefined;
+  const ratingValue = Number(business.ratingValue || 5).toLocaleString("pt-BR", {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: 1,
+  });
+  const ratingText = repairText(
+    business.ratingText || "Avaliação informada pela barbearia"
+  );
+  const welcomeMessage = repairText(
+    business.welcomeMessage ||
+      "Veja serviços, promoções, profissionais e horários disponíveis em uma experiência feita para celular."
+  );
   const professionalInitials = (name: string) =>
     name
       .split(" ")
@@ -740,7 +751,13 @@ export default function ClientBooking({ model }: ClientBookingProps) {
   }
 
   return withNotice(
-    <main className="app clientBookingApp">
+    <main
+      className={
+        business.themeMode === "light"
+          ? "app clientBookingApp clientThemeLight"
+          : "app clientBookingApp"
+      }
+    >
       <section className="clientMiniSiteHero" style={coverStyle}>
         <div className="clientMiniSiteTop">
           <div className={business.logoImage ? "logo logoWithImage clientHeroLogo" : "logo clientHeroLogo"}>
@@ -759,8 +776,8 @@ export default function ClientBooking({ model }: ClientBookingProps) {
           <h1>{repairText(business.name)}</h1>
           <div className="clientRating" aria-label="Avaliação da barbearia">
             <span>★★★★★</span>
-            <strong>5,0</strong>
-            <small>Avaliação informada pela barbearia</small>
+            <strong>{ratingValue}</strong>
+            <small>{ratingText}</small>
           </div>
 
           {cleanAddress && (
@@ -796,7 +813,7 @@ export default function ClientBooking({ model }: ClientBookingProps) {
           <span>Vitrine da barbearia</span>
           <strong>Escolha seu atendimento</strong>
         </div>
-        <p>Veja serviços, promoções, profissionais e horários disponíveis em uma experiência feita para celular.</p>
+        <p>{welcomeMessage}</p>
         <div className="clientHeroMetrics">
           <span>{activeServices.length} serviços</span>
           <span>{clientProfessionals.length} profissionais</span>

@@ -83,12 +83,16 @@ export type Barbershop = {
   promotions?: Promotion[];
   proAppearanceMediaEnabled?: boolean;
   proInstagramEnabled?: boolean;
+  ratingText?: string;
+  ratingValue?: number | string;
   slug?: string;
   successFooter?: string;
   successMessage?: string;
   successTitle?: string;
   themeColor?: string;
   themeColorSecondary?: string;
+  themeMode?: "dark" | "light" | string;
+  welcomeMessage?: string;
   whatsapp?: string;
 };
 

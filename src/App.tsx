@@ -16,6 +16,7 @@ import {
   getClientHistory,
   getProfessionalsByBarbershop,
   getPublicAssetUrl,
+  saveAppearanceCenter,
   saveBackgroundSettings,
   saveBarbershopAccesses,
   saveBusinessSettings,
@@ -147,6 +148,10 @@ const initialBusiness: BusinessState = {
   adminBackgroundUrl: "",
   clientBackgroundOpacity: 0.18,
   adminBackgroundOpacity: 0.12,
+  themeMode: "dark",
+  welcomeMessage: "Escolha seu atendimento, veja horários disponíveis e agende pelo celular.",
+  ratingValue: 5,
+  ratingText: "Avaliação informada pela barbearia",
   beforeImageUrl: "",
   processImageUrl: "",
   finalImageUrl: "",
@@ -716,6 +721,10 @@ function mapBusinessFromCloud(row, account) {
     adminBackgroundUrl: row.admin_background_url || "",
     clientBackgroundOpacity: Number(row.client_background_opacity ?? initialBusiness.clientBackgroundOpacity),
     adminBackgroundOpacity: Number(row.admin_background_opacity ?? initialBusiness.adminBackgroundOpacity),
+    themeMode: row.theme_mode === "light" ? "light" : "dark",
+    welcomeMessage: repairText(row.welcome_message || initialBusiness.welcomeMessage),
+    ratingValue: Number(row.rating_value ?? initialBusiness.ratingValue),
+    ratingText: repairText(row.rating_text || initialBusiness.ratingText),
     beforeImageUrl: row.before_image_url || "",
     processImageUrl: row.process_image_url || "",
     finalImageUrl: row.final_image_url || "",
@@ -760,6 +769,10 @@ function normalizeBusiness(value) {
     promotionTitle: repairText(primaryPromotion.title || business.promotionTitle),
     promotionDescription: repairText(primaryPromotion.description || business.promotionDescription),
     promotionDiscount: Number(primaryPromotion.discountPercent ?? business.promotionDiscount ?? 0),
+    themeMode: business.themeMode === "light" ? "light" : "dark",
+    welcomeMessage: repairText(business.welcomeMessage || initialBusiness.welcomeMessage),
+    ratingValue: Number(business.ratingValue ?? initialBusiness.ratingValue),
+    ratingText: repairText(business.ratingText || initialBusiness.ratingText),
     successTitle: repairText(business.successTitle),
     successMessage: repairText(business.successMessage),
     successFooter: repairText(business.successFooter),
@@ -2531,6 +2544,25 @@ function CoreAgendaProApp() {
       });
 
       if (!result.error) {
+        const appearanceCenterResult = await saveAppearanceCenter({
+          target_slug: nextSlug,
+          theme_mode_input: business.themeMode === "light" ? "light" : "dark",
+          welcome_message_input: business.welcomeMessage || "",
+          rating_value_input: Number(business.ratingValue || 5),
+          rating_text_input: business.ratingText || "",
+        });
+        const optionalAppearanceError = appearanceCenterResult.error
+          ? cloudErrorText(appearanceCenterResult.error).toLowerCase()
+          : "";
+        const missingAppearanceRpc =
+          optionalAppearanceError.includes("save_appearance_center") ||
+          optionalAppearanceError.includes("could not find the function") ||
+          optionalAppearanceError.includes("404");
+
+        if (appearanceCenterResult.error && !missingAppearanceRpc) {
+          return appearanceCenterResult;
+        }
+
         setCloudSlug(nextSlug);
         if (typeof window !== "undefined" && nextSlug && nextSlug !== targetSlug) {
           const parts = window.location.pathname.split("/").filter(Boolean);

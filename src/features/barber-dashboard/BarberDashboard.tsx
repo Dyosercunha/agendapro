@@ -140,6 +140,13 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
   const nextAppointment = upcomingAppointments[0] || todayAppointments[0];
   const activeServiceCount = services.filter((item) => item.active).length;
   const activeProfessionalCount = professionals.filter((item) => item.active && !item.fixed).length;
+  const todayPaidAppointments = todayAppointments.filter((appointment) => appointment.paid);
+  const todayPendingPaymentAppointments = todayAppointments.filter((appointment) => !appointment.paid);
+  const todayPaidRevenue = todayPaidAppointments.reduce((sum, appointment) => sum + Number(appointment.total || 0), 0);
+  const todayPendingRevenue = todayPendingPaymentAppointments.reduce(
+    (sum, appointment) => sum + Number(appointment.total || 0),
+    0
+  );
   const scheduleShareText = `Agende seu horário online na ${business.name}: ${publicScheduleLink}`;
   const scheduleBioText = `Agende seu horário online na ${business.name}\n${publicScheduleLink}`;
   const scheduleWhatsappShareLink = `https://wa.me/?text=${encodeURIComponent(scheduleShareText)}`;
@@ -262,6 +269,40 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
                 <a href={scheduleWhatsappShareLink} target="_blank" rel="noreferrer">
                   Divulgar no WhatsApp
                 </a>
+              </div>
+            </section>
+
+            <section className="card cashCloseCard">
+              <div className="sectionTitle">
+                <h2>Fechamento do dia</h2>
+                <span>Resumo financeiro</span>
+              </div>
+
+              <div className="cashCloseGrid">
+                <div>
+                  <span>Previsto</span>
+                  <strong>{money(todayRevenue)}</strong>
+                  <small>{todayAppointments.length} agendamentos</small>
+                </div>
+                <div>
+                  <span>Recebido</span>
+                  <strong>{money(todayPaidRevenue)}</strong>
+                  <small>{todayPaidAppointments.length} marcados como pagos</small>
+                </div>
+                <div>
+                  <span>Pendente</span>
+                  <strong>{money(todayPendingRevenue)}</strong>
+                  <small>{todayPendingPaymentAppointments.length} aguardando pagamento</small>
+                </div>
+              </div>
+
+              <div className="cashCloseFooter">
+                <p>
+                  Use a agenda para marcar atendimentos como pagos e manter o caixa do dia atualizado.
+                </p>
+                <button type="button" onClick={() => setAdminTab("agenda")}>
+                  Conferir agenda
+                </button>
               </div>
             </section>
 

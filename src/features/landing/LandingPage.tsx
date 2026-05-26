@@ -89,7 +89,7 @@ export default function LandingPage() {
             Quero agendar
           </button>
           <button type="button" onClick={() => goTo("painel")}>
-            Sou barbearia
+            Entrar no painel da barbearia
           </button>
           <a href="/plataforma?platform=1">Painel Plataforma</a>
         </div>
@@ -102,7 +102,7 @@ export default function LandingPage() {
             <span>AgendaPro</span>
           </div>
           <h1>AgendaPro</h1>
-          <p className="landingLead">Sistema profissional de agendamento para barbearias, salões e estética.</p>
+          <p className="landingLead">Agendamento inteligente para barbearias, salões e estética.</p>
           <p>
             Crie uma página própria para cada estabelecimento, venda planos por assinatura e entregue
             uma agenda bonita, simples e funcional para o cliente marcar pelo celular.
@@ -113,19 +113,20 @@ export default function LandingPage() {
               Quero agendar
             </button>
             <button type="button" onClick={() => goTo("painel")}>
-              Sou barbearia
+              Entrar no painel da barbearia
             </button>
             <a href="/plataforma?platform=1">Painel Plataforma</a>
           </div>
         </div>
 
-        <div className="landingMockup" aria-label="Prévia visual do app AgendaPro">
+        <div className="landingMockup" aria-label="Mockup do celular mostrando a agenda">
+          <span className="phoneSpeaker" />
           <div className="mockHeader">
             <span className="mockLogo">
               <img src="/agenda-pro-logo.png" alt="AgendaPro" />
             </span>
             <div>
-              <small>Painel da barbearia</small>
+              <small>Agenda no celular</small>
               <strong>AgendaPro</strong>
             </div>
           </div>

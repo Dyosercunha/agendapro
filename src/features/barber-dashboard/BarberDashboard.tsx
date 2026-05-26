@@ -93,6 +93,7 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
     adminLoggedIn,
     adminTabs,
     agendaStatus,
+    appointments,
     blockNextAvailableTime,
     business,
     canManageBilling,
@@ -147,6 +148,22 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
     (sum, appointment) => sum + Number(appointment.total || 0),
     0
   );
+  const serviceRanking = Array.from(
+    appointments
+      .flatMap((appointment) =>
+        String(appointment.services || "")
+          .split(/[+,]/)
+          .map((service) => service.trim())
+          .filter(Boolean)
+      )
+      .reduce((ranking, service) => {
+        ranking.set(service, (ranking.get(service) || 0) + 1);
+        return ranking;
+      }, new Map<string, number>())
+      .entries()
+  )
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4);
   const scheduleShareText = `Agende seu horário online na ${business.name}: ${publicScheduleLink}`;
   const scheduleBioText = `Agende seu horário online na ${business.name}\n${publicScheduleLink}`;
   const scheduleWhatsappShareLink = `https://wa.me/?text=${encodeURIComponent(scheduleShareText)}`;
@@ -304,6 +321,29 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
                   Conferir agenda
                 </button>
               </div>
+            </section>
+
+            <section className="card serviceRankingCard">
+              <div className="sectionTitle">
+                <h2>Serviços mais pedidos</h2>
+                <span>{serviceRanking.length ? "Histórico de agendamentos" : "Sem dados ainda"}</span>
+              </div>
+
+              {serviceRanking.length ? (
+                <div className="serviceRankingList">
+                  {serviceRanking.map(([service, count], index) => (
+                    <div className="serviceRankingItem" key={service}>
+                      <span>{index + 1}</span>
+                      <strong>{service}</strong>
+                      <small>{count} pedido(s)</small>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="hint">
+                  Os serviços mais pedidos aparecem depois dos primeiros agendamentos confirmados.
+                </p>
+              )}
             </section>
 
             <section className="card">

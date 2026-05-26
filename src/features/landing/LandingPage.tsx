@@ -4,25 +4,50 @@ const planCards = [
   {
     name: "Inicial",
     price: "R$ 49/mês",
-    description: "Agenda online, serviços, profissionais, link público e painel básico.",
+    description: "Para começar com agenda online e painel básico.",
+    features: ["Agenda online", "Serviços e profissionais", "Link público", "Painel básico"],
   },
   {
     name: "Profissional",
     price: "R$ 89/mês",
-    description: "Aparência personalizada, PIX, clientes, promoções e confirmação pelo WhatsApp.",
+    description: "Para barbearias que querem identidade, PIX e clientes.",
+    features: ["Aparência personalizada", "PIX", "Clientes", "Promoções simples"],
+    featured: true,
   },
   {
     name: "Premium",
     price: "R$ 149/mês",
-    description: "Fidelidade, lista de espera, fotos, Instagram, relatórios e recursos avançados.",
+    description: "Para operação completa com recursos avançados.",
+    features: ["Fidelidade", "Lista de espera", "Instagram", "Relatórios"],
   },
 ];
 
-const productHighlights = [
-  "Agendamento pelo celular",
-  "Painel da barbearia",
-  "Controle de clientes",
-  "Recursos por plano",
+const resourceCards = [
+  {
+    title: "Agenda inteligente",
+    text: "Horários respeitam duração dos serviços, pausas, bloqueios e agenda real da barbearia.",
+  },
+  {
+    title: "Painel da barbearia",
+    text: "Serviços, profissionais, clientes, pagamentos, aparência e recursos liberados por plano.",
+  },
+  {
+    title: "Cliente sem atrito",
+    text: "O cliente agenda pelo link, recebe resumo claro e pode falar com a barbearia quando precisar.",
+  },
+  {
+    title: "Plataforma comercial",
+    text: "Você cadastra barbearias, controla planos, vencimentos, status e melhorias por conta.",
+  },
+];
+
+const benefitCards = [
+  "Menos conversa repetida no WhatsApp",
+  "Mais controle sobre horários ocupados",
+  "Identidade visual para cada barbearia",
+  "Planos prontos para cobrar mensalidade",
+  "Dados separados por barbearia",
+  "Painel pensado para celular",
 ];
 
 function normalizeSlug(value: string) {
@@ -54,20 +79,34 @@ export default function LandingPage() {
 
   return (
     <main className="landingApp">
+      <nav className="landingNav" aria-label="Navegação principal">
+        <a className="landingBrand" href="/">
+          <img src="/agenda-pro-logo.png" alt="AgendaPro" />
+          <span>AgendaPro</span>
+        </a>
+        <div>
+          <button type="button" onClick={() => goTo("agendamento")}>
+            Quero agendar
+          </button>
+          <button type="button" onClick={() => goTo("painel")}>
+            Sou barbearia
+          </button>
+          <a href="/plataforma?platform=1">Painel Plataforma</a>
+        </div>
+      </nav>
+
       <section className="landingHero">
         <div className="landingCopy">
-          <h1>AgendaPro</h1>
-          <p className="landingLead">Agendamento inteligente para barbearias, salões e estética</p>
-          <p>
-            Agenda online, painel de gestão, pagamentos, clientes e melhorias liberadas
-            por assinatura em uma experiência simples para vender e usar no celular.
-          </p>
-
-          <div className="landingProofRow">
-            {productHighlights.map((item) => (
-              <span key={item}>{item}</span>
-            ))}
+          <div className="landingLogoLockup">
+            <img src="/agenda-pro-logo.png" alt="AgendaPro" />
+            <span>AgendaPro</span>
           </div>
+          <h1>AgendaPro</h1>
+          <p className="landingLead">Sistema profissional de agendamento para barbearias, salões e estética.</p>
+          <p>
+            Crie uma página própria para cada estabelecimento, venda planos por assinatura e entregue
+            uma agenda bonita, simples e funcional para o cliente marcar pelo celular.
+          </p>
 
           <div className="landingActions">
             <button type="button" onClick={() => goTo("agendamento")}>
@@ -86,13 +125,13 @@ export default function LandingPage() {
               <img src="/agenda-pro-logo.png" alt="AgendaPro" />
             </span>
             <div>
-              <small>Agenda da barbearia</small>
+              <small>Painel da barbearia</small>
               <strong>AgendaPro</strong>
             </div>
           </div>
           <div className="mockCard">
-            <small>Hoje</small>
-            <strong>Melhor horário</strong>
+            <small>Próximo atendimento</small>
+            <strong>Corte + barba</strong>
             <b>10:30</b>
           </div>
           <div className="mockMiniStats">
@@ -118,12 +157,12 @@ export default function LandingPage() {
       <section className="landingSlugBox">
         <div>
           <span>Link da barbearia</span>
-          <h2>Abrir agenda ou painel</h2>
-          <p>Digite o link cadastrado no Painel Plataforma. Exemplo: master.</p>
+          <h2>Acesse agenda ou painel pelo slug</h2>
+          <p>Digite o identificador cadastrado no Painel Plataforma. Exemplo: master.</p>
         </div>
 
         <label>
-          Digite o link da barbearia
+          Digite o slug da barbearia
           <input
             ref={slugInputRef}
             value={slug}
@@ -146,41 +185,66 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <section className="landingResourceSection">
+        <div className="landingSectionIntro">
+          <h2>Recursos para vender, operar e crescer</h2>
+          <p>O AgendaPro junta a página do cliente, o painel da barbearia e o controle da plataforma.</p>
+        </div>
+
+        <div className="landingResourceGrid">
+          {resourceCards.map((item, index) => (
+            <article key={item.title}>
+              <span>{String(index + 1).padStart(2, "0")}</span>
+              <strong>{item.title}</strong>
+              <p>{item.text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
       <section className="landingPlanGrid" aria-label="Planos do AgendaPro">
         <div className="landingSectionIntro">
-          <h2>Planos simples para começar e crescer</h2>
-          <p>Você libera recursos conforme a barbearia evolui, sem complicar o uso diário.</p>
+          <h2>Planos simples para cobrar mensalidade</h2>
+          <p>Comece com o essencial e libere recursos conforme cada barbearia evolui.</p>
         </div>
 
         {planCards.map((plan) => (
-          <article className={plan.name === "Profissional" ? "landingPlanCard featuredPlan" : "landingPlanCard"} key={plan.name}>
+          <article className={plan.featured ? "landingPlanCard featuredPlan" : "landingPlanCard"} key={plan.name}>
             <span>{plan.name}</span>
             <strong>{plan.price}</strong>
             <p>{plan.description}</p>
+            <ul>
+              {plan.features.map((feature) => (
+                <li key={feature}>{feature}</li>
+              ))}
+            </ul>
           </article>
         ))}
       </section>
 
-      <section className="landingFeatureGrid">
-        <article>
-          <span>01</span>
-          <strong>Cliente sem atrito</strong>
-          <p>Agenda pelo WhatsApp, escolhe serviço, horário e confirma sem login obrigatório.</p>
-        </article>
-        <article>
-          <span>02</span>
-          <strong>Painel da barbearia</strong>
-          <p>Serviços, profissionais, agenda real, aparência, PIX e clientes no mesmo lugar.</p>
-        </article>
-        <article>
-          <span>03</span>
-          <strong>Plataforma para vender</strong>
-          <p>Cadastro de barbearias, planos, vencimentos e liberação de melhorias por conta.</p>
-        </article>
+      <section className="landingBenefitSection">
+        <div>
+          <h2>Benefícios claros para quem agenda e para quem atende</h2>
+          <p>
+            Menos improviso, mais previsibilidade e uma experiência com cara de app profissional.
+          </p>
+        </div>
+
+        <div className="landingBenefitGrid">
+          {benefitCards.map((benefit) => (
+            <article key={benefit}>
+              <span />
+              <strong>{benefit}</strong>
+            </article>
+          ))}
+        </div>
       </section>
 
       <footer className="landingFooter">
-        <strong>AgendaPro</strong>
+        <strong>
+          <img src="/agenda-pro-logo.png" alt="AgendaPro" />
+          AgendaPro
+        </strong>
         <span>Sistema de agenda online para negócios de atendimento com hora marcada.</span>
       </footer>
     </main>

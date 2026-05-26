@@ -168,6 +168,72 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
   const scheduleBioText = `Agende seu horário online na ${business.name}\n${publicScheduleLink}`;
   const scheduleWhatsappShareLink = `https://wa.me/?text=${encodeURIComponent(scheduleShareText)}`;
 
+  const exportDate = new Date().toISOString().slice(0, 10);
+
+  function csvValue(value: unknown) {
+    const text = String(value ?? "").replace(/\r?\n/g, " ").trim();
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+
+  function downloadCsv(fileName: string, headers: string[], rows: Array<Array<unknown>>) {
+    const csv = [headers, ...rows].map((row) => row.map(csvValue).join(";")).join("\n");
+    const blob = new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function exportAppointmentsCsv() {
+    downloadCsv(
+      `agendapro-agendamentos-${business.slug || "barbearia"}-${exportDate}.csv`,
+      ["Data", "Horario", "Cliente", "WhatsApp", "Profissional", "Servicos", "Total", "Pago", "Status"],
+      appointments.map((appointment) => [
+        formatDate(appointment.date),
+        appointment.time,
+        appointment.clientName,
+        appointment.whatsapp,
+        appointment.professional,
+        appointment.services,
+        money(appointment.total),
+        appointment.paid ? "Sim" : "Nao",
+        appointment.status || "confirmado",
+      ])
+    );
+  }
+
+  function exportCustomersCsv() {
+    downloadCsv(
+      `agendapro-clientes-${business.slug || "barbearia"}-${exportDate}.csv`,
+      ["Nome", "WhatsApp", "Visitas", "Receita", "Pagamento pendente", "Ultimo atendimento", "Ultimos servicos"],
+      customerProfiles.map((customer) => [
+        customer.name,
+        customer.whatsapp,
+        customer.visits,
+        money(customer.revenue),
+        money(customer.pendingPayment),
+        `${formatDate(customer.lastDate)} ${customer.lastTime || ""}`,
+        customer.lastServices,
+      ])
+    );
+  }
+
+  function exportDailyCashCsv() {
+    downloadCsv(
+      `agendapro-caixa-${business.slug || "barbearia"}-${exportDate}.csv`,
+      ["Resumo", "Valor", "Quantidade"],
+      [
+        ["Previsto", money(todayRevenue), todayAppointments.length],
+        ["Recebido", money(todayPaidRevenue), todayPaidAppointments.length],
+        ["Pendente", money(todayPendingRevenue), todayPendingPaymentAppointments.length],
+      ]
+    );
+  }
+
     if (!adminLoggedIn) {
       return withNotice(
         <main className="app">
@@ -344,6 +410,32 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
                   Os serviços mais pedidos aparecem depois dos primeiros agendamentos confirmados.
                 </p>
               )}
+            </section>
+
+            <section className="card exportCard">
+              <div className="sectionTitle">
+                <h2>Exportação CSV</h2>
+                <span>Planilhas e backup</span>
+              </div>
+
+              <p className="hint">
+                Baixe os dados principais para conferir em planilhas ou guardar um backup rápido da operação.
+              </p>
+
+              <div className="exportGrid">
+                <button type="button" onClick={exportAppointmentsCsv}>
+                  Agendamentos
+                  <small>{appointments.length} registro(s)</small>
+                </button>
+                <button type="button" onClick={exportCustomersCsv}>
+                  Clientes
+                  <small>{customerProfiles.length} registro(s)</small>
+                </button>
+                <button type="button" onClick={exportDailyCashCsv}>
+                  Caixa do dia
+                  <small>{money(todayRevenue)} previsto</small>
+                </button>
+              </div>
             </section>
 
             <section className="card">

@@ -123,7 +123,9 @@ export type Appointment = {
   clientName?: string;
   date?: string;
   duration?: number;
+  email?: string;
   id?: string;
+  note?: string;
   paid?: boolean;
   professional?: string;
   rescheduleRequested?: boolean;
@@ -135,11 +137,15 @@ export type Appointment = {
 };
 
 export type Client = {
+  email?: string;
+  internalNotes?: string[];
   lastDate?: string;
   lastServices?: string;
   lastTime?: string;
+  loyaltyPoints?: number;
   name: string;
   pendingPayment?: number;
+  preferredProfessional?: string;
   revenue?: number;
   visits?: number;
   whatsapp: string;

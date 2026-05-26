@@ -4532,7 +4532,9 @@ button:disabled {
 }
 
 .appointmentActions .whatsappAction,
-.customerItem .whatsappAction {
+.customerItem .whatsappAction,
+.customerProfileHeader .whatsappAction,
+.topCustomerCard .whatsappAction {
   background: rgba(37, 211, 102, 0.12);
   border: 1px solid rgba(37, 211, 102, 0.25);
   border-radius: 999px;
@@ -4806,6 +4808,162 @@ button:disabled {
 .customerList {
   display: grid;
   gap: 10px;
+}
+
+.customerProfileCard {
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.1), transparent 36%),
+    var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 24px;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.customerProfileHeader {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+}
+
+.customerProfileHeader span {
+  color: var(--text-muted);
+  display: block;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.customerProfileHeader strong {
+  color: var(--text);
+  display: block;
+  font-size: 18px;
+  line-height: 1.15;
+  margin-top: 2px;
+}
+
+.customerProfileHeader p {
+  color: var(--text-secondary);
+  font-size: 12px;
+  margin: 4px 0 0;
+}
+
+.customerProfileHeader .whatsappAction {
+  grid-column: auto;
+  min-width: 118px;
+  width: auto;
+}
+
+.customerProfileGrid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.customerProfileGrid div,
+.customerNotesBox,
+.customerHistoryBox {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-soft);
+  border-radius: 18px;
+  padding: 11px;
+}
+
+.customerProfileGrid span,
+.customerNotesBox span {
+  color: var(--text-muted);
+  display: block;
+  font-size: 11px;
+  font-weight: 950;
+  margin-bottom: 5px;
+}
+
+.customerProfileGrid strong {
+  color: var(--text);
+  display: block;
+  font-size: 13px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.customerNotesBox p {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 5px 0 0;
+}
+
+.customerHistoryBox {
+  padding: 0;
+  overflow: hidden;
+}
+
+.customerHistoryBox summary {
+  color: var(--text);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 950;
+  list-style: none;
+  padding: 13px;
+}
+
+.customerHistoryBox summary::-webkit-details-marker {
+  display: none;
+}
+
+.customerHistoryBox summary::after {
+  color: var(--success);
+  content: "+";
+  float: right;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.customerHistoryBox[open] summary::after {
+  content: "-";
+}
+
+.customerHistoryItem {
+  align-items: flex-start;
+  border-top: 1px solid var(--border-soft);
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 12px 13px;
+}
+
+.customerHistoryItem strong,
+.customerHistoryItem span,
+.customerHistoryItem small {
+  display: block;
+}
+
+.customerHistoryItem p {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin: 5px 0 2px;
+}
+
+.customerHistoryItem small {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.customerHistoryItem > div:last-child {
+  text-align: right;
+}
+
+.customerHistoryItem > div:last-child span {
+  background: var(--primary-soft);
+  border: 1px solid rgba(34, 197, 94, 0.24);
+  border-radius: 999px;
+  color: var(--success);
+  font-size: 11px;
+  font-weight: 950;
+  margin-bottom: 7px;
+  padding: 6px 8px;
 }
 
 .customerItem {
@@ -5377,6 +5535,7 @@ button:disabled {
   .storageGrid,
   .customerInsightPanel,
   .customerMetaGrid,
+  .customerProfileGrid,
   .topCustomerCard,
   .customerSummary,
   .shareGuideBox,
@@ -5400,6 +5559,24 @@ button:disabled {
 
   .appointmentStatusPill {
     width: max-content;
+  }
+
+  .customerProfileHeader {
+    align-items: flex-start;
+    grid-template-columns: 44px minmax(0, 1fr);
+  }
+
+  .customerProfileHeader .whatsappAction {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .customerHistoryItem {
+    grid-template-columns: 1fr;
+  }
+
+  .customerHistoryItem > div:last-child {
+    text-align: left;
   }
 
   .sectionTitle {

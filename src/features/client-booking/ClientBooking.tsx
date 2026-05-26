@@ -302,6 +302,20 @@ export default function ClientBooking({ model }: ClientBookingProps) {
       : business.monthlyStatus === "trial"
         ? "Agenda em período de teste. Os horários podem ser ajustados pela barbearia a qualquer momento."
         : "";
+  const coverImageUrl = String(business.clientBackgroundUrl || "").trim();
+  const coverStyle = coverImageUrl
+    ? {
+        backgroundImage: `linear-gradient(180deg, rgba(7,10,13,0.2), rgba(7,10,13,0.88)), url(${coverImageUrl})`,
+      }
+    : undefined;
+  const professionalInitials = (name: string) =>
+    name
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase();
 
   if (screen === "manage") {
     return withNotice(
@@ -727,27 +741,48 @@ export default function ClientBooking({ model }: ClientBookingProps) {
 
   return withNotice(
     <main className="app clientBookingApp">
-      <header className="appHeader clientHeroHeader">
-        <div className="brand">
+      <section className="clientMiniSiteHero" style={coverStyle}>
+        <div className="clientMiniSiteTop">
           <div className={business.logoImage ? "logo logoWithImage clientHeroLogo" : "logo clientHeroLogo"}>
-            {business.logoImage ? <img src={business.logoImage} alt="Logo" /> : business.logo}
+            {business.logoImage ? (
+              <img src={business.logoImage} alt={`Logo da ${repairText(business.name)}`} />
+            ) : (
+              business.logo
+            )}
           </div>
-          <div>
-            <h1>{repairText(business.name)}</h1>
-          </div>
-        </div>
-
-        <div className="clientHeaderActions clientHeaderLoginActions">
-          {instagramAvailable && (
-            <a className="miniInstagram" href={instagramHref} target="_blank" rel="noreferrer">
-              Instagram
-            </a>
-          )}
           <button type="button" className="ownerLoginButton" onClick={openAdminArea}>
             Entrar
           </button>
         </div>
-      </header>
+
+        <div className="clientMiniSiteContent">
+          <h1>{repairText(business.name)}</h1>
+          <div className="clientRating" aria-label="Avaliação da barbearia">
+            <span>★★★★★</span>
+            <strong>5,0</strong>
+            <small>Avaliação informada pela barbearia</small>
+          </div>
+
+          {cleanAddress && (
+            <a className="clientHeroAddress" href={mapsHref || undefined} target="_blank" rel="noreferrer">
+              {cleanAddress}
+            </a>
+          )}
+
+          <div className="clientMiniSiteActions">
+            {mapsHref && (
+              <a href={mapsHref} target="_blank" rel="noreferrer">
+                Abrir rota
+              </a>
+            )}
+            {instagramAvailable && (
+              <a className="instagramAction" href={instagramHref} target="_blank" rel="noreferrer">
+                Instagram
+              </a>
+            )}
+          </div>
+        </div>
+      </section>
 
       {statusNotice && (
         <section className="clientStatusNotice">
@@ -758,10 +793,10 @@ export default function ClientBooking({ model }: ClientBookingProps) {
 
       <section className="heroPanel clientHeroPanel">
         <div>
-          <span>Reserve pelo app</span>
+          <span>Vitrine da barbearia</span>
           <strong>Escolha seu atendimento</strong>
         </div>
-        <p>Informe seus dados, escolha serviços ou promoções e veja os horários disponíveis por profissional.</p>
+        <p>Veja serviços, promoções, profissionais e horários disponíveis em uma experiência feita para celular.</p>
         <div className="clientHeroMetrics">
           <span>{activeServices.length} serviços</span>
           <span>{clientProfessionals.length} profissionais</span>
@@ -771,15 +806,15 @@ export default function ClientBooking({ model }: ClientBookingProps) {
 
       <section className="clientTrustStrip" aria-label="Informações da barbearia">
         <div>
-          <strong>Link oficial</strong>
-          <span>Agenda da barbearia</span>
+          <strong>Agenda oficial</strong>
+          <span>Link exclusivo da barbearia</span>
         </div>
         <div>
           <strong>Rota fácil</strong>
-          <span>{mapsHref ? "Endereço no Maps" : "Endereço no atendimento"}</span>
+          <span>{mapsHref ? "Endereço clicável no Maps" : "Endereço no atendimento"}</span>
         </div>
         <div>
-          <strong>Confirmação</strong>
+          <strong>WhatsApp fixo</strong>
           <span>Resumo antes de finalizar</span>
         </div>
       </section>
@@ -957,17 +992,21 @@ export default function ClientBooking({ model }: ClientBookingProps) {
             <h2>Profissional</h2>
           </div>
 
-          <div className="chips">
+          <div className="professionalGrid">
             {clientProfessionals.map((item) => (
               <button type="button"
                 key={item.name}
-                className={professional === item.name ? "chip activeChip" : "chip"}
+                className={professional === item.name ? "professionalCard activeProfessional" : "professionalCard"}
                 onClick={() => {
                   setProfessional(item.name);
                   setSelectedTime("");
                 }}
               >
-                {item.name}
+                <span className="professionalAvatar">{professionalInitials(item.name)}</span>
+                <span>
+                  <strong>{item.name}</strong>
+                  <small>{professional === item.name ? "Selecionado" : "Disponível"}</small>
+                </span>
               </button>
             ))}
           </div>

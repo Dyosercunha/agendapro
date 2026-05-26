@@ -140,6 +140,9 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
   const nextAppointment = upcomingAppointments[0] || todayAppointments[0];
   const activeServiceCount = services.filter((item) => item.active).length;
   const activeProfessionalCount = professionals.filter((item) => item.active && !item.fixed).length;
+  const scheduleShareText = `Agende seu horário online na ${business.name}: ${publicScheduleLink}`;
+  const scheduleBioText = `Agende seu horário online na ${business.name}\n${publicScheduleLink}`;
+  const scheduleWhatsappShareLink = `https://wa.me/?text=${encodeURIComponent(scheduleShareText)}`;
 
     if (!adminLoggedIn) {
       return withNotice(
@@ -256,6 +259,9 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
                 <button type="button" onClick={() => copyText(publicScheduleLink)}>
                   Copiar link de agendamento
                 </button>
+                <a href={scheduleWhatsappShareLink} target="_blank" rel="noreferrer">
+                  Divulgar no WhatsApp
+                </a>
               </div>
             </section>
 
@@ -343,8 +349,25 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
                     <button type="button" onClick={goToClientView}>
                       Abrir agenda
                     </button>
+                    <a href={scheduleWhatsappShareLink} target="_blank" rel="noreferrer">
+                      Enviar no WhatsApp
+                    </a>
+                    <button type="button" onClick={() => copyText(scheduleBioText)}>
+                      Copiar texto da bio
+                    </button>
                   </div>
                 </div>
+              </div>
+
+              <div className="shareGuideBox">
+                <div>
+                  <span>Mensagem pronta</span>
+                  <strong>Use este texto para Instagram, status ou grupos.</strong>
+                  <p>{scheduleBioText}</p>
+                </div>
+                <button type="button" onClick={() => copyText(scheduleBioText)}>
+                  Copiar divulgação
+                </button>
               </div>
 
               <div className="operationChecklist">

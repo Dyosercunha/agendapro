@@ -243,6 +243,36 @@ export default function ClientBooking({ model }: ClientBookingProps) {
       : cleanAddress
         ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cleanAddress)}`
         : "";
+  function googleCalendarDate(dateText: string, timeText: string, addMinutes = 0) {
+    if (!dateText || !timeText) return "";
+
+    const [year, month, day] = dateText.split("-").map(Number);
+    const [hour, minute] = timeText.split(":").map(Number);
+    const date = new Date(year, month - 1, day, hour, minute + addMinutes, 0);
+    const pad = (value: number) => String(value).padStart(2, "0");
+
+    return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}T${pad(
+      date.getHours()
+    )}${pad(date.getMinutes())}00`;
+  }
+  const calendarStart = googleCalendarDate(selectedDate, selectedTime);
+  const calendarEnd = googleCalendarDate(
+    selectedDate,
+    selectedTime,
+    totalDuration || schedule.slotInterval || 30
+  );
+  const addToCalendarHref =
+    calendarStart && calendarEnd
+      ? `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(
+          `${servicesText || "Atendimento"} - ${repairText(business.name)}`
+        )}&dates=${calendarStart}/${calendarEnd}&details=${encodeURIComponent(
+          `Agendamento em ${repairText(business.name)}. Profissional: ${professional}.`
+        )}&location=${encodeURIComponent(cleanAddress)}`
+      : "";
+  const successPaymentLabel =
+    payment === "pix" && pixAvailable
+      ? `PIX antecipado - ${money(selectedPaymentTotal || pixPrice)}`
+      : `Pagar no local - ${money(selectedPaymentTotal || totalPrice)}`;
   const instagramAvailable =
     Boolean(business.instagramUrl) &&
     Boolean(
@@ -276,7 +306,7 @@ export default function ClientBooking({ model }: ClientBookingProps) {
   if (screen === "manage") {
     return withNotice(
       <main className="app">
-        <section className="card success">
+        <section className="card success successPremium">
           <div className="badge">Agendamento</div>
           <h1>Gerenciar horário</h1>
           {publicActionSaving === "load" && <p>Carregando dados do agendamento...</p>}
@@ -372,6 +402,61 @@ export default function ClientBooking({ model }: ClientBookingProps) {
             - {servicesText}
           </p>
           <p>Profissional: {professional}</p>
+          <div className="successDetailsCard">
+            <div className="successDetailsMain">
+              <span>Resumo do horário</span>
+              <strong>
+                {formatDate(selectedDate)} às {selectedTime}
+              </strong>
+              <small>{servicesText}</small>
+            </div>
+            <div className="successDetailGrid">
+              <div>
+                <span>Profissional</span>
+                <strong>{professional}</strong>
+              </div>
+              <div>
+                <span>Pagamento</span>
+                <strong>{successPaymentLabel}</strong>
+              </div>
+              <div>
+                <span>Local</span>
+                <strong>{cleanAddress || repairText(business.name)}</strong>
+              </div>
+            </div>
+          </div>
+          <div className="successTimeline">
+            <div>
+              <span />
+              <p>Seu horário já está reservado na agenda.</p>
+            </div>
+            <div>
+              <span />
+              <p>
+                {confirmationSent
+                  ? repairText(business.successFooter)
+                  : "A confirmação automática está em preparação. Você pode avisar a barbearia pelo WhatsApp agora."}
+              </p>
+            </div>
+            <div>
+              <span />
+              <p>Te esperamos no atendimento.</p>
+            </div>
+          </div>
+          {(addToCalendarHref || mapsHref) && (
+            <div className="successActionGrid">
+              {addToCalendarHref && (
+                <a className="black linkButton" href={addToCalendarHref} target="_blank" rel="noreferrer">
+                  Adicionar ao calendário
+                </a>
+              )}
+              {mapsHref && (
+                <a className="outline linkButton" href={mapsHref} target="_blank" rel="noreferrer">
+                  Ver rota
+                </a>
+              )}
+            </div>
+          )}
           <p className="hint">
             Em caso de cancelamento ou reagendamento, entre em contato com a barbearia.
           </p>

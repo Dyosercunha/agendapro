@@ -2156,6 +2156,122 @@ button:disabled {
   color: var(--text-secondary);
 }
 
+.successPremium {
+  background:
+    radial-gradient(circle at top, rgba(34, 197, 94, 0.16), transparent 36%),
+    linear-gradient(180deg, var(--card), var(--surface));
+}
+
+.successHero {
+  text-align: center;
+}
+
+.successHero > span {
+  color: var(--success);
+  display: block;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.successDetailsCard {
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid var(--border-soft);
+  border-radius: 24px;
+  margin: 18px 0 12px;
+  padding: 14px;
+  text-align: left;
+}
+
+.successDetailsMain {
+  border-bottom: 1px solid var(--border-soft);
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+}
+
+.successDetailsMain span,
+.successDetailGrid span {
+  color: var(--text-muted);
+  display: block;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.successDetailsMain strong {
+  color: var(--text);
+  display: block;
+  font-size: 22px;
+  line-height: 1.1;
+  margin: 6px 0;
+}
+
+.successDetailsMain small {
+  color: var(--text-secondary);
+  display: block;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.successDetailGrid {
+  display: grid;
+  gap: 9px;
+  grid-template-columns: 1fr;
+}
+
+.successDetailGrid div {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--border-soft);
+  border-radius: 16px;
+  padding: 11px;
+}
+
+.successDetailGrid strong {
+  color: var(--text);
+  display: block;
+  font-size: 13px;
+  line-height: 1.3;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+
+.successTimeline {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+  text-align: left;
+}
+
+.successTimeline div {
+  align-items: flex-start;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 16px minmax(0, 1fr);
+}
+
+.successTimeline span {
+  background: var(--success);
+  border-radius: 50%;
+  box-shadow: 0 0 0 5px rgba(34, 197, 94, 0.12);
+  height: 9px;
+  margin-top: 7px;
+  width: 9px;
+}
+
+.successTimeline p {
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.successActionGrid {
+  display: grid;
+  gap: 9px;
+  grid-template-columns: 1fr;
+  margin: 12px 0;
+}
+
 .blockedSchedule {
   text-align: center;
 }
@@ -2975,6 +3091,75 @@ button:disabled {
   overflow-wrap: anywhere;
 }
 
+.customerInsightPanel {
+  display: grid;
+  gap: 9px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 14px;
+}
+
+.customerInsightPanel div,
+.topCustomerCard,
+.customerMetaGrid div {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-soft);
+  border-radius: 18px;
+  padding: 12px;
+}
+
+.customerInsightPanel span,
+.customerInsightPanel small,
+.topCustomerCard span,
+.customerMetaGrid span {
+  color: var(--text-muted);
+  display: block;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.customerInsightPanel strong,
+.topCustomerCard strong,
+.customerMetaGrid strong {
+  color: var(--text);
+  display: block;
+  font-size: 18px;
+  line-height: 1.12;
+  margin: 5px 0;
+  overflow-wrap: anywhere;
+}
+
+.topCustomerCard {
+  align-items: center;
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.12), transparent 38%),
+    rgba(255, 255, 255, 0.04);
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-bottom: 14px;
+}
+
+.topCustomerCard p {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin: 6px 0 0;
+}
+
+.customerMetaGrid {
+  display: grid;
+  gap: 7px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 10px 0;
+}
+
+.customerMetaGrid div {
+  padding: 9px;
+}
+
+.customerMetaGrid strong {
+  font-size: 13px;
+}
+
 .loyaltyNotice {
   background: rgba(82, 88, 102, 0.14);
   border: 1px solid var(--border-soft);
@@ -3529,6 +3714,9 @@ button:disabled {
   .operationActions,
   .portfolioEditorGrid,
   .storageGrid,
+  .customerInsightPanel,
+  .customerMetaGrid,
+  .topCustomerCard,
   .customerSummary,
   .setupList,
   .resourceGrid {

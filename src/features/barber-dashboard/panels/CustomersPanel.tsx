@@ -31,6 +31,10 @@ export default function CustomersPanel({ model }: CustomersPanelProps) {
     setAdminTab,
     topCustomer,
   } = model;
+  const totalRevenue = customerProfiles.reduce((sum, customer) => sum + Number(customer.revenue || 0), 0);
+  const totalVisits = customerProfiles.reduce((sum, customer) => sum + Number(customer.visits || 0), 0);
+  const averageTicket = totalVisits > 0 ? totalRevenue / totalVisits : 0;
+  const customersWithPendingPayment = customerProfiles.filter((customer) => Number(customer.pendingPayment || 0) > 0);
 
   return (
     <>
@@ -72,6 +76,47 @@ export default function CustomersPanel({ model }: CustomersPanelProps) {
             )}
           </div>
 
+          <div className="customerInsightPanel">
+            <div>
+              <span>Receita registrada</span>
+              <strong>{money(totalRevenue)}</strong>
+              <small>{totalVisits} atendimentos no histórico</small>
+            </div>
+            <div>
+              <span>Ticket médio</span>
+              <strong>{money(averageTicket)}</strong>
+              <small>média por visita registrada</small>
+            </div>
+            <div>
+              <span>Pendências</span>
+              <strong>{customersWithPendingPayment.length}</strong>
+              <small>clientes com pagamento pendente</small>
+            </div>
+          </div>
+
+          {topCustomer && (
+            <div className="topCustomerCard">
+              <div>
+                <span>Cliente em destaque</span>
+                <strong>{topCustomer.name}</strong>
+                <p>
+                  {topCustomer.visits} visitas, {money(topCustomer.revenue)} em histórico e último atendimento em{" "}
+                  {formatDate(topCustomer.lastDate)}.
+                </p>
+              </div>
+              <a
+                className="whatsappAction"
+                href={`https://wa.me/${topCustomer.whatsappLink}?text=${encodeURIComponent(
+                  `Olá, ${topCustomer.name}! Aqui é da ${business.name}.`
+                )}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Chamar no WhatsApp
+              </a>
+            </div>
+          )}
+
           {customerProfiles.length === 0 && (
             <p className="hint">Os clientes aparecem aqui depois dos primeiros agendamentos.</p>
           )}
@@ -85,6 +130,20 @@ export default function CustomersPanel({ model }: CustomersPanelProps) {
                   <p>WhatsApp: {customer.whatsapp}</p>
                   <p>Último atendimento: {formatDate(customer.lastDate)} às {customer.lastTime}</p>
                   <p>{customer.lastServices}</p>
+                  <div className="customerMetaGrid">
+                    <div>
+                      <span>Total gasto</span>
+                      <strong>{money(customer.revenue)}</strong>
+                    </div>
+                    <div>
+                      <span>Ticket médio</span>
+                      <strong>{money(Number(customer.revenue || 0) / Math.max(1, Number(customer.visits || 0)))}</strong>
+                    </div>
+                    <div>
+                      <span>Última visita</span>
+                      <strong>{formatDate(customer.lastDate)}</strong>
+                    </div>
+                  </div>
                   <div className="customerBadges">
                     <span>{customer.visits} visitas</span>
                     <span>{money(customer.revenue)}</span>

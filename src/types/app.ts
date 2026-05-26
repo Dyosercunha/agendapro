@@ -116,6 +116,7 @@ export type Professional = {
 export type Appointment = {
   clientName?: string;
   date?: string;
+  duration?: number;
   id?: string;
   paid?: boolean;
   professional?: string;

@@ -119,7 +119,7 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
     publicScheduleLink,
     refreshWhatsappIntegrationStatus,
     resetDemoData,
-    returningCustomers,
+    schedule,
     services,
     setAdminTab,
     setBusiness,
@@ -131,7 +131,6 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
     upcomingAppointments,
     updateFeatureFlag,
     visibleAdminTabs,
-    waitlist,
     whatsappIntegrationStatus,
     withNotice,
   } = model;
@@ -148,6 +147,81 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
     (sum, appointment) => sum + Number(appointment.total || 0),
     0
   );
+  const activeTodayAppointments = todayAppointments.filter(
+    (appointment) => appointment.status !== "cancelled"
+  );
+  const attendedToday = todayAppointments.filter(
+    (appointment) => appointment.status === "completed" || appointment.paid
+  ).length;
+  const currentMonthKey = new Date().toISOString().slice(0, 7);
+  const clientKey = (appointment: Appointment) =>
+    String(appointment.whatsapp || appointment.clientName || "").trim().toLowerCase();
+  const firstAppointmentDateByClient = appointments.reduce((map, appointment) => {
+    const key = clientKey(appointment);
+    const date = String(appointment.date || "");
+
+    if (!key || !date) return map;
+    if (!map.has(key) || date < String(map.get(key))) {
+      map.set(key, date);
+    }
+
+    return map;
+  }, new Map<string, string>());
+  const currentMonthAppointments = appointments.filter((appointment) =>
+    String(appointment.date || "").startsWith(currentMonthKey)
+  );
+  const currentMonthClients = new Set(
+    currentMonthAppointments.map(clientKey).filter(Boolean)
+  ).size;
+  const newClientsThisMonth = new Set(
+    currentMonthAppointments
+      .filter((appointment) =>
+        String(firstAppointmentDateByClient.get(clientKey(appointment)) || "").startsWith(
+          currentMonthKey
+        )
+      )
+      .map(clientKey)
+      .filter(Boolean)
+  ).size;
+  const weekDayKeys = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
+  const todayWeekKey = weekDayKeys[new Date().getDay()];
+  const todayWorkingHours = schedule.workingHours?.[todayWeekKey];
+  const toMinutes = (time = "00:00") => {
+    const [hours, minutes] = String(time || "00:00").split(":").map(Number);
+    return (Number.isFinite(hours) ? hours : 0) * 60 + (Number.isFinite(minutes) ? minutes : 0);
+  };
+  const workStart = toMinutes(todayWorkingHours?.start);
+  const workEnd = toMinutes(todayWorkingHours?.end);
+  const todayBreakMinutes = schedule.breaks.reduce((sum, item) => {
+    const start = Math.max(workStart, toMinutes(item.start));
+    const end = Math.min(workEnd, toMinutes(item.end));
+    return sum + Math.max(0, end - start);
+  }, 0);
+  const workingMinutes =
+    todayWorkingHours?.enabled && workEnd > workStart
+      ? Math.max(0, workEnd - workStart - todayBreakMinutes)
+      : 0;
+  const estimateAppointmentDuration = (appointment: Appointment) => {
+    if (Number(appointment.duration || 0) > 0) return Number(appointment.duration);
+
+    const appointmentServices = String(appointment.services || "").toLowerCase();
+    const matchedServices = services.filter((service) =>
+      appointmentServices.includes(String(service.name || "").toLowerCase())
+    );
+    const matchedDuration = matchedServices.reduce(
+      (sum, service) => sum + Number(service.duration || 0),
+      0
+    );
+
+    return matchedDuration || schedule.slotInterval || 30;
+  };
+  const scheduledMinutes = activeTodayAppointments.reduce(
+    (sum, appointment) => sum + estimateAppointmentDuration(appointment),
+    0
+  );
+  const occupancyRate = workingMinutes
+    ? Math.min(100, Math.round((scheduledMinutes / workingMinutes) * 100))
+    : 0;
   const serviceRanking = Array.from(
     appointments
       .flatMap((appointment) =>
@@ -164,6 +238,37 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
   )
     .sort((a, b) => b[1] - a[1])
     .slice(0, 4);
+  const topService = serviceRanking[0];
+  const planLabels: Record<string, string> = {
+    starter: "Inicial",
+    professional: "Profissional",
+    premium: "Premium",
+  };
+  const statusLabels: Record<string, string> = {
+    active: "Ativa",
+    archived: "Arquivada",
+    blocked: "Bloqueada",
+    cancelled: "Cancelada",
+    overdue: "Atrasada",
+    pending: "Pendente",
+    trial: "Em teste",
+  };
+  const planLabel = planLabels[String(business.plan || "")] || business.plan || "Sem plano";
+  const statusLabel =
+    statusLabels[String(business.monthlyStatus || "")] || business.monthlyStatus || "Sem status";
+  const nextBillingLabel = business.nextBillingDate
+    ? formatDate(business.nextBillingDate)
+    : "Sem vencimento";
+  const dayTrendCounts = Array.from({ length: 5 }, (_, index) => {
+    const date = new Date();
+    date.setDate(date.getDate() + index);
+    const key = date.toISOString().slice(0, 10);
+    return appointments.filter((appointment) => appointment.date === key).length;
+  });
+  const trendMax = Math.max(1, ...dayTrendCounts);
+  const dashboardBars = dayTrendCounts.map((count) =>
+    Math.max(14, Math.round((count / trendMax) * 44))
+  );
   const scheduleShareText = `Agende seu horário online na ${business.name}: ${publicScheduleLink}`;
   const scheduleBioText = `Agende seu horário online na ${business.name}\n${publicScheduleLink}`;
   const scheduleWhatsappShareLink = `https://wa.me/?text=${encodeURIComponent(scheduleShareText)}`;
@@ -288,31 +393,112 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
 
         {activeAdminTab === "dashboard" && (
           <>
-            <section className="adminStats">
-              <div>
-                <span>Hoje</span>
+            <section className="dashboardHeroCards">
+              <div className="dashboardHeroCard primary">
+                <div className="metricTop">
+                  <span className="metricIcon">AG</span>
+                  <span className="metricStatus ready">Hoje</span>
+                </div>
+                <span>Agendamentos de hoje</span>
                 <strong>{todayAppointments.length}</strong>
-                <small>agendamentos</small>
+                <small>{agendaStatus} - {activeTodayAppointments.length} ativos</small>
+                <div className="miniBars" aria-hidden="true">
+                  {dashboardBars.map((height, index) => (
+                    <i key={index} style={{ height }} />
+                  ))}
+                </div>
               </div>
-              <div>
-                <span>Agenda</span>
-                <strong>{agendaStatus}</strong>
-                <small>status</small>
-              </div>
-              <div>
-                <span>Previsto</span>
+
+              <div className="dashboardHeroCard revenue">
+                <div className="metricTop">
+                  <span className="metricIcon">R$</span>
+                  <span className="metricStatus success">Caixa</span>
+                </div>
+                <span>Faturamento do dia</span>
                 <strong>{money(todayRevenue)}</strong>
-                <small>faturamento</small>
+                <small>{money(todayPaidRevenue)} recebido</small>
+                <div className="metricProgress">
+                  <span
+                    style={{
+                      width: `${todayRevenue ? Math.min(100, Math.round((todayPaidRevenue / todayRevenue) * 100)) : 0}%`,
+                    }}
+                  />
+                </div>
               </div>
-              <div>
-                <span>Clientes</span>
-                <strong>{customerProfiles.length}</strong>
-                <small>{returningCustomers.length} recorrentes</small>
+
+              <div className="dashboardHeroCard">
+                <div className="metricTop">
+                  <span className="metricIcon">CL</span>
+                  <span className="metricStatus neutral">Atendimento</span>
+                </div>
+                <span>Clientes atendidos</span>
+                <strong>{attendedToday}</strong>
+                <small>{todayAppointments.length - attendedToday} ainda pendente(s)</small>
               </div>
-              <div>
-                <span>Espera</span>
-                <strong>{waitlist.filter((item) => item.status !== "contacted").length}</strong>
-                <small>pedidos</small>
+
+              <div className="dashboardHeroCard next">
+                <div className="metricTop">
+                  <span className="metricIcon">PR</span>
+                  <span className="metricStatus ready">Próximo</span>
+                </div>
+                <span>Próximo horário</span>
+                <strong>{nextAppointment?.time || "--:--"}</strong>
+                <small>{nextAppointment ? nextAppointment.clientName : "Nenhum horário na fila"}</small>
+              </div>
+
+              <div className="dashboardHeroCard service">
+                <div className="metricTop">
+                  <span className="metricIcon">SV</span>
+                  <span className="metricStatus warning">Mais vendido</span>
+                </div>
+                <span>Serviço mais vendido</span>
+                <strong>{topService?.[0] || "Sem dados"}</strong>
+                <small>{topService ? `${topService[1]} pedido(s)` : "Aparece após agendamentos"}</small>
+              </div>
+
+              <div className="dashboardHeroCard occupancy">
+                <div className="metricTop">
+                  <span className="metricIcon">%</span>
+                  <span className="metricStatus neutral">Ocupação</span>
+                </div>
+                <span>Taxa de ocupação</span>
+                <strong>{occupancyRate}%</strong>
+                <small>{scheduledMinutes}min de {workingMinutes || 0}min úteis</small>
+                <div className="occupancyRing" style={{ "--rate": `${occupancyRate}%` } as React.CSSProperties}>
+                  <b>{occupancyRate}%</b>
+                </div>
+              </div>
+
+              <div className="dashboardHeroCard">
+                <div className="metricTop">
+                  <span className="metricIcon">NM</span>
+                  <span className="metricStatus ready">Mês</span>
+                </div>
+                <span>Clientes novos no mês</span>
+                <strong>{newClientsThisMonth}</strong>
+                <small>{currentMonthClients} cliente(s) ativos no mês</small>
+              </div>
+
+              <div className="dashboardHeroCard plan">
+                <div className="metricTop">
+                  <span className="metricIcon">PL</span>
+                  <span className={`metricStatus ${business.monthlyStatus === "active" ? "success" : "warning"}`}>
+                    {statusLabel}
+                  </span>
+                </div>
+                <span>Plano atual</span>
+                <strong>{planLabel}</strong>
+                <small>Status da assinatura</small>
+              </div>
+
+              <div className="dashboardHeroCard billing">
+                <div className="metricTop">
+                  <span className="metricIcon">VC</span>
+                  <span className="metricStatus neutral">Mensalidade</span>
+                </div>
+                <span>Vencimento do plano</span>
+                <strong>{nextBillingLabel}</strong>
+                <small>{statusLabel}</small>
               </div>
             </section>
 

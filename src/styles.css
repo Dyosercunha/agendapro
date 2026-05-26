@@ -3966,6 +3966,175 @@ button:disabled {
   height: 100%;
 }
 
+.setupAssistantCard {
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.2), transparent 35%),
+    radial-gradient(circle at bottom left, rgba(245, 158, 11, 0.1), transparent 32%),
+    linear-gradient(180deg, var(--card), var(--surface));
+  border: 1px solid rgba(34, 197, 94, 0.18);
+  border-radius: 28px;
+  box-shadow: var(--shadow-card);
+  margin-bottom: 14px;
+  padding: 18px;
+}
+
+.setupAssistantHeader {
+  align-items: flex-start;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.setupAssistantHeader span {
+  color: var(--success);
+  display: block;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.02em;
+  margin-bottom: 4px;
+}
+
+.setupAssistantHeader h2 {
+  color: var(--text);
+  font-size: clamp(24px, 5vw, 34px);
+  line-height: 1.02;
+  margin: 0 0 8px;
+}
+
+.setupAssistantHeader p {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 560px;
+}
+
+.setupAssistantHeader button,
+.setupAssistantStep button {
+  background: linear-gradient(135deg, var(--primary), var(--success));
+  border: 0;
+  border-radius: 999px;
+  color: #052e16;
+  font-size: 13px;
+  font-weight: 950;
+  min-height: 44px;
+  padding: 11px 14px;
+}
+
+.setupAssistantHeader button {
+  flex: 0 0 auto;
+  min-width: 160px;
+}
+
+.setupAssistantProgress {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  height: 12px;
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+
+.setupAssistantProgress span {
+  background: linear-gradient(135deg, var(--primary), var(--success));
+  border-radius: inherit;
+  display: block;
+  height: 100%;
+}
+
+.setupAssistantSteps {
+  display: grid;
+  gap: 9px;
+}
+
+.setupAssistantStep {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--border-soft);
+  border-radius: 20px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  padding: 12px;
+}
+
+.setupAssistantStep.current {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.25);
+}
+
+.setupAssistantStep.done {
+  background: rgba(34, 197, 94, 0.09);
+  border-color: rgba(34, 197, 94, 0.24);
+}
+
+.setupStepIndex {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--border-soft);
+  border-radius: 16px;
+  color: var(--text);
+  display: flex;
+  font-size: 12px;
+  font-weight: 950;
+  height: 48px;
+  justify-content: center;
+  width: 48px;
+}
+
+.setupAssistantStep.done .setupStepIndex {
+  background: linear-gradient(135deg, var(--primary), var(--success));
+  color: #052e16;
+}
+
+.setupStepContent strong {
+  color: var(--text);
+  display: block;
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.setupStepContent small {
+  color: var(--text-muted);
+  display: block;
+  font-size: 12px;
+  line-height: 1.35;
+  margin-top: 4px;
+}
+
+.setupAssistantStep.done button {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.setupAssistantFooter {
+  align-items: center;
+  border-top: 1px solid var(--border-soft);
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-top: 14px;
+  padding-top: 14px;
+}
+
+.setupAssistantFooter span,
+.setupAssistantFooter strong {
+  display: block;
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.setupAssistantFooter span {
+  color: var(--text-muted);
+  font-weight: 900;
+}
+
+.setupAssistantFooter strong {
+  color: var(--text);
+  text-align: right;
+}
+
 .setupList,
 .resourceGrid {
   display: grid;
@@ -4861,6 +5030,28 @@ button:disabled {
   .dashboardHeroCard.primary,
   .dashboardHeroCard.revenue {
     grid-column: 1 / -1;
+  }
+
+  .setupAssistantHeader,
+  .setupAssistantFooter,
+  .setupAssistantStep {
+    align-items: stretch;
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .setupAssistantHeader button,
+  .setupAssistantStep button {
+    width: 100%;
+  }
+
+  .setupStepIndex {
+    height: 42px;
+    width: 42px;
+  }
+
+  .setupAssistantFooter strong {
+    text-align: left;
   }
 
   .dashboardHeroCard > strong {

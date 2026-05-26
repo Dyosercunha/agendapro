@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import type { AdminTabId } from "../../lib/permissions";
 import type { Appointment, FeatureDefinition, FeatureFlag } from "../../types/app";
 import AgendaPanel from "./panels/AgendaPanel";
@@ -28,6 +28,15 @@ type SetupItem = {
   done: boolean;
   label: string;
   tab: string;
+};
+
+type OnboardingStep = {
+  action: () => void;
+  buttonLabel: string;
+  description: string;
+  done: boolean;
+  label: string;
+  tab?: string;
 };
 
 type FeatureStatusCard = FeatureDefinition & {
@@ -137,6 +146,7 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
   const visibleSetupItems = setupItems.filter((item) => canUseAdminTab(item.tab));
   const firstPendingSetup = visibleSetupItems.find((item) => !item.done);
   const commercialReady = setupProgress >= 100 && !firstPendingSetup;
+  const [setupLinkCopied, setSetupLinkCopied] = useState(false);
   const nextAppointment = upcomingAppointments[0] || todayAppointments[0];
   const activeServiceCount = services.filter((item) => item.active).length;
   const activeProfessionalCount = professionals.filter((item) => item.active && !item.fixed).length;
@@ -272,6 +282,76 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
   const scheduleShareText = `Agende seu horário online na ${business.name}: ${publicScheduleLink}`;
   const scheduleBioText = `Agende seu horário online na ${business.name}\n${publicScheduleLink}`;
   const scheduleWhatsappShareLink = `https://wa.me/?text=${encodeURIComponent(scheduleShareText)}`;
+  const hasCustomAppearance = Boolean(
+    business.logoImage ||
+      business.clientBackgroundUrl ||
+      business.adminBackgroundUrl ||
+      business.beforeImageUrl ||
+      business.processImageUrl ||
+      business.finalImageUrl ||
+      (business.themeColor && business.themeColor !== "#22c55e") ||
+      (business.themeColorSecondary && business.themeColorSecondary !== "#4ade80")
+  );
+  const onboardingSteps: OnboardingStep[] = [
+    {
+      label: "Complete os dados da barbearia",
+      description: "Nome, WhatsApp, endereço e rota para o cliente chegar sem dúvida.",
+      done: Boolean(business.name && business.whatsapp && business.address),
+      tab: "appearance",
+      buttonLabel: "Completar dados",
+      action: () => setAdminTab("appearance"),
+    },
+    {
+      label: "Cadastre seus serviços",
+      description: "Preços, tempo médio e serviços ativos para o cliente escolher.",
+      done: activeServiceCount > 0,
+      tab: "services",
+      buttonLabel: "Cadastrar serviços",
+      action: () => setAdminTab("services"),
+    },
+    {
+      label: "Cadastre profissionais",
+      description: "Equipe disponível para organizar horários por profissional.",
+      done: activeProfessionalCount > 0,
+      tab: "professionals",
+      buttonLabel: "Cadastrar profissionais",
+      action: () => setAdminTab("professionals"),
+    },
+    {
+      label: "Configure horários",
+      description: "Funcionamento, pausas, folgas e bloqueios da agenda real.",
+      done: Object.values(schedule.workingHours).some((item) => item.enabled),
+      tab: "agenda",
+      buttonLabel: "Configurar horários",
+      action: () => setAdminTab("agenda"),
+    },
+    {
+      label: "Personalize a aparência",
+      description: "Logo, capa, cores, fotos e mensagem de boas-vindas.",
+      done: hasCustomAppearance,
+      tab: "appearance",
+      buttonLabel: "Personalizar tela",
+      action: () => setAdminTab("appearance"),
+    },
+    {
+      label: "Copie seu link de agendamento",
+      description: "Use o link na bio do Instagram, status do WhatsApp e mensagens.",
+      done: setupLinkCopied,
+      buttonLabel: "Copiar link",
+      action: () => {
+        copyText(publicScheduleLink);
+        setSetupLinkCopied(true);
+      },
+    },
+  ];
+  const visibleOnboardingSteps = onboardingSteps.filter(
+    (step) => !step.tab || canUseAdminTab(step.tab)
+  );
+  const completedOnboardingSteps = visibleOnboardingSteps.filter((step) => step.done).length;
+  const onboardingProgress = Math.round(
+    (completedOnboardingSteps / Math.max(visibleOnboardingSteps.length, 1)) * 100
+  );
+  const nextOnboardingStep = visibleOnboardingSteps.find((step) => !step.done);
 
   const exportDate = new Date().toISOString().slice(0, 10);
 
@@ -501,6 +581,68 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
                 <small>{statusLabel}</small>
               </div>
             </section>
+
+            {canManageBusinessSettings && (
+              <section className="setupAssistantCard">
+                <div className="setupAssistantHeader">
+                  <div>
+                    <span>Assistente de configuração inicial</span>
+                    <h2>Configuração {onboardingProgress}% concluída</h2>
+                    <p>
+                      Siga estes passos para deixar a barbearia pronta para receber clientes sem
+                      depender de suporte.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => (nextOnboardingStep || visibleOnboardingSteps[0])?.action()}
+                  >
+                    {nextOnboardingStep ? nextOnboardingStep.buttonLabel : "Revisar configuração"}
+                  </button>
+                </div>
+
+                <div className="setupAssistantProgress">
+                  <span style={{ width: `${onboardingProgress}%` }} />
+                </div>
+
+                <div className="setupAssistantSteps">
+                  {visibleOnboardingSteps.map((step, index) => {
+                    const isCurrent = !step.done && step === nextOnboardingStep;
+
+                    return (
+                      <div
+                        className={[
+                          "setupAssistantStep",
+                          step.done ? "done" : "",
+                          isCurrent ? "current" : "",
+                        ].join(" ")}
+                        key={step.label}
+                      >
+                        <div className="setupStepIndex">{step.done ? "OK" : index + 1}</div>
+                        <div className="setupStepContent">
+                          <strong>{step.label}</strong>
+                          <small>{step.description}</small>
+                        </div>
+                        <button type="button" onClick={step.action}>
+                          {step.done ? "Revisar" : step.buttonLabel}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="setupAssistantFooter">
+                  <span>
+                    {completedOnboardingSteps}/{visibleOnboardingSteps.length} passos concluídos
+                  </span>
+                  <strong>
+                    {nextOnboardingStep
+                      ? `Próximo passo: ${nextOnboardingStep.label}`
+                      : "Pronto para divulgar o link de agendamento"}
+                  </strong>
+                </div>
+              </section>
+            )}
 
             <section className="dashboardCommandCenter">
               <div className="dashboardMainCard">
@@ -754,33 +896,6 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
                 </button>
               )}
             </section>
-
-            {canManageBusinessSettings && (
-            <section className="card setupCard">
-              <div className="sectionTitle">
-                <h2>Checklist do app</h2>
-                <span>{completedSetupItems}/{setupItems.length} pronto</span>
-              </div>
-
-              <div className="setupProgress">
-                <span style={{ width: `${setupProgress}%` }} />
-              </div>
-
-              <div className="setupList">
-                {visibleSetupItems.map((item) => (
-                  <button type="button"
-                    className={item.done ? "setupItem setupDone" : "setupItem"}
-                    key={item.label}
-                    onClick={() => setAdminTab(item.tab)}
-                  >
-                    <span>{item.done ? "OK" : "Pendente"}</span>
-                    <strong>{item.label}</strong>
-                    <small>{item.description}</small>
-                  </button>
-                ))}
-              </div>
-            </section>
-            )}
 
             {canUseAdminTab("improvements") && (
             <section className="card resourceCard">

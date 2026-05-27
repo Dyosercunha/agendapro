@@ -1,0 +1,257 @@
+/* Ajustes de proteção para banners/cards com textos longos no mobile.
+   Objetivo: impedir quebra feia, estouro lateral e botões espremidos. */
+
+.clientMiniSiteHero,
+.clientMiniSiteHero *,
+.clientHeroPanel,
+.clientHeroPanel *,
+.clientTrustStrip,
+.clientTrustStrip *,
+.promoBanner,
+.promoBanner *,
+.clientPromoShowcase,
+.clientPromoShowcase *,
+.clientPromoList,
+.clientPromoList *,
+.clientPromoItem,
+.clientPromoItem *,
+.addressCard,
+.addressCard *,
+.bottomBar,
+.bottomBar *,
+.successDetailsCard,
+.successDetailsCard *,
+.manualConfirmationBox,
+.manualConfirmationBox *,
+.waitlistBox,
+.waitlistBox *,
+.bestTimePanel,
+.bestTimePanel * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  hyphens: auto;
+}
+
+.clientMiniSiteContent h1,
+.clientHeroPanel strong,
+.promoBanner strong,
+.clientPromoItem strong,
+.addressCard strong,
+.bottomTotal,
+.successDetailsMain strong,
+.successDetailGrid strong {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.clientMiniSiteHero {
+  gap: clamp(24px, 8vw, 52px);
+}
+
+.clientMiniSiteContent h1 {
+  font-size: clamp(30px, 9vw, 54px);
+  line-height: 1.02;
+}
+
+.clientMiniSiteActions,
+.clientMiniSiteTop,
+.clientRating {
+  min-width: 0;
+}
+
+.clientMiniSiteActions a,
+.clientMiniSiteTop .ownerLoginButton,
+.ownerLoginButton,
+.promoToggle,
+.clientPromoItem button,
+.addressCard a,
+.successActionGrid a,
+.manualConfirmationBox a,
+.manualConfirmationBox button,
+.bottomBar button,
+.clientFloatingWhatsapp {
+  max-width: 100%;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.15;
+}
+
+.clientHeroMetrics,
+.clientTrustStrip {
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+}
+
+.clientHeroMetrics span,
+.clientTrustStrip div {
+  min-height: auto;
+}
+
+.promoBanner.clientPromoShowcase,
+.promoListBanner.clientPromoShowcase {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  align-items: stretch;
+}
+
+.promoBanner.clientPromoShowcase > div:first-child,
+.promoListBanner.clientPromoShowcase > div:first-child {
+  min-width: 0;
+}
+
+.promoBanner.clientPromoShowcase .promoToggle,
+.promoListBanner.clientPromoShowcase .promoToggle {
+  width: 100%;
+  justify-self: stretch;
+}
+
+.clientPromoList {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+}
+
+.clientPromoItem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  align-items: stretch;
+}
+
+.clientPromoItem span,
+.clientPromoItem p,
+.clientPromoItem small {
+  line-height: 1.35;
+}
+
+.clientPromoItem button {
+  width: 100%;
+}
+
+.addressCard,
+.premiumAddressCard {
+  align-items: stretch;
+}
+
+.addressCard > div {
+  min-width: 0;
+}
+
+.successDetailGrid,
+.successActionGrid {
+  grid-template-columns: repeat(auto-fit, minmax(138px, 1fr));
+}
+
+.bottomBar {
+  left: 50%;
+  max-width: min(430px, calc(100vw - 20px));
+  transform: translateX(-50%);
+}
+
+.bottomBar .summaryLine {
+  gap: 8px;
+}
+
+.bottomBar .summaryLine span,
+.bottomBar .summaryLine strong {
+  min-width: 0;
+}
+
+@media (max-width: 420px) {
+  .app,
+  .clientBookingApp {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .clientMiniSiteHero {
+    border-radius: 26px;
+    min-height: 320px;
+    padding: 15px;
+  }
+
+  .clientHeroLogo {
+    width: 68px;
+    height: 68px;
+    border-radius: 19px;
+    font-size: 31px;
+  }
+
+  .clientMiniSiteTop {
+    align-items: flex-start;
+  }
+
+  .clientMiniSiteTop .ownerLoginButton {
+    min-height: 38px;
+    padding: 8px 10px;
+  }
+
+  .clientMiniSiteContent h1 {
+    font-size: clamp(28px, 10vw, 42px);
+  }
+
+  .clientRating {
+    gap: 6px;
+  }
+
+  .clientRating small {
+    flex-basis: 100%;
+  }
+
+  .clientHeroMetrics,
+  .clientTrustStrip {
+    grid-template-columns: 1fr;
+  }
+
+  .addressCard,
+  .premiumAddressCard {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .addressCard a {
+    width: 100%;
+  }
+
+  .promoBanner.clientPromoShowcase,
+  .promoListBanner.clientPromoShowcase {
+    padding: 14px;
+  }
+
+  .bottomBar {
+    bottom: 8px;
+    padding: 12px;
+  }
+
+  .bottomBar button {
+    min-height: 46px;
+  }
+}
+
+@media (min-width: 640px) {
+  .promoBanner.clientPromoShowcase,
+  .promoListBanner.clientPromoShowcase {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .promoBanner.clientPromoShowcase .clientPromoList,
+  .promoListBanner.clientPromoShowcase .clientPromoList {
+    grid-column: 1 / -1;
+  }
+
+  .promoBanner.clientPromoShowcase .promoToggle,
+  .promoListBanner.clientPromoShowcase .promoToggle {
+    width: auto;
+    min-width: 132px;
+  }
+
+  .clientPromoItem {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .clientPromoItem button {
+    width: auto;
+  }
+}

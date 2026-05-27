@@ -1,5 +1,6 @@
 import "./features/auth/networkTimeoutGuard";
 import "./features/improvements/pro-features.css";
+import "./fixes/banner-text-fixes.css";
 import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";

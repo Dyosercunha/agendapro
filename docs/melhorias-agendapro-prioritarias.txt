@@ -1,0 +1,427 @@
+AGENDA PRO - LISTAS DE MELHORIAS PRINCIPAIS E IMPLEMENTAÇÕES NECESSÁRIAS
+Atualizado em: 2026-05-26
+
+============================================================
+1. MELHORIAS PARA DEIXAR O APP MAIS BONITO, FUNCIONAL E PREMIUM
+============================================================
+
+1. Página inicial profissional em /
+- Transformar https://calendarproapp.vercel.app em uma landing page do AgendaPro.
+- Mostrar proposta comercial clara: agendamento inteligente para barbearias, salões e estética.
+- Adicionar botões: Quero agendar, Sou barbearia, Painel Plataforma.
+- Adicionar seção de recursos, planos, benefícios e campo para abrir agenda por slug.
+
+2. Tela do cliente estilo mini-site da barbearia
+- Logo grande no topo.
+- Nome da barbearia em destaque.
+- Foto de capa/backplate.
+- Endereço clicável no Google Maps.
+- Botão de WhatsApp fixo.
+- Botão de Instagram.
+- Avaliação/estrelas manual.
+- Banner de promoção ativa.
+- Fotos Antes / Processo / Finalizado.
+- Serviços em cards bonitos.
+- Profissionais com foto/avatar.
+
+3. Aparência personalizável por barbearia
+- Logo da barbearia.
+- Foto de capa do cliente.
+- Fundo do painel da barbearia.
+- Cor principal.
+- Cor secundária.
+- Modo claro/escuro.
+- Fotos Antes / Processo / Finalizado.
+- Texto de boas-vindas.
+- Prévia ao vivo da tela do cliente.
+- Botão Ver como cliente.
+
+4. Dashboard moderno no painel da barbearia
+- Agendamentos de hoje.
+- Faturamento do dia.
+- Clientes atendidos.
+- Próximo horário.
+- Serviço mais vendido.
+- Taxa de ocupação.
+- Clientes novos no mês.
+- Plano atual.
+- Vencimento do plano.
+
+5. Assistente de configuração inicial
+- Passo 1: completar dados da barbearia.
+- Passo 2: cadastrar serviços.
+- Passo 3: cadastrar profissionais.
+- Passo 4: configurar horários.
+- Passo 5: personalizar aparência.
+- Passo 6: copiar link de agendamento.
+- Mostrar barra de progresso da configuração.
+
+6. Botões de compartilhamento
+- Copiar link de agendamento.
+- Abrir tela do cliente.
+- Compartilhar no WhatsApp.
+- Copiar texto para bio do Instagram.
+- Gerar QR Code do agendamento.
+
+7. Página de confirmação premium
+- Agendamento confirmado.
+- Serviço.
+- Profissional.
+- Data.
+- Horário.
+- Endereço.
+- Botão adicionar ao calendário.
+- Botão chamar no WhatsApp.
+- Botão reagendar.
+- Botão cancelar.
+
+8. Agenda visual por dia e semana
+- Visão por dia.
+- Visão por semana.
+- Filtro por profissional.
+- Cards por agendamento.
+- Status por cor: Pendente, Confirmado, Finalizado, Cancelado, Faltou, Pago.
+- Botões: reagendar, cancelar, finalizar, marcar como pago.
+
+9. Histórico completo do cliente
+- Nome.
+- WhatsApp.
+- E-mail.
+- Último serviço.
+- Total gasto.
+- Quantidade de visitas.
+- Histórico de agendamentos.
+- Observações internas.
+- Pontos de fidelidade.
+- Preferência de profissional.
+
+10. Observações internas
+- Campo para observações do cliente e do agendamento.
+- Exemplos: preferência de corte, atraso frequente, alergia a produto, preferência de profissional.
+
+11. Comissões por profissional
+- Comissão fixa por serviço.
+- Comissão percentual.
+- Relatório por profissional.
+- Total produzido.
+- Total a pagar.
+- Comissão paga/pendente.
+
+12. Fechamento de caixa
+- Faturamento do dia.
+- Dinheiro.
+- PIX.
+- Cartão.
+- Pendente.
+- Descontos.
+- Comissões.
+- Lucro estimado.
+- Botão fechar dia.
+- Exportar relatório.
+
+13. Fidelidade completa
+- A cada X visitas ganha benefício.
+- A cada R$ X gasto ganha pontos.
+- Cupom automático.
+- Histórico de pontos.
+- Recompensa disponível.
+- Aviso quando o cliente está perto de ganhar.
+
+14. Promoções inteligentes
+- Desconto por dia da semana.
+- Desconto por horário fraco.
+- Desconto para cliente novo.
+- Desconto de aniversário.
+- Combo cabelo + barba.
+- Promoção relâmpago.
+- Cupom manual.
+
+15. Lista de espera real
+- Cliente entra na fila.
+- Escolhe serviço.
+- Escolhe profissional preferido.
+- Escolhe dia desejado.
+- Sistema mostra no painel.
+- Barbeiro pode encaixar.
+- Botão chamar no WhatsApp.
+- Botão transformar em agendamento.
+
+16. Avaliação pós-atendimento
+- Cliente avalia de 1 a 5 estrelas.
+- Comentário opcional.
+- Média da barbearia.
+- Média por profissional.
+- Comentários recentes.
+
+17. Automação de WhatsApp
+- Confirmação automática de agendamento.
+- Lembrete 24h antes.
+- Lembrete 2h antes.
+- Aviso de cancelamento.
+- Aviso de reagendamento.
+- Mensagem de aniversário.
+- Mensagem de promoção.
+- Aviso de vencimento do plano da barbearia.
+
+18. Painel Plataforma mais completo
+- Total de barbearias.
+- Ativas.
+- Em teste.
+- Atrasadas.
+- Bloqueadas.
+- Canceladas.
+- Faturamento mensal previsto.
+- Faturamento recebido.
+- Próximos vencimentos.
+- Planos mais usados.
+
+19. Histórico de pagamentos da plataforma
+- Barbearia.
+- Mês.
+- Valor.
+- Status.
+- Data de vencimento.
+- Data de pagamento.
+- Forma de pagamento.
+- Observação.
+- Comprovante.
+
+20. Diagnóstico técnico
+- Supabase conectado.
+- Vercel online.
+- Último deploy.
+- Último erro.
+- Total de registros por tabela.
+- Barbearias arquivadas.
+- Testar WhatsApp.
+- Testar Auth.
+- Testar agendamento.
+
+21. Logs de atividade
+- Quem criou serviço.
+- Quem apagou serviço.
+- Quem alterou preço.
+- Quem criou funcionário.
+- Quem mudou senha.
+- Quem cancelou agendamento.
+- Quem mudou plano.
+- Quem liberou melhoria.
+- Quem bloqueou barbearia.
+
+22. Backup e exportação
+- Exportar clientes CSV.
+- Exportar agendamentos CSV.
+- Exportar financeiro CSV.
+- Exportar serviços CSV.
+- Backup da barbearia.
+
+23. Melhorias mobile
+- Menu inferior fixo.
+- Botão flutuante Novo agendamento.
+- Cards grandes.
+- Menos tabela, mais cards.
+- Botões com toque fácil.
+- Atalho para WhatsApp.
+
+============================================================
+2. IMPLEMENTAÇÕES QUE PRECISAM SER FEITAS PARA O APP FICAR PREMIUM E PRONTO PARA VENDA
+============================================================
+
+1. Login e senha profissional
+- Painel Plataforma deve cadastrar barbearia com e-mail do dono e senha inicial.
+- Criar usuário no Supabase Auth.
+- Vincular usuário à barbearia.
+- Definir cargo: Dono, Funcionário ou Desenvolvedor.
+- No painel da barbearia, dono e funcionário devem poder alterar a própria senha.
+- Dono deve poder criar/remover funcionários e definir senha inicial.
+- Não salvar senha em tabela comum.
+
+2. Permissões reais por cargo
+- Desenvolvedor: acesso total ao sistema, Painel Plataforma, todas as barbearias, planos, pagamentos, melhorias e manutenção.
+- Dono: própria barbearia, serviços, profissionais, agenda, clientes, aparência, melhorias liberadas, pagamentos, funcionários e senha.
+- Funcionário: agenda, clientes, reagendar, cancelar, finalizar atendimento, serviços básicos se permitido; sem pagamentos, conta, melhorias, plano e dados sensíveis.
+- Bloqueio precisa existir no front-end e no banco/RPCs.
+
+3. Cadastro completo da barbearia/salão
+- Nome.
+- Slug/link.
+- WhatsApp.
+- E-mail do dono.
+- Senha inicial.
+- Plano.
+- Status.
+- Valor mensal.
+- Vencimento.
+- Endereço por CEP.
+- Número do comércio.
+- Complemento.
+- PIX.
+- Cor principal.
+- Melhorias liberadas.
+- Depois de cadastrar, gerar link do cliente, link do painel, login do dono, conta da barbearia e recursos por plano.
+
+4. Separação perfeita por barbearia
+- Todo dado deve estar ligado ao barbershop_id correto.
+- Serviços, profissionais, clientes, agendamentos, horários, aparência, pagamentos, melhorias, funcionários, promoções, fidelidade e lista de espera não podem misturar dados entre barbearias.
+
+5. Limpeza definitiva do banco
+- Ver barbearias ativas, em teste, atrasadas, bloqueadas e arquivadas.
+- Restaurar arquivadas.
+- Excluir definitivamente arquivadas.
+- Diagnosticar registros órfãos.
+- Fazer backup antes de exclusões definitivas.
+
+6. Salvamentos seguros
+- Todo salvar precisa ter try/catch/finally.
+- Loading claro.
+- Mensagem de sucesso.
+- Mensagem de erro clara.
+- Nenhum salvamento pode ficar infinito.
+- Aplicar em aparência, serviços, profissionais, horários, conta, melhorias, plano, funcionário, senha e pagamentos.
+
+7. Landing page em /
+- Transformar a raiz em página comercial do AgendaPro.
+- Botões: Quero agendar, Sou barbearia, Painel Plataforma.
+- Campo de slug.
+- Recursos, planos e benefícios.
+
+8. Tela do cliente premium
+- Logo.
+- Nome em destaque.
+- Backplate.
+- Endereço no Maps.
+- WhatsApp.
+- Instagram.
+- Promoção.
+- Fotos Antes / Processo / Finalizado.
+- Cards de serviços.
+- Profissionais.
+- Horários.
+- Confirmação visual.
+
+9. Dashboard da barbearia
+- Agendamentos de hoje.
+- Próximo horário.
+- Faturamento do dia.
+- Faturamento do mês.
+- Clientes atendidos.
+- Clientes novos.
+- Serviço mais vendido.
+- Profissional mais produtivo.
+- Status e vencimento do plano.
+
+10. Assistente de configuração inicial
+- Barra de progresso.
+- Etapas guiadas para dados, serviços, profissionais, horários, aparência e link público.
+
+11. Compartilhamento de link e QR Code
+- Copiar link.
+- Abrir tela do cliente.
+- Compartilhar no WhatsApp.
+- Copiar texto para bio.
+- Gerar QR Code.
+
+12. WhatsApp automático
+- Confirmação.
+- Lembretes.
+- Cancelamento.
+- Reagendamento.
+- Aniversário.
+- Promoção.
+- Cobrança da assinatura.
+- Aviso 3 dias úteis antes do vencimento, no dia do vencimento e após atraso.
+
+13. Promoções inteligentes
+- Regras por dia, horário, cliente novo, aniversário, combo, relâmpago e cupom.
+
+14. Fidelidade completa
+- Pontos, visitas, recompensas, cupons, histórico e aviso de recompensa próxima.
+
+15. Lista de espera completa
+- Entrar na lista, escolher serviço/profissional/dia, painel para encaixe, chamar no WhatsApp e converter em agendamento.
+
+16. Histórico do cliente
+- Dados, visitas, total gasto, serviços, profissional preferido, observações, fidelidade e cancelamentos.
+
+17. Comissões
+- Percentual ou fixo por profissional/serviço, relatório, total produzido e pagamento pendente/pago.
+
+18. Fechamento de caixa
+- PIX, dinheiro, cartão, pendente, descontos, comissões, total líquido e relatório.
+
+19. Relatórios
+- Faturamento por dia/mês, serviços mais vendidos, profissionais produtivos, clientes que mais compram, horários movimentados, dias fracos, cancelamento e retorno.
+
+20. Painel Plataforma financeiro
+- Quantidade por status, faturamento previsto/recebido, próximos vencimentos e controle de planos.
+
+21. Histórico de pagamentos
+- Pagamento por barbearia, mês, valor, vencimento, pagamento, forma, observação e comprovante.
+
+22. Logs de atividade
+- Registrar ações importantes de funcionários, donos e desenvolvedor.
+
+23. Diagnóstico técnico
+- Testes de Supabase, Vercel, WhatsApp, Auth, cadastro, agendamento, registros por tabela e órfãos.
+
+24. Visual e mobile
+- Design system padronizado.
+- Botões, cards, inputs, modais, cores, espaçamentos, alertas, badges, menus e tabelas.
+- Menu inferior mobile e botão flutuante.
+
+25. Remover @ts-nocheck e melhorar tipagem
+- Remover aos poucos de App.tsx, ClientBooking.tsx, BarberDashboard.tsx, PlatformDashboard.tsx e AccountPanel.tsx.
+- Criar tipos reais para Barbershop, Service, Professional, Appointment, Client, AdminUser, FeatureFlag, Payment e Plan.
+
+26. Checklist de testes finais
+- Cadastrar barbearia.
+- Criar login do dono.
+- Entrar como dono.
+- Alterar senha.
+- Criar funcionário.
+- Entrar como funcionário.
+- Cadastrar serviço.
+- Cadastrar profissional.
+- Cadastrar horário.
+- Personalizar aparência.
+- Ativar melhorias.
+- Cliente agenda.
+- Agendamento aparece no painel.
+- Cancelar.
+- Reagendar.
+- Marcar como finalizado.
+- Testar WhatsApp.
+- Testar bloqueio por plano atrasado.
+
+============================================================
+ORDEM RECOMENDADA DE EXECUÇÃO
+============================================================
+
+1. Login/senha e troca de senha.
+2. Permissões reais por cargo.
+3. Cadastro completo de barbearia.
+4. Separação total por barbershop_id.
+5. Salvamentos seguros.
+6. Limpeza/manutenção do banco.
+7. Landing page em /.
+8. Tela do cliente premium.
+9. Dashboard da barbearia.
+10. Assistente de configuração inicial.
+11. Compartilhar link/QR Code.
+12. Página de confirmação premium.
+13. WhatsApp automático.
+14. Promoções inteligentes.
+15. Fidelidade completa.
+16. Lista de espera completa.
+17. Histórico do cliente.
+18. Comissões.
+19. Fechamento de caixa.
+20. Relatórios.
+21. Painel Plataforma financeiro.
+22. Histórico de pagamentos.
+23. Logs de atividade.
+24. Diagnóstico técnico.
+25. Melhorias mobile.
+26. Remover @ts-nocheck.
+27. Teste final completo.
+28. Backup estável.

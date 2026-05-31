@@ -19,6 +19,13 @@ type CustomersPanelProps = {
   model: CustomersPanelModel;
 };
 
+const internalNoteSuggestions = [
+  "Gosta de degradê baixo",
+  "Prefere horário pela manhã",
+  "Cliente sempre atrasa",
+  "Tem alergia a produto X",
+];
+
 function cleanPhone(value?: string) {
   return String(value || "").replace(/\D/g, "");
 }
@@ -39,10 +46,7 @@ function mostFrequentProfessional(appointments: Appointment[]) {
     return acc;
   }, {});
 
-  return (
-    Object.entries(ranking).sort((first, second) => second[1] - first[1])[0]?.[0] ||
-    "Sem preferência"
-  );
+  return Object.entries(ranking).sort((first, second) => second[1] - first[1])[0]?.[0] || "Sem preferência";
 }
 
 function getUniqueNotes(appointments: Appointment[]) {
@@ -277,6 +281,11 @@ export default function CustomersPanel({ model }: CustomersPanelProps) {
                   ) : (
                     <p>Sem observações internas registradas.</p>
                   )}
+                  <div className="noteSuggestionChips compact">
+                    {internalNoteSuggestions.map((suggestion) => (
+                      <small key={suggestion}>{suggestion}</small>
+                    ))}
+                  </div>
                 </div>
 
                 <details className="customerHistoryBox">
@@ -307,8 +316,8 @@ export default function CustomersPanel({ model }: CustomersPanelProps) {
                   <span>{customer.visits} visitas</span>
                   <span>{money(customer.revenue)}</span>
                   <span>{preferredProfessional}</span>
-                  {customer.pendingPayment > 0 && <span>Pagamento pendente</span>}
-                  {loyaltyFeatureEnabled && customer.visits >= 5 && <span>Prêmio sugerido</span>}
+                  {Number(customer.pendingPayment || 0) > 0 && <span>Pagamento pendente</span>}
+                  {loyaltyFeatureEnabled && Number(customer.visits || 0) >= 5 && <span>Prêmio sugerido</span>}
                 </div>
               </article>
             );

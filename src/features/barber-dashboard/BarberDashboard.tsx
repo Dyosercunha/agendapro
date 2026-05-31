@@ -157,6 +157,96 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
     (sum, appointment) => sum + Number(appointment.total || 0),
     0
   );
+  const normalizePaymentMode = (appointment: Appointment) => {
+    const paymentMode = String(appointment.payment || "").toLowerCase();
+
+    if (paymentMode.includes("pix")) return "pix";
+    if (paymentMode.includes("cart")) return "card";
+    if (paymentMode.includes("dinheiro")) return "cash";
+    if (appointment.paid) return "pix";
+
+    return "pending";
+  };
+  const todayCashRevenue = todayAppointments
+    .filter((appointment) => appointment.paid && normalizePaymentMode(appointment) === "cash")
+    .reduce((sum, appointment) => sum + Number(appointment.total || 0), 0);
+  const todayPixRevenue = todayAppointments
+    .filter((appointment) => appointment.paid && normalizePaymentMode(appointment) === "pix")
+    .reduce((sum, appointment) => sum + Number(appointment.total || 0), 0);
+  const todayCardRevenue = todayAppointments
+    .filter((appointment) => appointment.paid && normalizePaymentMode(appointment) === "card")
+    .reduce((sum, appointment) => sum + Number(appointment.total || 0), 0);
+  const professionalByName = new Map(
+    professionals.map((professionalItem) => [
+      String(professionalItem.name || "").trim().toLowerCase(),
+      professionalItem,
+    ])
+  );
+  const getCommissionPercent = (appointment: Appointment) => {
+    const professionalConfig = professionalByName.get(
+      String(appointment.professional || "").trim().toLowerCase()
+    );
+
+    if (!professionalConfig) return 0;
+
+    const serviceText = String(appointment.services || "").toLowerCase();
+    const matchedService = services.find((service) =>
+      serviceText.includes(String(service.name || "").toLowerCase())
+    );
+    const serviceCommission =
+      matchedService && professionalConfig.commissionByService
+        ? professionalConfig.commissionByService[matchedService.name]
+        : undefined;
+
+    return Number(serviceCommission ?? professionalConfig.commissionPercent ?? 0);
+  };
+  const getCommissionValue = (appointment: Appointment) =>
+    (Number(appointment.total || 0) * getCommissionPercent(appointment)) / 100;
+  const todayCommissionTotal = todayAppointments.reduce(
+    (sum, appointment) => sum + getCommissionValue(appointment),
+    0
+  );
+  const todayPaidCommissionTotal = todayAppointments
+    .filter((appointment) => appointment.paid)
+    .reduce((sum, appointment) => sum + getCommissionValue(appointment), 0);
+  const todayPendingCommissionTotal = Math.max(
+    0,
+    todayCommissionTotal - todayPaidCommissionTotal
+  );
+  const todayDiscounts = todayAppointments.reduce(
+    (sum, appointment) =>
+      sum +
+      Math.max(
+        0,
+        Number((appointment as Appointment & { originalTotal?: number }).originalTotal || 0) -
+          Number(appointment.total || 0)
+      ),
+    0
+  );
+  const estimatedDailyProfit = Math.max(0, todayPaidRevenue - todayPaidCommissionTotal);
+  const professionalCommissionReport = professionals
+    .filter((professionalItem) => professionalItem.active && !professionalItem.fixed)
+    .map((professionalItem) => {
+      const professionalAppointments = todayAppointments.filter(
+        (appointment) => appointment.professional === professionalItem.name
+      );
+      const expectedCommission = professionalAppointments.reduce(
+        (sum, appointment) => sum + getCommissionValue(appointment),
+        0
+      );
+      const paidCommission = professionalAppointments
+        .filter((appointment) => appointment.paid)
+        .reduce((sum, appointment) => sum + getCommissionValue(appointment), 0);
+
+      return {
+        name: professionalItem.name,
+        appointmentCount: professionalAppointments.length,
+        percent: Number(professionalItem.commissionPercent || 0),
+        expectedCommission,
+        paidCommission,
+        pendingCommission: Math.max(0, expectedCommission - paidCommission),
+      };
+    });
   const activeTodayAppointments = todayAppointments.filter(
     (appointment) => appointment.status !== "cancelled"
   );
@@ -414,7 +504,14 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
       [
         ["Previsto", money(todayRevenue), todayAppointments.length],
         ["Recebido", money(todayPaidRevenue), todayPaidAppointments.length],
+        ["Dinheiro", money(todayCashRevenue), ""],
+        ["PIX", money(todayPixRevenue), ""],
+        ["Cartão", money(todayCardRevenue), ""],
         ["Pendente", money(todayPendingRevenue), todayPendingPaymentAppointments.length],
+        ["Descontos", money(todayDiscounts), ""],
+        ["Comissões previstas", money(todayCommissionTotal), ""],
+        ["Comissões pagas", money(todayPaidCommissionTotal), ""],
+        ["Lucro estimado", money(estimatedDailyProfit), ""],
       ]
     );
   }
@@ -691,9 +788,39 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
 
               <div className="cashCloseGrid">
                 <div>
-                  <span>Previsto</span>
+                  <span>Faturamento do dia</span>
                   <strong>{money(todayRevenue)}</strong>
                   <small>{todayAppointments.length} agendamentos</small>
+                </div>
+                <div>
+                  <span>Dinheiro</span>
+                  <strong>{money(todayCashRevenue)}</strong>
+                  <small>pagamentos marcados como dinheiro</small>
+                </div>
+                <div>
+                  <span>PIX</span>
+                  <strong>{money(todayPixRevenue)}</strong>
+                  <small>pagamentos por PIX</small>
+                </div>
+                <div>
+                  <span>Cartão</span>
+                  <strong>{money(todayCardRevenue)}</strong>
+                  <small>pagamentos por cartão</small>
+                </div>
+                <div>
+                  <span>Pendente</span>
+                  <strong>{money(todayPendingRevenue)}</strong>
+                  <small>{todayPendingPaymentAppointments.length} aguardando pagamento</small>
+                </div>
+                <div>
+                  <span>Descontos</span>
+                  <strong>{money(todayDiscounts)}</strong>
+                  <small>diferença registrada em promoções</small>
+                </div>
+                <div>
+                  <span>Comissões</span>
+                  <strong>{money(todayCommissionTotal)}</strong>
+                  <small>{money(todayPendingCommissionTotal)} pendente</small>
                 </div>
                 <div>
                   <span>Recebido</span>
@@ -701,19 +828,58 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
                   <small>{todayPaidAppointments.length} marcados como pagos</small>
                 </div>
                 <div>
-                  <span>Pendente</span>
-                  <strong>{money(todayPendingRevenue)}</strong>
-                  <small>{todayPendingPaymentAppointments.length} aguardando pagamento</small>
+                  <span>Lucro estimado</span>
+                  <strong>{money(estimatedDailyProfit)}</strong>
+                  <small>recebido menos comissões pagas</small>
                 </div>
+              </div>
+
+              <div className="commissionReport">
+                <div className="commissionReportHeader">
+                  <div>
+                    <span>Comissões por profissional</span>
+                    <strong>Relatório Premium</strong>
+                  </div>
+                  <small>Valor pago / valor pendente</small>
+                </div>
+
+                {professionalCommissionReport.length === 0 && (
+                  <p className="hint">Cadastre profissionais e percentuais para calcular comissões.</p>
+                )}
+
+                {professionalCommissionReport.map((item) => (
+                  <div className="commissionReportRow" key={item.name}>
+                    <div>
+                      <strong>{item.name}</strong>
+                      <span>
+                        {item.appointmentCount} atendimento(s) - {item.percent}% padrão
+                      </span>
+                    </div>
+                    <div>
+                      <small>Pago</small>
+                      <b>{money(item.paidCommission)}</b>
+                    </div>
+                    <div>
+                      <small>Pendente</small>
+                      <b>{money(item.pendingCommission)}</b>
+                    </div>
+                  </div>
+                ))}
               </div>
 
               <div className="cashCloseFooter">
                 <p>
                   Use a agenda para marcar atendimentos como pagos e manter o caixa do dia atualizado.
                 </p>
-                <button type="button" onClick={() => setAdminTab("agenda")}>
-                  Conferir agenda
-                </button>
+                <div className="cashCloseActions">
+                  <button type="button" onClick={() => setAdminTab("agenda")}>
+                    Conferir agenda
+                  </button>
+                  <button type="button" onClick={exportDailyCashCsv}>
+                    Exportar relatório
+                  </button>
+                  <button type="button" onClick={closeToday}>Fechar dia</button>
+                </div>
               </div>
             </section>
 

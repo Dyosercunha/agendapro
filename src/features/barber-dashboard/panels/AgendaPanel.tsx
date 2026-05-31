@@ -86,12 +86,14 @@ export type AgendaPanelModel = {
   removeBreak: (index: number) => void;
   removeDayOff: (index: number) => void;
   rescheduleAppointment: (id: string) => void;
+  saveAppointmentNote: (id: string) => void;
   saveScheduleToCloud: () => void;
   schedule: RealSchedule;
   setSchedule: React.Dispatch<React.SetStateAction<RealSchedule>>;
   updateBlock: (index: number, field: keyof ScheduleBlock, value: string) => void;
   updateBreak: (index: number, field: keyof ScheduleBreak, value: string) => void;
   updateDayOff: (index: number, field: keyof ScheduleDayOff, value: string) => void;
+  updateAppointmentNote: (id: string, note: string) => void;
   updateWaitlistStatus: (id: string, status: "waiting" | "contacted" | "removed") => void;
   updateWorkingDay: (
     dayKey: WeekDayKey,
@@ -125,6 +127,13 @@ const appointmentStatusLabels: Record<VisualAppointmentStatus, string> = {
   paid: "Pago",
   pending: "Pendente",
 };
+
+const internalNoteSuggestions = [
+  "Gosta de degradê baixo",
+  "Prefere horário pela manhã",
+  "Cliente sempre atrasa",
+  "Tem alergia a produto X",
+];
 
 function toDateKey(date: Date) {
   const year = date.getFullYear();
@@ -195,12 +204,14 @@ export default function AgendaPanel({ model }: AgendaPanelProps) {
     removeBreak,
     removeDayOff,
     rescheduleAppointment,
+    saveAppointmentNote,
     saveScheduleToCloud,
     schedule,
     setSchedule,
     updateBlock,
     updateBreak,
     updateDayOff,
+    updateAppointmentNote,
     updateWaitlistStatus,
     updateWorkingDay,
     waitlist,
@@ -262,6 +273,40 @@ export default function AgendaPanel({ model }: AgendaPanelProps) {
         {appointment.rescheduleRequested && (
           <p className="rescheduleNotice">Remarcação solicitada</p>
         )}
+
+        <div className="appointmentNoteEditor">
+          <label>Observação interna</label>
+          <textarea
+            value={appointment.note || ""}
+            placeholder="Ex.: gosta de degradê baixo, prefere horário pela manhã..."
+            disabled={!canEditAppointment}
+            onChange={(event) => updateAppointmentNote(appointment.id, event.target.value)}
+          />
+          <div className="noteSuggestionChips">
+            {internalNoteSuggestions.map((suggestion) => (
+              <button
+                type="button"
+                key={suggestion}
+                disabled={!canEditAppointment}
+                onClick={() => {
+                  const currentNote = String(appointment.note || "").trim();
+                  const nextNote = currentNote ? `${currentNote}; ${suggestion}` : suggestion;
+                  updateAppointmentNote(appointment.id, nextNote);
+                }}
+              >
+                {suggestion}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            className="saveNoteButton"
+            disabled={!canEditAppointment}
+            onClick={() => saveAppointmentNote(appointment.id)}
+          >
+            Salvar observação
+          </button>
+        </div>
 
         <div className="dragFuture">Arrastar para reagendar em breve</div>
 

@@ -114,6 +114,8 @@ export type Service = {
 
 export type Professional = {
   active: boolean;
+  commissionByService?: Record<string, number>;
+  commissionPercent?: number;
   fixed?: boolean;
   id?: string;
   name: string;
@@ -127,11 +129,14 @@ export type Appointment = {
   id?: string;
   note?: string;
   paid?: boolean;
+  payment?: PaymentMode | string;
   professional?: string;
+  publicToken?: string;
   rescheduleRequested?: boolean;
   services?: string;
   status?: AppointmentStatus | string;
   time?: string;
+  token?: string;
   total?: number;
   whatsapp?: string;
 };

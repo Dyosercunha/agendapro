@@ -3682,6 +3682,109 @@ button:disabled {
   padding: 10px 14px;
 }
 
+.cashCloseActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.cashCloseActions button {
+  width: auto;
+}
+
+.commissionReport,
+.commissionConfig {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-soft);
+  border-radius: 20px;
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 13px;
+}
+
+.commissionHeader,
+.commissionReportHeader {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.commissionHeader span,
+.commissionReportHeader span,
+.commissionServiceList > span {
+  color: var(--success);
+  display: block;
+  font-size: 12px;
+  font-weight: 950;
+  margin-bottom: 3px;
+}
+
+.commissionHeader strong,
+.commissionReportHeader strong {
+  display: block;
+  font-size: 16px;
+}
+
+.commissionHeader small,
+.commissionReportHeader small {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-align: right;
+}
+
+.commissionServiceList {
+  display: grid;
+  gap: 8px;
+}
+
+.commissionServiceRow,
+.commissionReportRow {
+  align-items: center;
+  background: rgba(7, 10, 13, 0.34);
+  border: 1px solid var(--border-soft);
+  border-radius: 16px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) 96px;
+  padding: 10px;
+}
+
+.commissionServiceRow strong,
+.commissionReportRow strong {
+  display: block;
+  font-size: 14px;
+}
+
+.commissionServiceRow small,
+.commissionReportRow span,
+.commissionReportRow small {
+  color: var(--text-muted);
+  display: block;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.commissionServiceRow input {
+  margin: 0;
+  text-align: center;
+}
+
+.commissionReportRow {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.commissionReportRow b {
+  color: var(--text);
+  display: block;
+  font-size: 14px;
+  margin-top: 2px;
+  text-align: right;
+}
+
 .serviceRankingCard {
   background:
     radial-gradient(circle at top left, rgba(245, 158, 11, 0.1), transparent 34%),
@@ -4445,6 +4548,73 @@ button:disabled {
 .dragFuture {
   display: inline-flex;
   margin-top: 10px;
+}
+
+.appointmentNoteEditor {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-soft);
+  border-radius: 18px;
+  margin-top: 12px;
+  padding: 11px;
+}
+
+.appointmentNoteEditor label {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 950;
+  margin-bottom: 8px;
+}
+
+.appointmentNoteEditor textarea {
+  background: rgba(7, 10, 13, 0.52);
+  border: 1px solid var(--border-soft);
+  border-radius: 14px;
+  color: var(--text);
+  font: inherit;
+  min-height: 78px;
+  outline: none;
+  padding: 11px;
+  resize: vertical;
+  width: 100%;
+}
+
+.appointmentNoteEditor textarea:focus {
+  border-color: rgba(34, 197, 94, 0.55);
+}
+
+.noteSuggestionChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 9px;
+}
+
+.noteSuggestionChips button,
+.noteSuggestionChips small {
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.24);
+  border-radius: 999px;
+  color: var(--success);
+  font-size: 11px;
+  font-weight: 900;
+  padding: 7px 9px;
+  width: auto;
+}
+
+.noteSuggestionChips button:disabled {
+  opacity: 0.5;
+}
+
+.saveNoteButton {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 900;
+  margin-top: 9px;
+  padding: 10px 12px;
+  width: 100%;
 }
 
 .visualAppointmentCard.status-confirmed,
@@ -5526,6 +5696,8 @@ button:disabled {
   .commandGrid,
   .cashCloseFooter,
   .cashCloseGrid,
+  .commissionReportRow,
+  .commissionServiceRow,
   .dashboardCommandCenter,
   .exportGrid,
   .operationStatus,
@@ -5576,6 +5748,24 @@ button:disabled {
   }
 
   .customerHistoryItem > div:last-child {
+    text-align: left;
+  }
+
+  .cashCloseActions,
+  .commissionHeader,
+  .commissionReportHeader {
+    display: grid;
+    grid-template-columns: 1fr;
+    justify-content: stretch;
+  }
+
+  .cashCloseActions button {
+    width: 100%;
+  }
+
+  .commissionHeader small,
+  .commissionReportHeader small,
+  .commissionReportRow b {
     text-align: left;
   }
 

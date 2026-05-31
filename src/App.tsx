@@ -1750,6 +1750,8 @@ function CoreAgendaProApp() {
         name: item.fixed ? firstAvailableProfessionalName : item.name,
         active: Boolean(item.active),
         fixed: Boolean(item.fixed),
+        commissionPercent: Number(item.commission_percent || 0),
+        commissionByService: item.commission_by_service || {},
       }));
 
       setBusiness(mapBusinessFromCloud(businessData, accountResult.data));
@@ -2746,6 +2748,8 @@ function CoreAgendaProApp() {
           name: item.fixed ? firstAvailableProfessionalName : item.name,
           active: Boolean(item.active),
           fixed: Boolean(item.fixed),
+          commission_percent: Number(item.commissionPercent || 0),
+          commission_by_service: item.commissionByService || {},
         })),
       })
     );
@@ -2786,13 +2790,19 @@ function CoreAgendaProApp() {
     if (!isUuid(id)) return;
 
     try {
-      const { error } = await updateAppointmentAction({
+      const appointmentActionPayload = {
         target_slug: loadedCloudSlug(),
         appointment_id_input: id,
         paid_input: patch.paid ?? null,
         status_input: patch.status ?? null,
         reschedule_requested_input: patch.rescheduleRequested ?? null,
-      });
+      };
+
+      if (Object.prototype.hasOwnProperty.call(patch, "note")) {
+        appointmentActionPayload.note_input = patch.note ?? "";
+      }
+
+      const { error } = await updateAppointmentAction(appointmentActionPayload);
 
       if (error) throw error;
 
@@ -3489,6 +3499,19 @@ function CoreAgendaProApp() {
     );
   }
 
+  function updateAppointmentNote(id, note) {
+    setAppointments((current) =>
+      current.map((appointment) =>
+        appointment.id === id ? { ...appointment, note } : appointment
+      )
+    );
+  }
+
+  function saveAppointmentNote(id) {
+    const currentNote = appointments.find((appointment) => appointment.id === id)?.note || "";
+    syncAppointmentAction(id, { note: currentNote });
+  }
+
   function openAdminArea() {
     setScreen("home");
     setBarberGateError("");
@@ -3971,6 +3994,7 @@ function CoreAgendaProApp() {
     saveFeatureFlagsToCloud,
     saveProfessionalsToCloud,
     saveScheduleToCloud,
+    saveAppointmentNote,
     saveServicesToCloud,
     schedule,
     scheduleBlocked,
@@ -4022,6 +4046,7 @@ function CoreAgendaProApp() {
     updateDayOff,
     updateFeatureFlag,
     updateOwnPassword,
+    updateAppointmentNote,
     updateProfessional,
     updatePublicAppointment,
     updateService,

@@ -59,6 +59,18 @@ function hasSpecificMapsUrl(value = "") {
   return !/^https?:\/\/(www\.)?(maps\.google\.com|google\.com\/maps)\/?$/i.test(url);
 }
 
+function isInlineImageData(value = "") {
+  return String(value || "").trim().startsWith("data:image/");
+}
+
+function compactImageValue(value = "") {
+  if (isInlineImageData(value)) {
+    return "Imagem carregada localmente (base64). Use os botões de upload/remover.";
+  }
+
+  return value;
+}
+
 function buildCepAddress(cepData: CepAddressResponse, number: string, complement: string) {
   const street = cepData?.logradouro || "";
   const neighborhood = cepData?.bairro || "";
@@ -397,7 +409,8 @@ export default function AppearancePanel({ model }: AppearancePanelProps) {
             <h3>Planos de fundo</h3>
             <label>Foto de capa da tela do cliente</label>
             <input
-              value={business.clientBackgroundUrl || ""}
+              value={compactImageValue(business.clientBackgroundUrl || "")}
+              readOnly={isInlineImageData(business.clientBackgroundUrl || "")}
               onChange={(event) =>
                 setBusiness({ ...business, clientBackgroundUrl: event.target.value })
               }
@@ -432,7 +445,8 @@ export default function AppearancePanel({ model }: AppearancePanelProps) {
 
             <label>Fundo do painel da barbearia</label>
             <input
-              value={business.adminBackgroundUrl || ""}
+              value={compactImageValue(business.adminBackgroundUrl || "")}
+              readOnly={isInlineImageData(business.adminBackgroundUrl || "")}
               onChange={(event) =>
                 setBusiness({ ...business, adminBackgroundUrl: event.target.value })
               }
@@ -492,7 +506,8 @@ export default function AppearancePanel({ model }: AppearancePanelProps) {
                       <div className="portfolioEditorItem" key={field}>
                         <label>Foto {title}</label>
                         <input
-                          value={imageUrl}
+                          value={compactImageValue(imageUrl)}
+                          readOnly={isInlineImageData(imageUrl)}
                           onChange={(event) =>
                             setBusiness({ ...business, [field]: event.target.value })
                           }

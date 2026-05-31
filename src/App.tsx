@@ -52,7 +52,6 @@ import {
   normalizeAdminRole,
 } from "./lib/permissions";
 import { saveServices as saveServicesRequest, softDeleteService } from "./lib/servicesApi";
-import AppProFeatures from "./features/improvements/ProFeatures";
 import BarberDashboard from "./features/barber-dashboard/BarberDashboard";
 import ClientBooking from "./features/client-booking/ClientBooking";
 import type { WeekDay } from "./features/barber-dashboard/panels/AgendaPanel";
@@ -4076,4 +4075,6 @@ function CoreAgendaProApp() {
 
 }
 
-export default function App(){return <><CoreAgendaProApp/><AppProFeatures/></>;}
+export default function App() {
+  return <CoreAgendaProApp />;
+}

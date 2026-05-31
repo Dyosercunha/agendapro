@@ -78,7 +78,7 @@ export type AgendaPanelModel = {
   cancelAppointment: (id: string) => void;
   canManageBusinessSettings: boolean;
   cloudSaving: string;
-  confirmAppointmentPayment: (id: string) => void;
+  confirmAppointmentPayment: (id: string, paymentMode?: string) => void;
   formatDate: (date?: string) => string;
   money: (value?: number) => string;
   realProfessionals: () => string[];
@@ -312,9 +312,18 @@ export default function AgendaPanel({ model }: AgendaPanelProps) {
 
         <div className="appointmentActions">
           {!appointment.paid && canEditAppointment && (
-            <button type="button" onClick={() => confirmAppointmentPayment(appointment.id)}>
-              Confirmar pagamento
-            </button>
+            <div className="paymentQuickActions">
+              <span>Marcar como pago</span>
+              <button type="button" onClick={() => confirmAppointmentPayment(appointment.id, "cash")}>
+                Dinheiro
+              </button>
+              <button type="button" onClick={() => confirmAppointmentPayment(appointment.id, "pix")}>
+                PIX
+              </button>
+              <button type="button" onClick={() => confirmAppointmentPayment(appointment.id, "card")}>
+                Cartão
+              </button>
+            </div>
           )}
           {canEditAppointment && (
             <button type="button" onClick={() => rescheduleAppointment(appointment.id)}>

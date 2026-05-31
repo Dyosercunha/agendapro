@@ -163,7 +163,9 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
     if (paymentMode.includes("pix")) return "pix";
     if (paymentMode.includes("cart")) return "card";
     if (paymentMode.includes("dinheiro")) return "cash";
-    if (appointment.paid) return "pix";
+    if (paymentMode.includes("cash")) return "cash";
+    if (paymentMode.includes("local") && appointment.paid) return "cash";
+    if (appointment.paid) return "cash";
 
     return "pending";
   };

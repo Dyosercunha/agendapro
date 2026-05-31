@@ -2800,6 +2800,12 @@ function CoreAgendaProApp() {
 
       if (Object.prototype.hasOwnProperty.call(patch, "note")) {
         appointmentActionPayload.note_input = patch.note ?? "";
+        appointmentActionPayload.payment_method_input = null;
+      }
+
+      if (Object.prototype.hasOwnProperty.call(patch, "payment")) {
+        appointmentActionPayload.payment_method_input = patch.payment ?? null;
+        appointmentActionPayload.note_input = null;
       }
 
       const { error } = await updateAppointmentAction(appointmentActionPayload);
@@ -3476,11 +3482,11 @@ function CoreAgendaProApp() {
     setAppointments((current) => current.filter((appointment) => appointment.id !== id));
   }
 
-  function confirmAppointmentPayment(id) {
-    syncAppointmentAction(id, { paid: true });
+  function confirmAppointmentPayment(id, paymentMode = "cash") {
+    syncAppointmentAction(id, { paid: true, payment: paymentMode });
     setAppointments((current) =>
       current.map((appointment) =>
-        appointment.id === id ? { ...appointment, paid: true } : appointment
+        appointment.id === id ? { ...appointment, paid: true, payment: paymentMode } : appointment
       )
     );
   }

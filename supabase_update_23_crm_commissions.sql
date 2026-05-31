@@ -80,7 +80,8 @@ create or replace function public.update_appointment_action(
   paid_input boolean,
   status_input text,
   reschedule_requested_input boolean,
-  note_input text
+  note_input text,
+  payment_method_input text
 )
 returns void
 language plpgsql
@@ -119,6 +120,11 @@ begin
       when note_input is null then customer_note
       else nullif(note_input, '')
     end,
+    payment_method = case
+      when payment_method_input in ('cash', 'pix', 'card', 'local') then payment_method_input
+      when payment_method_input is null then payment_method
+      else payment_method
+    end,
     cancelled_at = case
       when status_input = 'cancelled' and cancelled_at is null then now()
       else cancelled_at
@@ -130,7 +136,7 @@ end;
 $$;
 
 grant execute on function public.save_professionals(text, jsonb) to authenticated;
-grant execute on function public.update_appointment_action(text, uuid, boolean, text, boolean, text) to authenticated;
+grant execute on function public.update_appointment_action(text, uuid, boolean, text, boolean, text, text) to authenticated;
 
 -- Teste rapido depois de executar:
 -- select column_name from information_schema.columns where table_name = 'professionals' and column_name like 'commission%';

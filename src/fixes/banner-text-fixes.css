@@ -1,5 +1,5 @@
-/* Ajustes de proteção para banners/cards com textos longos no mobile.
-   Objetivo: impedir quebra feia, estouro lateral e botões espremidos. */
+/* Ajustes de proteção para banners/cards com textos longos no mobile e no painel.
+   Objetivo: impedir quebra feia, estouro lateral, colunas esmagadas e botões espremidos. */
 
 .clientMiniSiteHero,
 .clientMiniSiteHero *,
@@ -26,11 +26,42 @@
 .waitlistBox,
 .waitlistBox *,
 .bestTimePanel,
-.bestTimePanel * {
+.bestTimePanel *,
+.dashboardHeroCards,
+.dashboardHeroCards *,
+.dashboardHeroCard,
+.dashboardHeroCard *,
+.appearanceCenterHero,
+.appearanceCenterHero *,
+.appearanceCenterGrid,
+.appearanceCenterGrid *,
+.appearanceControlCard,
+.appearanceControlCard *,
+.appearanceLivePreview,
+.appearanceLivePreview * {
   min-width: 0;
-  overflow-wrap: anywhere;
   word-break: normal;
-  hyphens: auto;
+  hyphens: none;
+}
+
+.clientMiniSiteHero *,
+.clientHeroPanel *,
+.clientTrustStrip *,
+.promoBanner *,
+.clientPromoShowcase *,
+.addressCard *,
+.bottomBar *,
+.successDetailsCard *,
+.manualConfirmationBox *,
+.waitlistBox *,
+.bestTimePanel * {
+  overflow-wrap: anywhere;
+}
+
+.dashboardHeroCards *,
+.appearanceCenterHero *,
+.appearanceCenterGrid * {
+  overflow-wrap: normal;
 }
 
 .clientMiniSiteContent h1,
@@ -158,6 +189,134 @@
   min-width: 0;
 }
 
+/* Painel da barbearia: evita cards 3x3 comprimidos e textos quebrados. */
+.dashboardHeroCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+  gap: 14px;
+}
+
+.dashboardHeroCard {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  min-height: 174px;
+  overflow: hidden;
+}
+
+.dashboardHeroCard > span,
+.dashboardHeroCard > small,
+.dashboardHeroCard strong {
+  display: block;
+  max-width: 100%;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.dashboardHeroCard strong {
+  font-size: clamp(28px, 3vw, 38px);
+  line-height: 1.02;
+  white-space: normal;
+}
+
+.dashboardHeroCard.service strong {
+  font-size: clamp(26px, 2.6vw, 34px);
+  line-height: 1.05;
+  max-width: 100%;
+}
+
+.dashboardHeroCard.service {
+  gap: 8px;
+}
+
+.metricTop {
+  flex: 0 0 auto;
+}
+
+.metricStatus,
+.metricIcon {
+  white-space: nowrap;
+}
+
+.occupancyRing {
+  align-self: flex-end;
+  flex: 0 0 auto;
+}
+
+/* Aparência: corrige hero da central de identidade que ficou com coluna minúscula. */
+.appearanceCenterHero {
+  display: grid !important;
+  grid-template-columns: minmax(260px, 1fr) minmax(170px, auto) !important;
+  align-items: start;
+  gap: 18px;
+}
+
+.appearanceCenterHero > div:first-child {
+  max-width: 560px;
+}
+
+.appearanceCenterHero strong {
+  display: block;
+  max-width: 520px;
+  font-size: clamp(24px, 3vw, 38px);
+  line-height: 1.08;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.appearanceCenterHero p {
+  max-width: 520px;
+  line-height: 1.45;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.appearanceCenterHero .linkButton {
+  justify-self: end;
+  min-width: 180px;
+  white-space: normal;
+}
+
+.appearanceCenterGrid {
+  display: grid !important;
+  grid-template-columns: minmax(320px, 1.05fr) minmax(320px, 0.95fr) !important;
+  gap: 14px;
+  align-items: stretch;
+}
+
+.appearanceControlCard,
+.appearanceLivePreview {
+  width: 100%;
+}
+
+.appearanceControlCard .timePair {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+@media (max-width: 900px) {
+  .appearanceCenterHero,
+  .appearanceCenterGrid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .appearanceCenterHero .linkButton {
+    justify-self: stretch;
+    width: 100%;
+  }
+}
+
+@media (max-width: 720px) {
+  .dashboardHeroCards {
+    grid-template-columns: 1fr !important;
+  }
+
+  .dashboardHeroCard strong,
+  .dashboardHeroCard.service strong {
+    font-size: clamp(26px, 8vw, 36px);
+  }
+}
+
 @media (max-width: 420px) {
   .app,
   .clientBookingApp {
@@ -226,6 +385,10 @@
 
   .bottomBar button {
     min-height: 46px;
+  }
+
+  .appearanceCenterHero strong {
+    font-size: clamp(25px, 8vw, 34px);
   }
 }
 

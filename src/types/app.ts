@@ -114,11 +114,14 @@ export type Service = {
 
 export type Professional = {
   active: boolean;
+  avatarUrl?: string;
   commissionByService?: Record<string, number>;
   commissionPercent?: number;
   fixed?: boolean;
   id?: string;
+  imageUrl?: string;
   name: string;
+  photoUrl?: string;
 };
 
 export type Appointment = {

@@ -1,11 +1,4 @@
-/* Scoped fixes for the Professionals panel only. Do not affect Agenda, Dashboard or client pages. */
-
-.professionalHeader {
-  align-items: center;
-  display: grid;
-  gap: 12px;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-}
+/* Scoped fixes for the Professionals panel only. Keep normal professional cards on the original base layout. */
 
 .professionalPhoto {
   align-items: center;
@@ -14,6 +7,7 @@
   border-radius: 18px;
   color: var(--success);
   display: inline-flex;
+  flex: 0 0 auto;
   font-size: 12px;
   font-weight: 950;
   height: 52px;
@@ -69,10 +63,6 @@
 
 .fixedProfessionalItem {
   min-height: 0 !important;
-}
-
-.fixedProfessionalItem .professionalHeader {
-  grid-template-columns: minmax(0, 1fr) auto;
 }
 
 .fixedProfessionalItem .professionalPhoto,
@@ -152,18 +142,8 @@
 }
 
 @media (max-width: 719px) {
-  .professionalHeader,
-  .fixedProfessionalItem .professionalHeader {
-    align-items: stretch;
-    grid-template-columns: 1fr;
-  }
-
   .professionalFieldsGrid,
   .professionalPhotoActions {
     grid-template-columns: 1fr;
-  }
-
-  .professionalHeader .statusPill {
-    justify-self: start;
   }
 }

@@ -1,0 +1,327 @@
+/* Visual polish overrides for AgendaPro.
+   This file intentionally sits after the main stylesheet so it can refine
+   spacing, hierarchy and responsive behavior without touching business logic. */
+
+:root {
+  --premium-ring: rgba(74, 222, 128, 0.28);
+  --premium-panel: rgba(255, 255, 255, 0.035);
+  --premium-panel-strong: rgba(255, 255, 255, 0.055);
+}
+
+.adminApp {
+  max-width: 1180px;
+}
+
+.card,
+.loginCard,
+.adminItem,
+.appearanceControlCard,
+.appearanceLivePreview {
+  box-shadow: 0 18px 54px rgba(0, 0, 0, 0.28);
+}
+
+.card {
+  overflow: hidden;
+}
+
+.card > h2:first-child {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  letter-spacing: -0.02em;
+  margin-bottom: 16px;
+}
+
+.card > h2:first-child::before {
+  background: linear-gradient(135deg, var(--primary), var(--success));
+  border-radius: 999px;
+  box-shadow: 0 0 24px rgba(34, 197, 94, 0.34);
+  content: "";
+  flex: 0 0 auto;
+  height: 12px;
+  width: 12px;
+}
+
+section.card > label,
+.adminItem label,
+.appearanceControlCard label,
+.locationEditor label,
+.portfolioEditorItem label {
+  color: var(--text-secondary);
+  display: block;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.01em;
+  margin: 14px 0 7px;
+}
+
+section.card > input,
+section.card > textarea,
+.adminItem input,
+.adminItem textarea,
+.appearanceControlCard input,
+.appearanceControlCard textarea,
+.locationEditor input,
+.locationEditor textarea,
+.portfolioEditorItem input,
+.portfolioEditorItem textarea {
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+section.card > input:focus,
+section.card > textarea:focus,
+.adminItem input:focus,
+.adminItem textarea:focus,
+.appearanceControlCard input:focus,
+.appearanceControlCard textarea:focus,
+.locationEditor input:focus,
+.locationEditor textarea:focus,
+.portfolioEditorItem input:focus,
+.portfolioEditorItem textarea:focus {
+  border-color: var(--premium-ring);
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.08);
+  outline: none;
+}
+
+input[readonly] {
+  background: rgba(148, 163, 184, 0.08) !important;
+  border-style: dashed !important;
+  color: var(--text-muted) !important;
+  cursor: not-allowed;
+}
+
+input[type="file"] {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(74, 222, 128, 0.28);
+  cursor: pointer;
+  min-height: 48px;
+}
+
+.appearanceCenterHero {
+  align-items: center;
+  background:
+    radial-gradient(circle at top left, rgba(74, 222, 128, 0.2), transparent 32%),
+    radial-gradient(circle at bottom right, rgba(34, 197, 94, 0.11), transparent 38%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.065), rgba(255, 255, 255, 0.018));
+  border-color: rgba(74, 222, 128, 0.16);
+  box-shadow: 0 18px 55px rgba(0, 0, 0, 0.26);
+  gap: 18px;
+  margin-bottom: 18px;
+  padding: 20px;
+}
+
+.appearanceCenterHero strong {
+  font-size: clamp(20px, 3vw, 30px);
+  letter-spacing: -0.03em;
+  max-width: 720px;
+}
+
+.appearanceCenterHero p {
+  max-width: 760px;
+}
+
+.appearanceCenterHero .linkButton {
+  border-color: rgba(74, 222, 128, 0.3);
+  box-shadow: none;
+  min-width: 160px;
+}
+
+.appearanceCenterGrid {
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.appearanceControlCard,
+.appearanceLivePreview,
+.adminItem {
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.045), transparent 32%),
+    linear-gradient(180deg, var(--premium-panel-strong), var(--premium-panel));
+  border-color: rgba(255, 255, 255, 0.075);
+}
+
+.appearanceControlCard {
+  padding: 18px;
+}
+
+.appearanceLivePreview {
+  align-items: center;
+  display: grid;
+  min-height: 100%;
+  padding: 18px;
+}
+
+.appearancePhoneFrame {
+  max-width: 340px;
+  width: min(100%, 340px);
+}
+
+.appearancePhoneCover {
+  min-height: 330px;
+}
+
+.appearancePhoneCopy strong {
+  font-size: clamp(25px, 8vw, 34px);
+  letter-spacing: -0.04em;
+  line-height: 1.02;
+  overflow-wrap: break-word;
+}
+
+.appearancePreviewGallery span {
+  min-height: 82px;
+}
+
+.brandPreview {
+  border-color: rgba(74, 222, 128, 0.18);
+  margin: 10px 0 18px;
+  padding: 16px;
+}
+
+.colorGrid {
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.colorInput {
+  border-radius: 18px;
+  min-height: 58px;
+}
+
+.adminItem {
+  margin: 18px 0;
+  padding: 18px;
+}
+
+.adminItem .sectionTitle {
+  margin-bottom: 10px;
+}
+
+.portfolioEditorGrid {
+  gap: 14px;
+}
+
+.portfolioEditorItem {
+  background: rgba(7, 10, 13, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.065);
+  border-radius: 22px;
+  padding: 14px;
+}
+
+.portfolioEditorPreview,
+.portfolioEditorEmpty {
+  min-height: 150px;
+}
+
+.locationEditor .addressActions {
+  margin-top: 12px;
+}
+
+.dashboardHeroCards {
+  gap: 14px;
+}
+
+.dashboardHeroCard {
+  border-color: rgba(255, 255, 255, 0.08);
+  min-height: 176px;
+  padding: 16px;
+}
+
+.dashboardHeroCard > strong {
+  letter-spacing: -0.04em;
+}
+
+.metricStatus {
+  max-width: 150px;
+}
+
+.adminStats {
+  gap: 12px;
+}
+
+.adminStats div {
+  min-height: 118px;
+  padding: 15px;
+}
+
+.clientMiniSiteHero {
+  border-color: rgba(74, 222, 128, 0.18);
+}
+
+.clientMiniSiteContent h1 {
+  letter-spacing: -0.055em;
+  overflow-wrap: break-word;
+}
+
+.clientHeaderActions a,
+.clientHeaderActions button,
+.adminHeaderActions a,
+.adminHeaderActions button {
+  box-shadow: none;
+}
+
+button,
+.linkButton,
+.outlineLink,
+.greenLink,
+.black,
+.green,
+.outline,
+.dangerButton {
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+button:not(:disabled):hover,
+.linkButton:hover,
+.outlineLink:hover,
+.greenLink:hover {
+  transform: translateY(-1px);
+}
+
+@media (min-width: 920px) {
+  .appearanceCenterGrid {
+    grid-template-columns: minmax(0, 1.14fr) minmax(320px, 0.86fr);
+  }
+
+  .appearanceLivePreview {
+    position: sticky;
+    top: 18px;
+  }
+}
+
+@media (max-width: 719px) {
+  .appearanceCenterHero {
+    align-items: stretch;
+    display: grid;
+    padding: 16px;
+  }
+
+  .appearanceCenterHero .linkButton {
+    width: 100%;
+  }
+
+  .colorGrid,
+  .timePair,
+  .dashboardHeroCards,
+  .adminStats {
+    grid-template-columns: 1fr !important;
+  }
+
+  .appearancePhoneFrame {
+    max-width: 100%;
+  }
+
+  .appearancePhoneCover {
+    min-height: 300px;
+  }
+
+  .adminItem,
+  .appearanceControlCard,
+  .appearanceLivePreview {
+    padding: 14px;
+  }
+
+  .dashboardHeroCard,
+  .adminStats div {
+    min-height: auto;
+  }
+}

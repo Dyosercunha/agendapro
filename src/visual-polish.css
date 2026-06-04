@@ -1,80 +1,11 @@
-/* Visual polish overrides for AgendaPro.
-   This file intentionally sits after the main stylesheet so it can refine
-   spacing, hierarchy and responsive behavior without touching business logic. */
+/* Minimal AgendaPro polish. Keep the original layout as the base and only fix broken visual points. */
 
 :root {
   --premium-ring: rgba(74, 222, 128, 0.28);
-  --premium-panel: rgba(255, 255, 255, 0.035);
-  --premium-panel-strong: rgba(255, 255, 255, 0.055);
 }
-
-.adminApp { max-width: 1180px; }
-
-.card,
-.loginCard,
-.adminItem,
-.appearanceControlCard,
-.appearanceLivePreview { box-shadow: 0 18px 54px rgba(0, 0, 0, 0.28); }
-
-.card { overflow: hidden; }
 
 .card > h2:first-child {
-  align-items: center;
-  display: flex;
-  gap: 10px;
   letter-spacing: -0.02em;
-  margin-bottom: 16px;
-}
-
-.card > h2:first-child::before {
-  background: linear-gradient(135deg, var(--primary), var(--success));
-  border-radius: 999px;
-  box-shadow: 0 0 24px rgba(34, 197, 94, 0.34);
-  content: "";
-  flex: 0 0 auto;
-  height: 12px;
-  width: 12px;
-}
-
-section.card > label,
-.adminItem label,
-.appearanceControlCard label,
-.locationEditor label,
-.portfolioEditorItem label {
-  color: var(--text-secondary);
-  display: block;
-  font-size: 12px;
-  font-weight: 950;
-  letter-spacing: 0.01em;
-  margin: 14px 0 7px;
-}
-
-section.card > input,
-section.card > textarea,
-.adminItem input,
-.adminItem textarea,
-.appearanceControlCard input,
-.appearanceControlCard textarea,
-.locationEditor input,
-.locationEditor textarea,
-.portfolioEditorItem input,
-.portfolioEditorItem textarea {
-  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
-}
-
-section.card > input:focus,
-section.card > textarea:focus,
-.adminItem input:focus,
-.adminItem textarea:focus,
-.appearanceControlCard input:focus,
-.appearanceControlCard textarea:focus,
-.locationEditor input:focus,
-.locationEditor textarea:focus,
-.portfolioEditorItem input:focus,
-.portfolioEditorItem textarea:focus {
-  border-color: var(--premium-ring);
-  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.08);
-  outline: none;
 }
 
 input[readonly] {
@@ -84,240 +15,127 @@ input[readonly] {
   cursor: not-allowed;
 }
 
-input[type="file"] {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px dashed rgba(74, 222, 128, 0.28);
-  cursor: pointer;
-  min-height: 48px;
-}
-
-.appearanceCenterHero {
-  align-items: center;
-  background:
-    radial-gradient(circle at top left, rgba(74, 222, 128, 0.2), transparent 32%),
-    radial-gradient(circle at bottom right, rgba(34, 197, 94, 0.11), transparent 38%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.065), rgba(255, 255, 255, 0.018));
-  border-color: rgba(74, 222, 128, 0.16);
-  box-shadow: 0 18px 55px rgba(0, 0, 0, 0.26);
-  gap: 18px;
-  margin-bottom: 18px;
-  padding: 20px;
-}
-
-.appearanceCenterHero strong {
-  font-size: clamp(20px, 3vw, 30px);
-  letter-spacing: -0.03em;
-  max-width: 720px;
-}
-
-.appearanceCenterHero p { max-width: 760px; }
-
 .appearanceCenterHero .linkButton {
-  border-color: rgba(74, 222, 128, 0.3);
-  box-shadow: none;
-  min-width: 160px;
-}
-
-.appearanceCenterGrid {
-  gap: 18px;
-  margin-bottom: 18px;
-}
-
-.appearanceControlCard,
-.appearanceLivePreview,
-.adminItem {
-  background:
-    radial-gradient(circle at top right, rgba(255, 255, 255, 0.045), transparent 32%),
-    linear-gradient(180deg, var(--premium-panel-strong), var(--premium-panel));
-  border-color: rgba(255, 255, 255, 0.075);
-}
-
-.appearanceControlCard { padding: 18px; }
-
-.appearanceLivePreview {
   align-items: center;
-  display: grid;
-  min-height: 100%;
-  padding: 18px;
+  display: inline-flex;
+  justify-content: center;
+  margin-top: 0;
+  padding: 12px 16px;
+  white-space: nowrap;
+  width: auto;
 }
 
-.appearancePhoneFrame {
-  max-width: 340px;
-  width: min(100%, 340px);
-}
-
-.appearancePhoneCover { min-height: 330px; }
-
-.appearancePhoneCopy strong {
-  font-size: clamp(25px, 8vw, 34px);
-  letter-spacing: -0.04em;
+.dashboardHeroCard > strong {
   line-height: 1.02;
   overflow-wrap: break-word;
 }
 
-.appearancePreviewGallery span { min-height: 82px; }
-
-.brandPreview {
-  border-color: rgba(74, 222, 128, 0.18);
-  margin: 10px 0 18px;
-  padding: 16px;
+.dashboardHeroCard.service > strong {
+  display: -webkit-box;
+  font-size: clamp(20px, 3vw, 30px);
+  line-height: 1.08;
+  overflow: hidden;
+  overflow-wrap: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  word-break: normal;
 }
 
-.colorGrid {
-  gap: 14px;
-  margin-bottom: 16px;
-}
-
-.colorInput {
-  border-radius: 18px;
-  min-height: 58px;
-}
-
-.adminItem {
-  margin: 18px 0;
-  padding: 18px;
-}
-
-.adminItem .sectionTitle { margin-bottom: 10px; }
-
-.portfolioEditorGrid { gap: 14px; }
-
-.portfolioEditorItem {
-  background: rgba(7, 10, 13, 0.18);
-  border: 1px solid rgba(255, 255, 255, 0.065);
-  border-radius: 22px;
-  padding: 14px;
-}
-
-.portfolioEditorPreview,
-.portfolioEditorEmpty { min-height: 150px; }
-
-.locationEditor .addressActions { margin-top: 12px; }
-
-.dashboardHeroCards { gap: 14px; }
-
-.dashboardHeroCard {
-  border-color: rgba(255, 255, 255, 0.08);
-  min-height: 176px;
-  padding: 16px;
-}
-
-.dashboardHeroCard > strong { letter-spacing: -0.04em; }
-
-.metricStatus { max-width: 150px; }
-
-.adminStats { gap: 12px; }
-
-.adminStats div {
-  min-height: 118px;
-  padding: 15px;
-}
-
-.clientMiniSiteHero { border-color: rgba(74, 222, 128, 0.18); }
-
-.clientMiniSiteContent h1 {
-  letter-spacing: -0.055em;
-  overflow-wrap: break-word;
-}
-
-.clientHeaderActions a,
-.clientHeaderActions button,
-.adminHeaderActions a,
-.adminHeaderActions button { box-shadow: none; }
-
-button,
-.linkButton,
-.outlineLink,
-.greenLink,
-.black,
-.green,
-.outline,
-.dangerButton { transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease; }
-
-button:not(:disabled):hover,
-.linkButton:hover,
-.outlineLink:hover,
-.greenLink:hover { transform: translateY(-1px); }
-
-.barberItem { position: relative; }
-
-.barberHeader {
+.professionalHeader {
   align-items: center;
   display: grid;
   gap: 12px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.professionalPhoto {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-soft);
+  border-radius: 18px;
+  color: var(--success);
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 950;
+  height: 52px;
+  justify-content: center;
+  overflow: hidden;
+  width: 52px;
+}
+
+.professionalPhoto img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.professionalFieldsGrid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  margin-top: 14px;
+}
+
+.professionalPhotoActions {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr 1fr;
+  margin-top: 12px;
+}
+
+.professionalUploadButton {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex !important;
+  font-size: 14px !important;
+  font-weight: 900 !important;
+  justify-content: center;
+  margin: 0 !important;
+  min-height: 52px;
+  padding: 0 16px;
+  text-align: center;
+}
+
+.professionalUploadButton input {
+  display: none;
+}
+
+.professionalPhotoActions .outline {
+  margin-top: 0;
+}
+
+.fixedProfessionalItem {
+  min-height: 0 !important;
+}
+
+.fixedProfessionalItem .professionalHeader {
   grid-template-columns: minmax(0, 1fr) auto;
 }
 
-.barberHeader strong {
-  display: block;
-  font-size: 18px;
-  letter-spacing: -0.02em;
-  overflow-wrap: break-word;
-}
-
-.barberHeader p {
-  color: var(--text-muted);
-  font-size: 13px;
-  line-height: 1.35;
-  margin: 5px 0 0;
-}
-
-.barberHeader .statusPill {
-  align-items: center;
-  border-radius: 999px;
-  display: inline-flex;
-  font-size: 12px;
-  justify-content: center;
-  margin: 0;
-  min-height: 36px;
-  min-width: 74px;
-  padding: 8px 12px;
-  width: auto;
-}
-
-.fixedProfessionalItem,
-.barberItem:has(input[disabled][value="Primeiro disponível"]) {
-  background:
-    radial-gradient(circle at top right, rgba(34, 197, 94, 0.12), transparent 30%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.042), rgba(255, 255, 255, 0.022));
-  margin-bottom: 12px;
-  min-height: 0 !important;
-  padding: 14px 16px !important;
-}
-
-.fixedProfessionalItem::before,
-.fixedProfessionalItem::after,
-.barberItem:has(input[disabled][value="Primeiro disponível"])::before,
-.barberItem:has(input[disabled][value="Primeiro disponível"])::after {
-  content: none !important;
-  display: none !important;
-}
-
-.fixedProfessionalItem .logo,
-.fixedProfessionalItem .barberAvatar,
-.fixedProfessionalItem .professionalAvatar,
-.barberItem:has(input[disabled][value="Primeiro disponível"]) .logo,
-.barberItem:has(input[disabled][value="Primeiro disponível"]) .barberAvatar,
-.barberItem:has(input[disabled][value="Primeiro disponível"]) .professionalAvatar {
-  display: none !important;
-}
-
+.fixedProfessionalItem .professionalPhoto,
 .fixedProfessionalItem > label,
-.fixedProfessionalItem > input,
-.barberItem:has(input[disabled][value="Primeiro disponível"]) > label,
-.barberItem:has(input[disabled][value="Primeiro disponível"]) > input {
+.fixedProfessionalItem > input {
   display: none !important;
 }
 
-.fixedProfessionalItem .barberHeader strong,
-.barberItem:has(input[disabled][value="Primeiro disponível"]) .barberHeader strong { font-size: 16px; }
+.fixedProfessionalItem .barberHeader strong {
+  font-size: 19px;
+  line-height: 1.06;
+}
 
 .fixedProfessionalItem .barberHeader p,
-.fixedProfessionalHint,
-.barberItem:has(input[disabled][value="Primeiro disponível"]) .barberHeader p,
-.barberItem:has(input[disabled][value="Primeiro disponível"]) .hint { font-size: 12px; }
+.fixedProfessionalHint {
+  font-size: 13px;
+  line-height: 1.35;
+}
 
-.fixedProfessionalHint { margin: 10px 0 0; }
+.fixedProfessionalHint {
+  margin-bottom: 0;
+}
 
 .commissionConfig {
   overflow: hidden;
@@ -325,48 +143,8 @@ button:not(:disabled):hover,
 }
 
 .commissionConfigClosed {
-  background: rgba(255, 255, 255, 0.025);
-}
-
-.commissionConfigOpen {
-  background:
-    radial-gradient(circle at top right, rgba(245, 158, 11, 0.1), transparent 34%),
-    rgba(255, 255, 255, 0.04);
-  border-color: rgba(245, 158, 11, 0.18);
-}
-
-.commissionConfig:not(.commissionConfigOpen) > label,
-.commissionConfig:not(.commissionConfigOpen) > input,
-.commissionConfig:not(.commissionConfigOpen) > .commissionServiceList,
-.commissionConfig:not(.commissionConfigOpen) > .commissionConfigBody,
-.commissionConfig:not(.commissionConfigOpen) .commissionServiceList,
-.commissionConfig:not(.commissionConfigOpen) .commissionServiceRow {
-  display: none !important;
-}
-
-.commissionConfig:not(.commissionConfigOpen) > .commissionHeader {
-  align-items: center;
-  cursor: default;
-  display: grid;
-  gap: 12px;
-  grid-template-columns: minmax(0, 1fr) auto;
-  margin: 0;
-  padding: 13px;
-}
-
-.commissionConfig:not(.commissionConfigOpen) > .commissionHeader::after {
-  background: rgba(245, 158, 11, 0.12);
-  border: 1px solid rgba(245, 158, 11, 0.24);
-  border-radius: 999px;
-  color: var(--warning);
-  content: "Abrir";
-  font-size: 12px;
-  font-weight: 950;
-  padding: 7px 10px;
-}
-
-.commissionConfig:not(.commissionConfigOpen) .commissionHeader small {
-  display: none !important;
+  background: rgba(255, 255, 255, 0.035);
+  border-color: var(--border-soft);
 }
 
 .commissionToggle {
@@ -385,18 +163,16 @@ button:not(:disabled):hover,
 }
 
 .commissionToggle span {
-  color: var(--warning);
+  color: var(--success);
   display: block;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 950;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  margin-bottom: 3px;
 }
 
 .commissionToggle strong {
   display: block;
-  font-size: 15px;
-  margin-top: 2px;
+  font-size: 16px;
 }
 
 .commissionToggle small {
@@ -416,44 +192,19 @@ button:not(:disabled):hover,
   padding: 13px;
 }
 
-.commissionConfigBody .commissionHeader { margin-bottom: 2px; }
-
-@media (min-width: 920px) {
-  .appearanceCenterGrid { grid-template-columns: minmax(0, 1.14fr) minmax(320px, 0.86fr); }
-  .appearanceLivePreview { position: sticky; top: 18px; }
-}
-
 @media (max-width: 719px) {
-  .appearanceCenterHero {
-    align-items: stretch;
-    display: grid;
-    padding: 16px;
-  }
-
-  .appearanceCenterHero .linkButton { width: 100%; }
-
-  .colorGrid,
-  .timePair,
-  .dashboardHeroCards,
-  .adminStats { grid-template-columns: 1fr !important; }
-
-  .appearancePhoneFrame { max-width: 100%; }
-  .appearancePhoneCover { min-height: 300px; }
-
-  .adminItem,
-  .appearanceControlCard,
-  .appearanceLivePreview { padding: 14px; }
-
-  .dashboardHeroCard,
-  .adminStats div { min-height: auto; }
-
-  .barberHeader {
+  .professionalHeader,
+  .fixedProfessionalItem .professionalHeader {
     align-items: stretch;
     grid-template-columns: 1fr;
   }
 
-  .barberHeader .statusPill { justify-self: start; }
+  .professionalFieldsGrid,
+  .professionalPhotoActions {
+    grid-template-columns: 1fr;
+  }
 
-  .commissionServiceRow,
-  .commissionReportRow { grid-template-columns: 1fr !important; }
+  .professionalHeader .statusPill {
+    justify-self: start;
+  }
 }

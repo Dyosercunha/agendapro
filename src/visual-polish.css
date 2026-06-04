@@ -8,21 +8,15 @@
   --premium-panel-strong: rgba(255, 255, 255, 0.055);
 }
 
-.adminApp {
-  max-width: 1180px;
-}
+.adminApp { max-width: 1180px; }
 
 .card,
 .loginCard,
 .adminItem,
 .appearanceControlCard,
-.appearanceLivePreview {
-  box-shadow: 0 18px 54px rgba(0, 0, 0, 0.28);
-}
+.appearanceLivePreview { box-shadow: 0 18px 54px rgba(0, 0, 0, 0.28); }
 
-.card {
-  overflow: hidden;
-}
+.card { overflow: hidden; }
 
 .card > h2:first-child {
   align-items: center;
@@ -116,9 +110,7 @@ input[type="file"] {
   max-width: 720px;
 }
 
-.appearanceCenterHero p {
-  max-width: 760px;
-}
+.appearanceCenterHero p { max-width: 760px; }
 
 .appearanceCenterHero .linkButton {
   border-color: rgba(74, 222, 128, 0.3);
@@ -140,9 +132,7 @@ input[type="file"] {
   border-color: rgba(255, 255, 255, 0.075);
 }
 
-.appearanceControlCard {
-  padding: 18px;
-}
+.appearanceControlCard { padding: 18px; }
 
 .appearanceLivePreview {
   align-items: center;
@@ -156,9 +146,7 @@ input[type="file"] {
   width: min(100%, 340px);
 }
 
-.appearancePhoneCover {
-  min-height: 330px;
-}
+.appearancePhoneCover { min-height: 330px; }
 
 .appearancePhoneCopy strong {
   font-size: clamp(25px, 8vw, 34px);
@@ -167,9 +155,7 @@ input[type="file"] {
   overflow-wrap: break-word;
 }
 
-.appearancePreviewGallery span {
-  min-height: 82px;
-}
+.appearancePreviewGallery span { min-height: 82px; }
 
 .brandPreview {
   border-color: rgba(74, 222, 128, 0.18);
@@ -192,13 +178,9 @@ input[type="file"] {
   padding: 18px;
 }
 
-.adminItem .sectionTitle {
-  margin-bottom: 10px;
-}
+.adminItem .sectionTitle { margin-bottom: 10px; }
 
-.portfolioEditorGrid {
-  gap: 14px;
-}
+.portfolioEditorGrid { gap: 14px; }
 
 .portfolioEditorItem {
   background: rgba(7, 10, 13, 0.18);
@@ -208,17 +190,11 @@ input[type="file"] {
 }
 
 .portfolioEditorPreview,
-.portfolioEditorEmpty {
-  min-height: 150px;
-}
+.portfolioEditorEmpty { min-height: 150px; }
 
-.locationEditor .addressActions {
-  margin-top: 12px;
-}
+.locationEditor .addressActions { margin-top: 12px; }
 
-.dashboardHeroCards {
-  gap: 14px;
-}
+.dashboardHeroCards { gap: 14px; }
 
 .dashboardHeroCard {
   border-color: rgba(255, 255, 255, 0.08);
@@ -226,26 +202,18 @@ input[type="file"] {
   padding: 16px;
 }
 
-.dashboardHeroCard > strong {
-  letter-spacing: -0.04em;
-}
+.dashboardHeroCard > strong { letter-spacing: -0.04em; }
 
-.metricStatus {
-  max-width: 150px;
-}
+.metricStatus { max-width: 150px; }
 
-.adminStats {
-  gap: 12px;
-}
+.adminStats { gap: 12px; }
 
 .adminStats div {
   min-height: 118px;
   padding: 15px;
 }
 
-.clientMiniSiteHero {
-  border-color: rgba(74, 222, 128, 0.18);
-}
+.clientMiniSiteHero { border-color: rgba(74, 222, 128, 0.18); }
 
 .clientMiniSiteContent h1 {
   letter-spacing: -0.055em;
@@ -255,9 +223,7 @@ input[type="file"] {
 .clientHeaderActions a,
 .clientHeaderActions button,
 .adminHeaderActions a,
-.adminHeaderActions button {
-  box-shadow: none;
-}
+.adminHeaderActions button { box-shadow: none; }
 
 button,
 .linkButton,
@@ -266,20 +232,14 @@ button,
 .black,
 .green,
 .outline,
-.dangerButton {
-  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
-}
+.dangerButton { transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease; }
 
 button:not(:disabled):hover,
 .linkButton:hover,
 .outlineLink:hover,
-.greenLink:hover {
-  transform: translateY(-1px);
-}
+.greenLink:hover { transform: translateY(-1px); }
 
-.barberItem {
-  position: relative;
-}
+.barberItem { position: relative; }
 
 .barberHeader {
   align-items: center;
@@ -315,37 +275,53 @@ button:not(:disabled):hover,
   width: auto;
 }
 
-.fixedProfessionalItem {
+.fixedProfessionalItem,
+.barberItem:has(input[disabled][value="Primeiro disponível"]) {
   background:
     radial-gradient(circle at top right, rgba(34, 197, 94, 0.12), transparent 30%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.042), rgba(255, 255, 255, 0.022));
   margin-bottom: 12px;
-  min-height: 0;
-  padding: 14px 16px;
+  min-height: 0 !important;
+  padding: 14px 16px !important;
 }
 
 .fixedProfessionalItem::before,
-.fixedProfessionalItem::after {
+.fixedProfessionalItem::after,
+.barberItem:has(input[disabled][value="Primeiro disponível"])::before,
+.barberItem:has(input[disabled][value="Primeiro disponível"])::after {
   content: none !important;
   display: none !important;
 }
 
-.fixedProfessionalItem .barberHeader strong {
-  font-size: 16px;
+.fixedProfessionalItem .logo,
+.fixedProfessionalItem .barberAvatar,
+.fixedProfessionalItem .professionalAvatar,
+.barberItem:has(input[disabled][value="Primeiro disponível"]) .logo,
+.barberItem:has(input[disabled][value="Primeiro disponível"]) .barberAvatar,
+.barberItem:has(input[disabled][value="Primeiro disponível"]) .professionalAvatar {
+  display: none !important;
 }
+
+.fixedProfessionalItem > label,
+.fixedProfessionalItem > input,
+.barberItem:has(input[disabled][value="Primeiro disponível"]) > label,
+.barberItem:has(input[disabled][value="Primeiro disponível"]) > input {
+  display: none !important;
+}
+
+.fixedProfessionalItem .barberHeader strong,
+.barberItem:has(input[disabled][value="Primeiro disponível"]) .barberHeader strong { font-size: 16px; }
 
 .fixedProfessionalItem .barberHeader p,
-.fixedProfessionalHint {
-  font-size: 12px;
-}
+.fixedProfessionalHint,
+.barberItem:has(input[disabled][value="Primeiro disponível"]) .barberHeader p,
+.barberItem:has(input[disabled][value="Primeiro disponível"]) .hint { font-size: 12px; }
 
-.fixedProfessionalHint {
-  margin: 10px 0 0;
-}
+.fixedProfessionalHint { margin: 10px 0 0; }
 
 .commissionConfig {
-  padding: 0;
   overflow: hidden;
+  padding: 0 !important;
 }
 
 .commissionConfigClosed {
@@ -357,6 +333,40 @@ button:not(:disabled):hover,
     radial-gradient(circle at top right, rgba(245, 158, 11, 0.1), transparent 34%),
     rgba(255, 255, 255, 0.04);
   border-color: rgba(245, 158, 11, 0.18);
+}
+
+.commissionConfig:not(.commissionConfigOpen) > label,
+.commissionConfig:not(.commissionConfigOpen) > input,
+.commissionConfig:not(.commissionConfigOpen) > .commissionServiceList,
+.commissionConfig:not(.commissionConfigOpen) > .commissionConfigBody,
+.commissionConfig:not(.commissionConfigOpen) .commissionServiceList,
+.commissionConfig:not(.commissionConfigOpen) .commissionServiceRow {
+  display: none !important;
+}
+
+.commissionConfig:not(.commissionConfigOpen) > .commissionHeader {
+  align-items: center;
+  cursor: default;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin: 0;
+  padding: 13px;
+}
+
+.commissionConfig:not(.commissionConfigOpen) > .commissionHeader::after {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.24);
+  border-radius: 999px;
+  color: var(--warning);
+  content: "Abrir";
+  font-size: 12px;
+  font-weight: 950;
+  padding: 7px 10px;
+}
+
+.commissionConfig:not(.commissionConfigOpen) .commissionHeader small {
+  display: none !important;
 }
 
 .commissionToggle {
@@ -406,19 +416,11 @@ button:not(:disabled):hover,
   padding: 13px;
 }
 
-.commissionConfigBody .commissionHeader {
-  margin-bottom: 2px;
-}
+.commissionConfigBody .commissionHeader { margin-bottom: 2px; }
 
 @media (min-width: 920px) {
-  .appearanceCenterGrid {
-    grid-template-columns: minmax(0, 1.14fr) minmax(320px, 0.86fr);
-  }
-
-  .appearanceLivePreview {
-    position: sticky;
-    top: 18px;
-  }
+  .appearanceCenterGrid { grid-template-columns: minmax(0, 1.14fr) minmax(320px, 0.86fr); }
+  .appearanceLivePreview { position: sticky; top: 18px; }
 }
 
 @media (max-width: 719px) {
@@ -428,47 +430,30 @@ button:not(:disabled):hover,
     padding: 16px;
   }
 
-  .appearanceCenterHero .linkButton {
-    width: 100%;
-  }
+  .appearanceCenterHero .linkButton { width: 100%; }
 
   .colorGrid,
   .timePair,
   .dashboardHeroCards,
-  .adminStats {
-    grid-template-columns: 1fr !important;
-  }
+  .adminStats { grid-template-columns: 1fr !important; }
 
-  .appearancePhoneFrame {
-    max-width: 100%;
-  }
-
-  .appearancePhoneCover {
-    min-height: 300px;
-  }
+  .appearancePhoneFrame { max-width: 100%; }
+  .appearancePhoneCover { min-height: 300px; }
 
   .adminItem,
   .appearanceControlCard,
-  .appearanceLivePreview {
-    padding: 14px;
-  }
+  .appearanceLivePreview { padding: 14px; }
 
   .dashboardHeroCard,
-  .adminStats div {
-    min-height: auto;
-  }
+  .adminStats div { min-height: auto; }
 
   .barberHeader {
     align-items: stretch;
     grid-template-columns: 1fr;
   }
 
-  .barberHeader .statusPill {
-    justify-self: start;
-  }
+  .barberHeader .statusPill { justify-self: start; }
 
   .commissionServiceRow,
-  .commissionReportRow {
-    grid-template-columns: 1fr !important;
-  }
+  .commissionReportRow { grid-template-columns: 1fr !important; }
 }

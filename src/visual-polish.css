@@ -1,45 +1,4 @@
-/* Minimal AgendaPro polish. Keep the original layout as the base and only fix broken visual points. */
-
-:root {
-  --premium-ring: rgba(74, 222, 128, 0.28);
-}
-
-.card > h2:first-child {
-  letter-spacing: -0.02em;
-}
-
-input[readonly] {
-  background: rgba(148, 163, 184, 0.08) !important;
-  border-style: dashed !important;
-  color: var(--text-muted) !important;
-  cursor: not-allowed;
-}
-
-.appearanceCenterHero .linkButton {
-  align-items: center;
-  display: inline-flex;
-  justify-content: center;
-  margin-top: 0;
-  padding: 12px 16px;
-  white-space: nowrap;
-  width: auto;
-}
-
-.dashboardHeroCard > strong {
-  line-height: 1.02;
-  overflow-wrap: break-word;
-}
-
-.dashboardHeroCard.service > strong {
-  display: -webkit-box;
-  font-size: clamp(20px, 3vw, 30px);
-  line-height: 1.08;
-  overflow: hidden;
-  overflow-wrap: normal;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  word-break: normal;
-}
+/* Scoped fixes for the Professionals panel only. Do not affect Agenda, Dashboard or client pages. */
 
 .professionalHeader {
   align-items: center;

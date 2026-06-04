@@ -6,6 +6,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import LandingPage from "./features/landing/LandingPage";
 import PlatformDashboard from "./features/platform-dashboard/PlatformDashboard";
+import "./visual-polish.css";
 
 const container = document.getElementById("root");
 const path = window.location.pathname.toLowerCase();

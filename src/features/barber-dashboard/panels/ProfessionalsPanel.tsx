@@ -73,7 +73,7 @@ export default function ProfessionalsPanel({ model }: ProfessionalsPanelProps) {
               className={item.fixed ? "adminItem barberItem fixedProfessionalItem" : "adminItem barberItem"}
               key={index}
             >
-              <div className="barberHeader professionalHeader">
+              <div className="barberHeader">
                 {!item.fixed && (
                   <div className={photo ? "professionalPhoto hasPhoto" : "professionalPhoto"}>
                     {photo ? <img src={photo} alt={item.name || "Profissional"} /> : initials(item.name)}
@@ -109,46 +109,46 @@ export default function ProfessionalsPanel({ model }: ProfessionalsPanelProps) {
               </div>
 
               {!item.fixed && (
-                <div className="professionalFieldsGrid">
-                  <div>
-                    <label>Nome</label>
-                    <input
-                      value={item.name}
-                      onChange={(event) => updateProfessional(index, "name", event.target.value)}
-                    />
+                <>
+                  <div className="professionalFieldsGrid">
+                    <div>
+                      <label>Nome</label>
+                      <input
+                        value={item.name}
+                        onChange={(event) => updateProfessional(index, "name", event.target.value)}
+                      />
+                    </div>
+
+                    <div>
+                      <label>Foto do profissional</label>
+                      <input
+                        value={photo}
+                        onChange={(event) => updateProfessional(index, "photoUrl", event.target.value)}
+                        placeholder="https://site.com/foto.jpg"
+                      />
+                    </div>
                   </div>
 
-                  <div>
-                    <label>Foto do profissional</label>
-                    <input
-                      value={photo}
-                      onChange={(event) => updateProfessional(index, "photoUrl", event.target.value)}
-                      placeholder="https://site.com/foto.jpg"
-                    />
+                  <div className="professionalPhotoActions">
+                    <label className="professionalUploadButton">
+                      Enviar foto
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(event) => handleProfessionalPhoto(index, event.target.files?.[0])}
+                      />
+                    </label>
+                    {photo && (
+                      <button
+                        type="button"
+                        className="outline"
+                        onClick={() => updateProfessional(index, "photoUrl", "")}
+                      >
+                        Remover foto
+                      </button>
+                    )}
                   </div>
-                </div>
-              )}
-
-              {!item.fixed && (
-                <div className="professionalPhotoActions">
-                  <label className="professionalUploadButton">
-                    Enviar foto
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(event) => handleProfessionalPhoto(index, event.target.files?.[0])}
-                    />
-                  </label>
-                  {photo && (
-                    <button
-                      type="button"
-                      className="outline"
-                      onClick={() => updateProfessional(index, "photoUrl", "")}
-                    >
-                      Remover foto
-                    </button>
-                  )}
-                </div>
+                </>
               )}
 
               {item.fixed && (

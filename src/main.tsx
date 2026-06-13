@@ -9,8 +9,8 @@ import PlatformDashboard from "./features/platform-dashboard/PlatformDashboard";
 import "./visual-polish.css";
 
 const container = document.getElementById("root");
-const path = window.location.pathname.toLowerCase();
-const isRootRoute = path === "/" || path === "";
+const path = window.location.pathname.toLowerCase().replace(/\/$/, "") || "/";
+const isRootRoute = path === "/" || path === "/agenda-pro";
 const isPlatformRoute = window.location.search.includes("platform=1") || path.includes("/plataforma") || path.includes("/painel-plataforma");
 
 if (container) {

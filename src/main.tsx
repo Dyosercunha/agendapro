@@ -1,5 +1,6 @@
-import "./features/auth/networkTimeoutGuard";
+﻿import "./features/auth/networkTimeoutGuard";
 import "./fixes/banner-text-fixes.css";
+import "./visual-polish.css";
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { registerSW } from "virtual:pwa-register";
@@ -9,8 +10,8 @@ import PlatformDashboard from "./features/platform-dashboard/PlatformDashboard";
 import { applyGlobalSeo, applyLandingSeo, applyPlatformSeo } from "./lib/seo";
 
 const container = document.getElementById("root");
-const path = window.location.pathname.toLowerCase();
-const isRootRoute = path === "/" || path === "";
+const path = window.location.pathname.toLowerCase().replace(/\/$/, "") || "/";
+const isRootRoute = path === "/" || path === "/agenda-pro";
 const isPlatformRoute = window.location.search.includes("platform=1") || path.includes("/plataforma") || path.includes("/painel-plataforma");
 
 if (isPlatformRoute) {

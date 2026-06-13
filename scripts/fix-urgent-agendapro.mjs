@@ -46,6 +46,15 @@ function patchAppTsx() {
     'if (scheduleIndex !== -1) window.history.replaceState(null, "", `/agendamento/${nextSlug}`);'
   );
 
+  if (!source.includes("function technicalCloudErrorText")) {
+    source = replaceOrThrow(
+      source,
+      'function cloudErrorText(error) {\n  if (!error) return "Erro desconhecido.";\n\n  if (typeof error === "string") return repairText(error);\n\n  const pieces = [\n    error.message,\n    error.details,\n    error.hint,\n    error.code ? `Código: ${error.code}` : "",\n  ].filter(Boolean);\n\n  if (pieces.length > 0) return repairText(pieces.join(" | "));\n\n  try {\n    return repairText(JSON.stringify(error));\n  } catch {\n    return "Erro desconhecido.";\n  }\n}\n',
+      'function technicalCloudErrorText(error) {\n  if (!error) return "Erro desconhecido.";\n\n  if (typeof error === "string") return repairText(error);\n\n  const pieces = [\n    error.message,\n    error.details,\n    error.hint,\n    error.code ? `Código: ${error.code}` : "",\n  ].filter(Boolean);\n\n  if (pieces.length > 0) return repairText(pieces.join(" | "));\n\n  try {\n    return repairText(JSON.stringify(error));\n  } catch {\n    return "Erro desconhecido.";\n  }\n}\n\nfunction cloudErrorText(error) {\n  const technical = technicalCloudErrorText(error);\n  const text = String(technical || "");\n  const lower = text.toLowerCase();\n\n  if (lower.includes("precisa manter pelo menos um dono ativo")) {\n    return "A barbearia precisa manter pelo menos um Dono ativo.";\n  }\n\n  if (lower.includes("get_admin_appointments") || lower.includes("permission denied")) {\n    return "Não foi possível validar os horários agora. Tente novamente em instantes.";\n  }\n\n  if (lower.includes("check_public_slot_availability") || lower.includes("function") || lower.includes("rpc")) {\n    return "Não foi possível validar a disponibilidade agora. Tente novamente em instantes.";\n  }\n\n  if (lower.includes("duplicate") || lower.includes("duplicado")) {\n    return "Esse horário acabou de ser reservado. Escolha outro horário.";\n  }\n\n  if (lower.includes("network") || lower.includes("fetch") || lower.includes("timeout")) {\n    return "Não foi possível conectar com a nuvem. Confira a internet e tente novamente.";\n  }\n\n  return text\n    .replace(/\\s*\\|?\\s*Código:\\s*[A-Z0-9_]+/gi, "")\n    .replace(/\\{[\\s\\S]*\\}/g, "")\n    .replace(/permission denied for function [a-z0-9_]+/gi, "Não foi possível validar esta ação agora.")\n    .trim() || "Não foi possível concluir esta ação. Tente novamente.";\n}\n',
+      "sanitize cloudErrorText"
+    );
+  }
+
   if (!source.includes("function ensureActiveOwnerAccess")) {
     source = replaceOrThrow(
       source,

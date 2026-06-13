@@ -46,6 +46,11 @@ function patchAppTsx() {
     'if (scheduleIndex !== -1) window.history.replaceState(null, "", `/agendamento/${nextSlug}`);'
   );
 
+  source = source.replace(
+    'window.history.pushState({}, "", slug ? `/${slug}` : "/");',
+    'window.history.pushState({}, "", slug ? `/agendamento/${slug}` : "/");'
+  );
+
   if (!source.includes("function technicalCloudErrorText")) {
     source = replaceOrThrow(
       source,
@@ -84,6 +89,16 @@ function patchAppTsx() {
       'const localSlot = buildSlotsForDate(selectedDate, appointments).find(\n        (slot) => slot.time === selectedTime\n      );\n\n      if (!localSlot?.available) {\n        showNotice("Esse horário já passou ou ficou indisponível. Escolha outro horário.");\n        setScreen("home");\n        setSelectedTime("");\n        setCloudStatus("Horário indisponível. Escolha outra opção.");\n        return;\n      }\n\n      const preliminaryProfessional =\n        professional === firstAvailableProfessionalName ? localSlot.professional : professional;\n\n      const availabilityResult = await checkPublicSlotAvailability({\n        target_slug: loadedCloudSlug(),\n        target_date: selectedDate,\n        target_time: selectedTime,\n        target_professional: preliminaryProfessional || professional,\n      });\n\n      if (availabilityResult.error) {\n        throw availabilityResult.error;\n      }\n\n      const availability = Array.isArray(availabilityResult.data)\n        ? availabilityResult.data[0]\n        : availabilityResult.data;\n\n      if (availability && availability.available === false) {\n        showNotice("Esse horário acabou de ser reservado. Escolha outro horário.");\n        setScreen("home");\n        setSelectedTime("");\n        setCloudStatus("Horário indisponível. Escolha outra opção.");\n        return;\n      }\n\n      const finalProfessional = preliminaryProfessional;'
     );
   }
+
+  source = source.replace(
+    '        setCloudStatus(`Salvo neste aparelho, mas não foi sincronizado online: ${detail}`);\n        showNotice(\n          `Salvei neste aparelho, mas ainda não sincronizou online.\\n\\nDetalhe: ${detail}`\n        );',
+    '        setCloudStatus(`Não sincronizou online: ${detail}`);\n        showNotice(\n          `Não foi possível sincronizar com a nuvem. Revise a informação e tente salvar novamente.\\n\\n${detail}`\n        );'
+  );
+
+  source = source.replace(
+    '      setCloudStatus(`Não foi possível salvar online: ${detail}`);\n      showNotice(`Não foi possível salvar online.\\n\\nDetalhe: ${detail}`);',
+    '      setCloudStatus(`Não foi possível salvar online: ${detail}`);\n      showNotice(`Não foi possível salvar online. Confira os dados e tente novamente.\\n\\n${detail}`);'
+  );
 
   fs.writeFileSync(file, source);
 }

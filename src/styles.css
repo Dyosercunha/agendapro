@@ -18,6 +18,92 @@
   --text-disabled: #525866;
   --shadow-card: 0 20px 60px rgba(0, 0, 0, 0.35);
   --shadow-glow: 0 0 32px rgba(34, 197, 94, 0.22);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --client-max-width: 430px;
+  --admin-max-width: 1080px;
+  --touch-target: 44px;
+  --touch-target-lg: 48px;
+}
+
+.platformAccessGrid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 16px;
+}
+
+.platformAccessCard {
+  min-height: 100%;
+}
+
+.platformAccessListCard {
+  grid-column: 1 / -1;
+}
+
+.platformCheckLine {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.platformCheckLine input {
+  height: 18px;
+  margin: 0;
+  width: 18px;
+}
+
+.platformAccessList {
+  display: grid;
+  gap: 10px;
+}
+
+.platformAccessItem {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 22px;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  padding: 14px;
+}
+
+.platformAccessItem strong,
+.platformAccessItem span,
+.platformAccessItem small {
+  display: block;
+}
+
+.platformAccessItem span {
+  color: var(--primary);
+  font-weight: 900;
+  margin-top: 4px;
+}
+
+.platformAccessItem small {
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+
+@media (max-width: 860px) {
+  .platformAccessGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .platformAccessItem {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
 }
 
 .platformPermissionMatrix {
@@ -91,14 +177,17 @@
   z-index: 80;
   display: grid;
   place-items: center;
-  padding: 18px;
+  padding-top: max(18px, calc(var(--safe-top) + 10px));
+  padding-right: max(18px, calc(var(--safe-right) + 10px));
+  padding-bottom: max(18px, calc(var(--safe-bottom) + 10px));
+  padding-left: max(18px, calc(var(--safe-left) + 10px));
   background: rgba(0, 0, 0, 0.72);
   backdrop-filter: blur(12px);
 }
 
 .modalCard {
   width: min(100%, 420px);
-  max-height: calc(100vh - 36px);
+  max-height: calc(100dvh - 36px);
   overflow: auto;
   background: linear-gradient(180deg, #171b21 0%, #101418 100%);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -116,6 +205,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
+  min-height: 100dvh;
   font-family: Inter, Manrope, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: 16px;
   line-height: 1.5;
@@ -123,23 +213,25 @@ body {
 }
 
 .app {
-  max-width: 430px;
-  margin: auto;
-  padding: 16px;
-  padding-bottom: 32px;
+  width: min(100%, var(--client-max-width));
+  margin-inline: auto;
+  padding-top: 16px;
+  padding-right: max(16px, calc(var(--safe-right) + 12px));
+  padding-bottom: max(32px, calc(var(--safe-bottom) + 28px));
+  padding-left: max(16px, calc(var(--safe-left) + 12px));
   position: relative;
   z-index: 1;
 }
 
 .adminApp,
 .checkoutApp {
-  padding-bottom: 32px;
+  padding-bottom: max(32px, calc(var(--safe-bottom) + 28px));
   position: relative;
   z-index: 1;
 }
 
 .adminApp {
-  max-width: 980px;
+  width: min(100%, var(--admin-max-width));
 }
 
 .appHeader,
@@ -301,7 +393,7 @@ h3 {
 }
 
 .clientBookingApp {
-  padding-bottom: 116px;
+  padding-bottom: max(124px, calc(var(--safe-bottom) + 108px));
 }
 
 .clientThemeLight {
@@ -559,11 +651,28 @@ h3 {
   border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 999px;
   color: #111827;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   font-size: 15px;
   font-weight: 900;
   margin-top: 10px;
   padding: 15px;
   width: 100%;
+}
+
+.googleMark {
+  align-items: center;
+  background: #fff;
+  border: 1px solid rgba(17, 24, 39, 0.14);
+  border-radius: 50%;
+  color: #111827;
+  display: inline-flex;
+  font-weight: 950;
+  height: 28px;
+  justify-content: center;
+  width: 28px;
 }
 
 .heroPanel {
@@ -776,13 +885,21 @@ h3 {
   border: 1px solid var(--border-soft);
   border-radius: 24px;
   display: flex;
-  gap: 14px;
+  flex-wrap: wrap;
+  gap: 16px;
   justify-content: space-between;
   margin: 4px 0 14px;
-  padding: 16px;
+  padding: 18px;
 }
 
-.appearanceCenterHero span {
+.appearanceHeroCopy {
+  flex: 1 1 420px;
+  max-width: min(760px, 100%);
+  min-width: 0;
+  width: 100%;
+}
+
+.appearanceHeroEyebrow {
   color: var(--success);
   display: block;
   font-size: 12px;
@@ -794,9 +911,10 @@ h3 {
 .appearanceCenterHero strong {
   color: var(--text);
   display: block;
-  font-size: 18px;
-  line-height: 1.18;
-  margin-bottom: 7px;
+  font-size: clamp(22px, 2.2vw, 28px);
+  line-height: 1.16;
+  margin-bottom: 8px;
+  max-width: 30ch;
 }
 
 .appearanceCenterHero p {
@@ -806,21 +924,56 @@ h3 {
   margin: 0;
 }
 
-.appearanceCenterHero .linkButton {
-  flex: 0 0 auto;
-  min-width: 138px;
-  width: auto;
-  margin-top: 0;
-  padding: 12px 16px;
-  display: inline-flex;
+.appearanceHeroAction {
   align-items: center;
+  align-self: center;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text);
+  display: inline-flex;
+  flex: 0 0 auto;
+  justify-self: end;
+  margin: 0 0 0 auto;
+  margin-top: 0;
+  min-height: 48px;
+  min-width: 180px;
+  padding: 12px 18px;
   justify-content: center;
+  max-width: 100%;
+  text-decoration: none;
+  width: auto;
   white-space: nowrap;
+}
+
+.appearanceHeroAction:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.assetValueInput {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
+    monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 980px) {
+  .appearanceCenterHero {
+    flex-direction: column;
+  }
+
+  .appearanceHeroAction {
+    justify-self: start;
+    align-self: stretch;
+    min-width: 0;
+    width: 100%;
+  }
 }
 
 .appearanceCenterGrid {
   display: grid;
-  gap: 14px;
+  gap: 16px;
   margin-bottom: 16px;
 }
 
@@ -829,7 +982,7 @@ h3 {
   background: rgba(255, 255, 255, 0.026);
   border: 1px solid var(--border-soft);
   border-radius: 24px;
-  padding: 14px;
+  padding: 16px;
 }
 
 .appearanceModeSwitch {
@@ -977,9 +1130,28 @@ h3 {
   background: linear-gradient(180deg, var(--card), var(--surface));
   border: 1px solid var(--border-soft);
   border-radius: 28px;
-  padding: 18px;
+  padding: 20px;
   margin-bottom: 14px;
   box-shadow: var(--shadow-card);
+}
+
+.adminApp .card {
+  padding: 18px;
+}
+
+.card > h2 {
+  margin-bottom: 12px;
+}
+
+.card > .sectionTitle + .panelLead {
+  margin-top: -1px;
+}
+
+.panelLead {
+  color: var(--text-secondary);
+  font-size: 13.5px;
+  line-height: 1.5;
+  margin: -1px 0 15px;
 }
 
 label {
@@ -1148,6 +1320,37 @@ button:disabled {
   font-size: 12px;
   font-weight: 900;
   padding: 8px 11px;
+}
+
+.landingSocialProof {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 14px 0 0;
+}
+
+.landingSocialProof article {
+  background: linear-gradient(180deg, rgba(23, 27, 33, 0.92), rgba(16, 20, 24, 0.88));
+  border: 1px solid var(--border-soft);
+  border-radius: 18px;
+  display: grid;
+  gap: 4px;
+  min-height: 92px;
+  padding: 14px;
+}
+
+.landingSocialProof strong {
+  color: var(--text);
+  display: block;
+  font-size: clamp(17px, 2.2vw, 28px);
+  line-height: 1.08;
+}
+
+.landingSocialProof span {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
 }
 
 .landingActions button,
@@ -1523,6 +1726,10 @@ button:disabled {
     margin-top: 0;
   }
 
+  .landingSocialProof {
+    grid-template-columns: 1fr;
+  }
+
   .landingFeatureGrid {
     grid-template-columns: 1fr;
   }
@@ -1558,6 +1765,11 @@ button:disabled {
   .landingActions,
   .landingSlugActions {
     grid-template-columns: 1fr;
+  }
+
+  .landingSocialProof article {
+    min-height: 84px;
+    padding: 12px;
   }
 
   .landingActions button,
@@ -1995,9 +2207,9 @@ button:disabled {
 .waitlistBox {
   background: var(--surface);
   border: 1px solid var(--border-soft);
-  border-radius: 20px;
-  padding: 14px;
-  margin-bottom: 14px;
+  border-radius: 22px;
+  padding: 16px;
+  margin-bottom: 12px;
 }
 
 .knownClient p,
@@ -2007,6 +2219,8 @@ button:disabled {
 .emptySchedule p,
 .waitlistBox p {
   color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
   margin-bottom: 9px;
 }
 
@@ -2197,21 +2411,32 @@ button:disabled {
 .sectionTitle {
   display: flex;
   justify-content: space-between;
-  align-items: end;
-  gap: 12px;
-  margin-bottom: 12px;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 13px;
 }
 
 .sectionTitle h2 {
+  font-size: 21px;
+  line-height: 1.12;
   margin-bottom: 0;
 }
 
 .sectionTitle span {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+  padding: 7px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border-soft);
+  background: rgba(255, 255, 255, 0.03);
   white-space: nowrap;
 }
 
 .compactTitle {
-  margin-top: 16px;
+  margin-top: 18px;
+  margin-bottom: 8px;
 }
 
 .service,
@@ -2220,9 +2445,10 @@ button:disabled {
   background: var(--surface);
   color: var(--text);
   border: 1px solid var(--border);
-  border-radius: 22px;
+  border-radius: 20px;
   padding: 16px;
   margin-top: 10px;
+  min-height: 78px;
   text-align: left;
   display: flex;
   justify-content: space-between;
@@ -2746,7 +2972,7 @@ button:disabled {
   background: linear-gradient(135deg, #22c55e, #4ade80);
   border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 999px;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
+  bottom: calc(var(--safe-bottom) + 16px);
   box-shadow: 0 16px 38px rgba(34, 197, 94, 0.3);
   color: #052e16;
   display: inline-flex;
@@ -2756,7 +2982,7 @@ button:disabled {
   min-height: 48px;
   padding: 0 18px;
   position: fixed;
-  right: max(14px, calc((100vw - 430px) / 2 + 14px));
+  right: max(14px, calc((100vw - var(--client-max-width)) / 2 + 14px), calc(var(--safe-right) + 12px));
   text-decoration: none;
   z-index: 60;
 }
@@ -3168,15 +3394,16 @@ button:disabled {
   background: rgba(7, 10, 13, 0.78);
   backdrop-filter: blur(18px);
   border: 1px solid var(--border-soft);
-  border-radius: 24px;
+  border-radius: 22px;
   display: flex;
   gap: 8px;
   margin-bottom: 14px;
   overflow-x: auto;
   padding: 8px;
   position: sticky;
-  top: 8px;
+  top: calc(var(--safe-top) + 8px);
   z-index: 20;
+  scroll-snap-type: x proximity;
 }
 
 .adminTabs::-webkit-scrollbar {
@@ -3188,8 +3415,9 @@ button:disabled {
   color: var(--text-muted);
   border: 1px solid var(--border);
   border-radius: 999px;
+  min-height: var(--touch-target);
   min-width: max-content;
-  padding: 11px 15px;
+  padding: 10px 15px;
   font-size: 13px;
   font-weight: 900;
   scroll-snap-align: start;
@@ -3199,6 +3427,41 @@ button:disabled {
   background: var(--primary-soft);
   border-color: var(--primary);
   color: var(--text);
+}
+
+.pwaInstallBanner {
+  align-items: center;
+  background: linear-gradient(150deg, rgba(34, 197, 94, 0.18), rgba(16, 20, 24, 0.92));
+  border: 1px solid rgba(34, 197, 94, 0.26);
+  border-radius: 20px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-bottom: 14px;
+  padding: 14px;
+}
+
+.pwaInstallBanner strong {
+  display: block;
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.pwaInstallBanner p {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin: 5px 0 0;
+}
+
+.pwaInstallActions {
+  display: flex;
+  gap: 8px;
+}
+
+.pwaInstallActions .green,
+.pwaInstallActions .outline {
+  margin-top: 0;
+  min-width: 104px;
 }
 
 .adminStats {
@@ -3251,21 +3514,45 @@ button:disabled {
 
 .dashboardHeroCards {
   display: grid;
-  gap: 10px;
+  align-items: stretch;
+  gap: 14px;
+  grid-auto-flow: row;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   margin-bottom: 14px;
 }
 
+@media (max-width: 1180px) {
+  .dashboardHeroCards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .dashboardHeroCards {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .serviceHeroName {
+    font-size: 26px;
+  }
+}
+
 .dashboardHeroCard {
   background:
-    radial-gradient(circle at top right, rgba(255, 255, 255, 0.07), transparent 38%),
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.08), transparent 34%),
     linear-gradient(180deg, var(--card), var(--surface));
   border: 1px solid var(--border-soft);
-  border-radius: 24px;
-  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.24);
-  min-height: 164px;
+  border-radius: 16px;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.22);
+  display: flex;
+  flex-direction: column;
+  height: 128px;
+  justify-content: center;
+  min-height: 128px;
   overflow: hidden;
-  padding: 14px;
+  padding: 12px 16px;
   position: relative;
 }
 
@@ -3273,28 +3560,28 @@ button:disabled {
 .dashboardHeroCard.revenue,
 .dashboardHeroCard.plan {
   background:
-    radial-gradient(circle at top right, rgba(34, 197, 94, 0.2), transparent 42%),
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.08), transparent 34%),
     linear-gradient(180deg, var(--card), var(--surface));
-  border-color: rgba(34, 197, 94, 0.22);
+  border-color: var(--border-soft);
 }
 
 .dashboardHeroCard.next {
   background:
-    radial-gradient(circle at top right, rgba(74, 222, 128, 0.15), transparent 42%),
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.08), transparent 34%),
     linear-gradient(180deg, var(--card), var(--surface));
 }
 
 .dashboardHeroCard.service {
   background:
-    radial-gradient(circle at top right, rgba(245, 158, 11, 0.17), transparent 42%),
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.08), transparent 34%),
     linear-gradient(180deg, var(--card), var(--surface));
-  border-color: rgba(245, 158, 11, 0.22);
+  border-color: var(--border-soft);
 }
 
 .dashboardHeroCard.occupancy,
 .dashboardHeroCard.billing {
   background:
-    radial-gradient(circle at top right, rgba(148, 163, 184, 0.12), transparent 42%),
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.08), transparent 34%),
     linear-gradient(180deg, var(--card), var(--surface));
 }
 
@@ -3302,8 +3589,12 @@ button:disabled {
   align-items: center;
   display: flex;
   gap: 8px;
-  justify-content: space-between;
-  margin-bottom: 14px;
+  justify-content: flex-end;
+  margin: 0;
+  min-height: 0;
+  position: absolute;
+  right: 14px;
+  top: 14px;
 }
 
 .metricIcon {
@@ -3312,7 +3603,7 @@ button:disabled {
   border: 1px solid var(--border-soft);
   border-radius: 14px;
   color: var(--text);
-  display: inline-flex;
+  display: none;
   flex: 0 0 auto;
   font-size: 12px;
   font-weight: 950;
@@ -3357,39 +3648,89 @@ button:disabled {
   display: block;
   font-size: 12px;
   font-weight: 900;
+  letter-spacing: 0.01em;
+  max-width: calc(100% - 108px);
 }
 
 .dashboardHeroCard > strong {
   color: var(--text);
   display: block;
-  font-size: clamp(24px, 7vw, 34px);
+  font-size: clamp(30px, 2.9vw, 38px);
   letter-spacing: 0;
   line-height: 1.02;
-  margin: 8px 0 7px;
+  margin: 8px 0 6px;
   overflow-wrap: break-word;
 }
 
-.dashboardHeroCard.service > strong,
 .dashboardHeroCard.next > strong,
 .dashboardHeroCard.billing > strong {
-  font-size: clamp(22px, 6vw, 30px);
+  font-size: clamp(28px, 2.4vw, 34px);
 }
 
-.dashboardHeroCard.service > strong {
-  font-size: clamp(20px, 3vw, 30px);
-  line-height: 1.08;
-  word-break: normal;
-  overflow-wrap: normal;
-  display: -webkit-box;
+.serviceHeroBody {
+  align-items: flex-start;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr);
+  justify-content: center;
+}
+
+.serviceHeroTitle {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.serviceHeroLabel {
+  color: var(--text-muted);
+  display: block;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.serviceHeroName {
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
+  color: var(--text);
+  display: -webkit-box;
+  font-size: clamp(30px, 2.9vw, 38px);
+  line-height: 1.04;
+  margin-top: 4px;
+  max-width: 100%;
   overflow: hidden;
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: auto;
+  text-wrap: pretty;
+}
+
+.serviceHeroCount {
+  color: var(--text-muted);
+  display: none;
+  justify-content: flex-end;
+  align-items: center;
+  text-align: right;
+  min-width: 92px;
+  margin-bottom: 0;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: normal;
+}
+
+.serviceHeroNameLong {
+  font-size: clamp(26px, 2.2vw, 32px);
+}
+
+@media (max-width: 1160px) {
+  .serviceHeroName {
+    font-size: clamp(22px, 4vw, 30px);
+  }
 }
 
 .miniBars {
   align-items: end;
   bottom: 13px;
-  display: flex;
+  display: none;
   gap: 4px;
   height: 48px;
   position: absolute;
@@ -3408,6 +3749,7 @@ button:disabled {
   background: rgba(255, 255, 255, 0.08);
   border-radius: 999px;
   bottom: 14px;
+  display: none;
   height: 8px;
   left: 14px;
   overflow: hidden;
@@ -3441,6 +3783,12 @@ button:disabled {
   color: var(--text);
   font-size: 12px;
   font-weight: 950;
+}
+
+.dashboardHeroCards .miniBars,
+.dashboardHeroCards .metricProgress,
+.dashboardHeroCards .occupancyRing {
+  display: none !important;
 }
 
 .dashboardCommandCenter {
@@ -3608,7 +3956,7 @@ button:disabled {
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 18px;
-  min-height: 62px;
+  min-height: 64px;
   padding: 12px;
   font-size: 13px;
   font-weight: 900;
@@ -3641,21 +3989,25 @@ button:disabled {
 
 .cashCloseCard {
   background:
-    radial-gradient(circle at top right, rgba(74, 222, 128, 0.12), transparent 38%),
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.08), transparent 34%),
     linear-gradient(180deg, var(--card), var(--surface));
 }
 
 .cashCloseGrid {
   display: grid;
-  gap: 9px;
+  gap: 10px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .cashCloseGrid div {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.035);
   border: 1px solid var(--border-soft);
-  border-radius: 18px;
-  padding: 13px;
+  border-radius: 16px;
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 106px;
+  padding: 12px 16px;
 }
 
 .cashCloseGrid span,
@@ -3664,14 +4016,15 @@ button:disabled {
   display: block;
   font-size: 12px;
   font-weight: 900;
+  line-height: 1.25;
 }
 
 .cashCloseGrid strong {
   color: var(--text);
   display: block;
-  font-size: 19px;
-  line-height: 1.1;
-  margin: 7px 0 4px;
+  font-size: clamp(25px, 2.2vw, 32px);
+  line-height: 1;
+  margin: 8px 0 6px;
   overflow-wrap: anywhere;
 }
 
@@ -3708,6 +4061,7 @@ button:disabled {
 }
 
 .cashCloseActions button {
+  min-height: var(--touch-target);
   width: auto;
 }
 
@@ -3720,6 +4074,15 @@ button:disabled {
   gap: 10px;
   margin-top: 12px;
   padding: 13px;
+}
+
+.lockedCommission {
+  border-color: rgba(245, 158, 11, 0.24);
+  opacity: 0.86;
+}
+
+.lockedCommission input {
+  opacity: 0.55;
 }
 
 .commissionHeader,
@@ -3803,57 +4166,61 @@ button:disabled {
   text-align: right;
 }
 
-.serviceRankingCard {
-  background:
-    radial-gradient(circle at top left, rgba(245, 158, 11, 0.1), transparent 34%),
-    linear-gradient(180deg, var(--card), var(--surface));
+@media (max-width: 1080px) {
+  .cashCloseGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .commissionServiceRow {
+    grid-template-columns: minmax(0, 1fr) minmax(108px, 136px);
+  }
+
+  .commissionReportRow {
+    grid-template-columns: minmax(0, 1fr) minmax(88px, auto) minmax(88px, auto);
+  }
 }
 
-.serviceRankingList {
-  display: grid;
-  gap: 9px;
-}
+@media (max-width: 760px) {
+  .cashCloseGrid {
+    grid-template-columns: 1fr;
+  }
 
-.serviceRankingItem {
-  align-items: center;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--border-soft);
-  border-radius: 18px;
-  display: grid;
-  gap: 10px;
-  grid-template-columns: 38px minmax(0, 1fr) auto;
-  padding: 12px;
-}
+  .cashCloseFooter {
+    grid-template-columns: 1fr;
+  }
 
-.serviceRankingItem span {
-  background: rgba(245, 158, 11, 0.16);
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  border-radius: 14px;
-  color: var(--warning);
-  display: grid;
-  font-size: 14px;
-  font-weight: 950;
-  height: 38px;
-  place-items: center;
-  width: 38px;
-}
+  .cashCloseActions {
+    justify-content: stretch;
+  }
 
-.serviceRankingItem strong {
-  color: var(--text);
-  display: block;
-  font-size: 15px;
-  overflow-wrap: anywhere;
-}
+  .cashCloseActions button {
+    width: 100%;
+  }
 
-.serviceRankingItem small {
-  color: var(--text-muted);
-  font-size: 12px;
-  font-weight: 900;
+  .commissionServiceRow,
+  .commissionReportRow {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .commissionServiceRow input {
+    text-align: left;
+  }
+
+  .commissionReportRow > div:not(:first-child) {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .commissionReportRow b {
+    text-align: left;
+  }
 }
 
 .exportCard {
   background:
-    radial-gradient(circle at top right, rgba(34, 197, 94, 0.1), transparent 36%),
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.08), transparent 34%),
     linear-gradient(180deg, var(--card), var(--surface));
 }
 
@@ -3865,17 +4232,17 @@ button:disabled {
 }
 
 .exportGrid button {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.035);
   border: 1px solid var(--border-soft);
-  border-radius: 18px;
+  border-radius: 16px;
   color: var(--text);
   display: grid;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 950;
   gap: 6px;
-  min-height: 74px;
-  padding: 13px;
-  text-align: left;
+  min-height: 72px;
+  padding: 12px 16px;
+  text-align: center;
 }
 
 .exportGrid button:hover {
@@ -4334,6 +4701,17 @@ button:disabled {
   opacity: 0.78;
 }
 
+.planBlockedResource {
+  border-color: rgba(245, 158, 11, 0.24);
+  opacity: 0.84;
+}
+
+.planBlockedResource span {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.28);
+  color: var(--warning);
+}
+
 .compactAppointment {
   margin-bottom: 10px;
 }
@@ -4342,10 +4720,61 @@ button:disabled {
   overflow: hidden;
 }
 
-.agendaControlBar {
+.premiumAgendaGate {
+  background:
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.1), transparent 36%),
+    linear-gradient(180deg, var(--card), var(--surface));
+}
+
+.premiumAgendaLockGrid {
   display: grid;
   gap: 12px;
-  margin: 12px 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 14px;
+}
+
+.premiumAgendaLockedCard {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(245, 158, 11, 0.22);
+  border-radius: 18px;
+  min-height: 150px;
+  padding: 16px;
+}
+
+.premiumAgendaLockedCard span {
+  color: var(--warning);
+  display: block;
+  font-size: 12px;
+  font-weight: 950;
+  margin-bottom: 8px;
+}
+
+.premiumAgendaLockedCard strong {
+  color: var(--text);
+  display: block;
+  font-size: 22px;
+  line-height: 1.1;
+  margin-bottom: 8px;
+}
+
+.premiumAgendaLockedCard p,
+.premiumAgendaLockedCard small {
+  color: var(--text-muted);
+  display: block;
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.premiumAgendaLockedCard small {
+  margin-top: 12px;
+}
+
+.agendaControlBar {
+  display: grid;
+  gap: 14px;
+  margin: 14px 0;
 }
 
 .agendaViewToggle {
@@ -4364,6 +4793,7 @@ button:disabled {
   color: var(--text-muted);
   font-size: 13px;
   font-weight: 950;
+  min-height: var(--touch-target);
   padding: 12px 10px;
 }
 
@@ -4497,7 +4927,7 @@ button:disabled {
   border-left: 4px solid rgba(148, 163, 184, 0.5);
   border-radius: 22px;
   box-shadow: 0 16px 34px rgba(0, 0, 0, 0.22);
-  padding: 14px;
+  padding: 16px;
 }
 
 .visualAppointmentTop {
@@ -4509,7 +4939,7 @@ button:disabled {
 
 .visualAppointmentTop strong {
   display: block;
-  font-size: 26px;
+  font-size: 24px;
   line-height: 1;
 }
 
@@ -4535,7 +4965,7 @@ button:disabled {
 
 .visualAppointmentBody > strong {
   display: block;
-  font-size: 17px;
+  font-size: 18px;
 }
 
 .visualAppointmentBody p,
@@ -4561,6 +4991,26 @@ button:disabled {
   font-size: 11px;
   font-weight: 900;
   padding: 7px 9px;
+}
+
+@media (max-width: 760px) {
+  .visualWeekBoard {
+    gap: 10px;
+    grid-template-columns: repeat(7, minmax(82vw, 1fr));
+  }
+
+  .visualAppointmentCard {
+    border-radius: 20px;
+    padding: 14px;
+  }
+
+  .visualAppointmentTop strong {
+    font-size: 22px;
+  }
+
+  .visualAppointmentBody > strong {
+    font-size: 17px;
+  }
 }
 
 .dragFuture {
@@ -4715,6 +5165,7 @@ button:disabled {
   color: var(--success);
   font-size: 13px;
   font-weight: 900;
+  min-height: var(--touch-target);
   padding: 11px 12px;
   width: 100%;
 }
@@ -4741,6 +5192,7 @@ button:disabled {
   border-color: var(--border-soft);
   color: var(--text);
   font-size: 12px;
+  min-height: var(--touch-target);
   padding: 10px 8px;
 }
 
@@ -4755,6 +5207,7 @@ button:disabled {
   display: block;
   font-size: 13px;
   font-weight: 900;
+  min-height: var(--touch-target);
   padding: 11px 12px;
   text-align: center;
   text-decoration: none;
@@ -4869,6 +5322,1323 @@ button:disabled {
 .statusArchived {
   background: rgba(124, 131, 142, 0.14);
   color: var(--text-muted);
+}
+
+/* Platform dashboard */
+.platformApp {
+  width: min(100%, 1240px);
+  margin-inline: auto;
+  padding-top: max(22px, calc(var(--safe-top) + 14px));
+  padding-right: max(22px, calc(var(--safe-right) + 16px));
+  padding-bottom: max(42px, calc(var(--safe-bottom) + 28px));
+  padding-left: max(22px, calc(var(--safe-left) + 16px));
+  color: var(--text);
+  position: relative;
+  z-index: 1;
+}
+
+.platformApp::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(34, 197, 94, 0.14), transparent 30%),
+    radial-gradient(circle at 88% 12%, rgba(245, 158, 11, 0.08), transparent 26%),
+    linear-gradient(180deg, #070a0d 0%, #0a0d10 48%, #050607 100%);
+}
+
+.platformHero,
+.platformCard,
+.platformStat,
+.platformShop,
+.platformLoginBox {
+  background:
+    linear-gradient(180deg, rgba(29, 34, 42, 0.94), rgba(16, 20, 24, 0.94));
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.38);
+}
+
+.platformHero {
+  align-items: center;
+  border-radius: 32px;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-bottom: 16px;
+  overflow: hidden;
+  padding: 22px;
+  position: relative;
+}
+
+.platformHero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.18), transparent 36%),
+    linear-gradient(135deg, transparent, rgba(34, 197, 94, 0.06));
+}
+
+.platformHero > * {
+  position: relative;
+  z-index: 1;
+}
+
+.platformLoginHero {
+  min-height: min(640px, calc(100dvh - 44px));
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 410px);
+  align-content: center;
+}
+
+.platformHero span,
+.platformTitle span,
+.platformMuted,
+.platformShop small,
+.platformShop span {
+  color: var(--text-muted);
+}
+
+.platformHero span,
+.platformTitle span {
+  display: block;
+  font-size: 12px;
+  font-weight: 950;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.platformHero h1 {
+  font-size: clamp(34px, 5vw, 62px);
+  line-height: 1.02;
+  margin: 0 0 8px;
+}
+
+.platformHero p {
+  color: var(--text-secondary);
+  margin: 0;
+  max-width: 680px;
+}
+
+.platformHero small {
+  color: var(--text-muted);
+  display: block;
+  font-weight: 800;
+  margin-top: 10px;
+  overflow-wrap: anywhere;
+}
+
+.platformNotice {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.26);
+  border-radius: 18px;
+  color: #fde68a !important;
+  margin-top: 14px !important;
+  padding: 12px 14px;
+}
+
+.platformHeroActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  justify-content: flex-end;
+  max-width: 560px;
+}
+
+.platformPrimary,
+.platformSecondary,
+.platformDanger,
+.platformDangerGhost,
+.platformShopActions button,
+.platformShopActions a,
+.platformQuickActions button,
+.platformTabs button,
+.platformFilters button {
+  align-items: center;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 950;
+  justify-content: center;
+  min-height: var(--touch-target-lg);
+  padding: 12px 16px;
+  text-align: center;
+  text-decoration: none;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, color 0.18s ease, opacity 0.18s ease;
+}
+
+.platformPrimary:active,
+.platformSecondary:active,
+.platformDanger:active,
+.platformDangerGhost:active,
+.platformShopActions button:active,
+.platformShopActions a:active,
+.platformQuickActions button:active,
+.platformTabs button:active,
+.platformFilters button:active {
+  transform: scale(0.98);
+}
+
+.platformPrimary {
+  background: linear-gradient(135deg, var(--primary), var(--success));
+  border: 0;
+  color: #052e16;
+  box-shadow: 0 14px 32px rgba(34, 197, 94, 0.24);
+}
+
+.platformPrimary:hover {
+  background: linear-gradient(135deg, var(--primary-hover), var(--success));
+}
+
+.platformSecondary,
+.platformShopActions button,
+.platformShopActions a,
+.platformQuickActions button,
+.platformTabs button,
+.platformFilters button {
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.platformSecondary:hover,
+.platformShopActions button:hover,
+.platformShopActions a:hover,
+.platformQuickActions button:hover,
+.platformFilters button:hover {
+  border-color: rgba(34, 197, 94, 0.34);
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.platformDanger,
+.platformDangerGhost {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+}
+
+.platformDanger:hover,
+.platformDangerGhost:hover {
+  background: rgba(239, 68, 68, 0.16);
+}
+
+.platformPrimary:disabled,
+.platformSecondary:disabled,
+.platformDanger:disabled,
+.platformDangerGhost:disabled,
+.platformShopActions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+  transform: none;
+}
+
+.platformLoginBox {
+  border-radius: 26px;
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+}
+
+.platformLoginBox label,
+.platformForm label {
+  color: var(--text-secondary);
+  display: block;
+  font-size: 13px;
+  font-weight: 950;
+  margin: 0 0 7px;
+}
+
+.platformLoginBox input,
+.platformForm input,
+.platformForm select {
+  width: 100%;
+  min-height: 52px;
+  margin: 0 0 13px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: rgba(7, 10, 13, 0.72);
+  color: var(--text);
+  font: inherit;
+  padding: 13px 14px;
+  outline: none;
+}
+
+.platformLoginBox input:focus,
+.platformForm input:focus,
+.platformForm select:focus {
+  border-color: rgba(34, 197, 94, 0.58);
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1);
+}
+
+.platformLoginButton,
+.platformForm .platformPrimary,
+.platformFeatures .platformPrimary {
+  width: 100%;
+}
+
+.platformLoginButton {
+  gap: 10px;
+}
+
+.platformNoticeCard {
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+
+.platformStats {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  margin-bottom: 16px;
+}
+
+.platformStatsPro {
+  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+}
+
+.platformStat {
+  border-radius: 24px;
+  min-height: 132px;
+  overflow: hidden;
+  padding: 16px;
+  position: relative;
+}
+
+.platformStat::after {
+  content: "";
+  position: absolute;
+  inset: auto 14px 12px 14px;
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--primary), rgba(74, 222, 128, 0.12));
+  opacity: 0.82;
+}
+
+.platformStat span,
+.platformStat small {
+  color: var(--text-muted);
+  display: block;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.platformStat strong {
+  color: var(--text);
+  display: block;
+  font-size: clamp(24px, 2.6vw, 34px);
+  line-height: 1.06;
+  margin: 10px 0 6px;
+  overflow-wrap: anywhere;
+}
+
+.platformTabs,
+.platformFilters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+
+.platformTabs {
+  background: rgba(7, 10, 13, 0.58);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  padding: 7px;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.platformTabs button,
+.platformFilters button {
+  color: var(--text-secondary);
+}
+
+.platformTabs button.active,
+.platformFilters button.active {
+  background: var(--primary-soft);
+  border-color: rgba(34, 197, 94, 0.48);
+  color: var(--success);
+  box-shadow: 0 0 22px rgba(34, 197, 94, 0.12);
+}
+
+.platformGrid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(340px, 0.95fr) minmax(0, 1.35fr);
+  margin-bottom: 16px;
+  align-items: start;
+}
+
+.platformCard {
+  border-radius: 28px;
+  padding: 18px;
+}
+
+.platformNewShopCard {
+  position: sticky;
+  top: 14px;
+}
+
+.platformTitle {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.platformTitle h2,
+.platformTitle h3 {
+  margin: 0;
+}
+
+.platformTitle h2 {
+  font-size: clamp(24px, 3vw, 34px);
+  line-height: 1.05;
+}
+
+.platformTitle h3 {
+  font-size: 20px;
+  line-height: 1.1;
+}
+
+.platformTwoCols {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.platformTwoCols > span {
+  min-width: 0;
+}
+
+.platformForm input[type="color"] {
+  min-height: 54px;
+  padding: 6px;
+}
+
+.platformCepButton {
+  margin-bottom: 13px;
+  width: 100%;
+}
+
+.platformOnboardingCard {
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.12), transparent 34%),
+    linear-gradient(180deg, rgba(29, 34, 42, 0.94), rgba(16, 20, 24, 0.96));
+}
+
+.platformWizardSteps {
+  background: rgba(7, 10, 13, 0.62);
+  border: 1px solid var(--border-soft);
+  border-radius: 24px;
+  display: grid;
+  gap: 7px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin-bottom: 10px;
+  padding: 7px;
+}
+
+.platformWizardStep {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 18px;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: grid;
+  font-size: 11px;
+  font-weight: 950;
+  gap: 4px;
+  min-height: 58px;
+  padding: 8px 6px;
+  text-align: center;
+}
+
+.platformWizardStep span {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+  color: var(--text);
+  display: inline-flex;
+  font-size: 12px;
+  height: 24px;
+  justify-content: center;
+  justify-self: center;
+  width: 24px;
+}
+
+.platformWizardStep.active {
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.36);
+  color: var(--success);
+}
+
+.platformWizardStep.done span {
+  background: var(--primary);
+  color: #052e16;
+}
+
+.platformWizardProgress {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+  height: 7px;
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+
+.platformWizardProgress span {
+  background: linear-gradient(90deg, var(--primary), var(--success));
+  border-radius: inherit;
+  display: block;
+  height: 100%;
+  transition: width 0.22s ease;
+}
+
+.platformWizardPanel {
+  display: grid;
+  gap: 12px;
+}
+
+.platformWizardIntro {
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.13), transparent 42%),
+    rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-soft);
+  border-radius: 22px;
+  padding: 15px;
+}
+
+.platformWizardIntro span,
+.platformWizardDoneLinks span {
+  color: var(--success);
+  display: block;
+  font-size: 12px;
+  font-weight: 950;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.platformWizardIntro h3 {
+  font-size: 24px;
+  line-height: 1.05;
+  margin: 0 0 7px;
+}
+
+.platformWizardIntro p {
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.platformWizardLogoPreview,
+.platformWizardAvatarPreview {
+  align-items: center;
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.22);
+  border-radius: 20px;
+  display: flex;
+  gap: 12px;
+  margin-bottom: 13px;
+  padding: 12px;
+}
+
+.platformWizardLogoPreview img,
+.platformWizardAvatarPreview img {
+  aspect-ratio: 1;
+  border-radius: 16px;
+  height: 58px;
+  object-fit: cover;
+  width: 58px;
+}
+
+.platformWizardLogoPreview strong,
+.platformWizardAvatarPreview span {
+  color: var(--text);
+  display: block;
+  font-size: 18px;
+  font-weight: 950;
+  overflow-wrap: anywhere;
+}
+
+.platformWizardLogoPreview span {
+  color: var(--text-muted);
+  display: block;
+  font-size: 12px;
+  font-weight: 900;
+  margin-top: 2px;
+}
+
+.platformWizardList {
+  display: grid;
+  gap: 12px;
+}
+
+.platformWizardServiceCard,
+.platformWizardTeamCard,
+.platformWizardDay,
+.platformWizardDoneLinks article {
+  background: rgba(7, 10, 13, 0.54);
+  border: 1px solid var(--border-soft);
+  border-radius: 22px;
+  padding: 14px;
+}
+
+.platformWizardItemTop {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.platformWizardItemTop strong {
+  font-size: 18px;
+  line-height: 1.1;
+}
+
+.platformWizardItemTop .platformDangerGhost {
+  min-height: 38px;
+  padding: 8px 12px;
+}
+
+.platformWizardActions {
+  display: grid;
+  gap: 9px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  margin-top: 4px;
+}
+
+.platformWizardActions .platformPrimary,
+.platformWizardActions .platformSecondary,
+.platformWizardActions a {
+  width: 100%;
+}
+
+.platformWizardHoursGrid {
+  display: grid;
+  gap: 10px;
+}
+
+.platformWizardDay {
+  display: grid;
+  gap: 10px;
+}
+
+.platformWizardDay > button {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-weight: 950;
+  justify-self: start;
+  min-height: 38px;
+  padding: 8px 12px;
+}
+
+.platformWizardDay.active {
+  border-color: rgba(34, 197, 94, 0.34);
+}
+
+.platformWizardDay.active > button {
+  background: rgba(34, 197, 94, 0.14);
+  border-color: rgba(34, 197, 94, 0.35);
+  color: var(--success);
+}
+
+.platformWizardDay strong {
+  font-size: 18px;
+}
+
+.platformWizardDoneLinks {
+  display: grid;
+  gap: 12px;
+}
+
+.platformWizardDoneLinks strong {
+  color: var(--text);
+  display: block;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.35;
+  margin-bottom: 12px;
+  overflow-wrap: anywhere;
+}
+
+.platformShopList {
+  display: grid;
+  gap: 12px;
+}
+
+.platformShop {
+  align-items: center;
+  border-radius: 24px;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 15px;
+}
+
+.platformShopPro {
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.09), transparent 34%),
+    linear-gradient(180deg, rgba(29, 34, 42, 0.9), rgba(16, 20, 24, 0.92));
+}
+
+.platformShopArchived {
+  background:
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.12), transparent 36%),
+    linear-gradient(180deg, rgba(29, 34, 42, 0.9), rgba(16, 20, 24, 0.92));
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.platformShop strong {
+  display: block;
+  font-size: 18px;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.platformShop span,
+.platformShop small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.platformShopMeta {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.platformShopMeta b,
+.platformShopMeta span {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 950;
+  padding: 7px 9px;
+}
+
+.platformShopActions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  max-width: 420px;
+}
+
+.platformShopActions > * {
+  min-width: 116px;
+}
+
+.platformArchiveBox {
+  background: rgba(245, 158, 11, 0.06);
+  border: 1px solid rgba(245, 158, 11, 0.18);
+  border-radius: 24px;
+  margin-top: 18px;
+  padding: 14px;
+}
+
+.platformHealthCard {
+  margin-bottom: 16px;
+}
+
+.platformHealthOverview {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(34, 197, 94, 0.13), transparent 34%),
+    linear-gradient(180deg, rgba(23, 27, 33, 0.94), rgba(8, 11, 14, 0.96));
+  border-color: rgba(34, 197, 94, 0.16);
+}
+
+.platformHealthOverview .platformTitle small {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.platformHealthOverviewGrid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 14px;
+}
+
+.platformMrrChart {
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.1), transparent 34%),
+    rgba(7, 10, 13, 0.56);
+  border: 1px solid var(--border-soft);
+  border-radius: 24px;
+  overflow: hidden;
+  padding: 16px;
+}
+
+.platformChartTitle {
+  align-items: flex-start;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.platformChartTitle span {
+  color: var(--primary);
+  display: block;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.platformChartTitle h2 {
+  font-size: clamp(21px, 2vw, 30px);
+  line-height: 1.05;
+  margin: 3px 0 0;
+}
+
+.platformChartTitle strong {
+  color: var(--text);
+  font-size: clamp(22px, 2.5vw, 36px);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.platformMrrChart svg {
+  display: block;
+  min-height: 190px;
+  width: 100%;
+}
+
+.platformMrrChart text {
+  fill: var(--text-muted);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.platformDiagnosticActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -4px 0 14px;
+}
+
+.platformHealthGrid,
+.platformDiagnosticGrid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.platformHealthItem {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-soft);
+  border-radius: 22px;
+  min-height: 116px;
+  padding: 14px;
+}
+
+.platformHealthItem.ready {
+  background: rgba(34, 197, 94, 0.08);
+  border-color: rgba(34, 197, 94, 0.28);
+}
+
+.platformHealthItem.warning {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.28);
+}
+
+.platformHealthItem.danger {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.28);
+}
+
+.platformHealthItem span,
+.platformHealthItem small {
+  color: var(--text-muted);
+  display: block;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.platformHealthItem strong {
+  color: var(--text);
+  display: block;
+  font-size: 20px;
+  line-height: 1.1;
+  margin: 8px 0 7px;
+  overflow-wrap: anywhere;
+}
+
+.platformHealthItem.ready strong {
+  color: var(--success);
+}
+
+.platformHealthItem.warning strong {
+  color: #fbbf24;
+}
+
+.platformHealthItem.danger strong {
+  color: #fca5a5;
+}
+
+.platformHealthFooter {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 850;
+  margin: 12px 0 0;
+}
+
+.platformEditorHero {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 12px;
+}
+
+.platformEditorHero div,
+.platformEditorSection,
+.platformFeatures {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-soft);
+  border-radius: 22px;
+  padding: 14px;
+}
+
+.platformEditorHero span,
+.platformEditorHero small {
+  color: var(--text-muted);
+  display: block;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.platformEditorHero strong {
+  color: var(--text);
+  display: block;
+  font-size: clamp(19px, 2.2vw, 28px);
+  line-height: 1.08;
+  margin: 6px 0;
+  overflow-wrap: anywhere;
+}
+
+.platformQuickActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+
+.platformQuickActions button {
+  min-height: 40px;
+  padding: 10px 12px;
+}
+
+.platformEditorSection {
+  margin-bottom: 12px;
+}
+
+.platformEditorSection h3,
+.platformFeatures h3 {
+  margin: 0 0 12px;
+}
+
+.platformFeatures {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.platformFeature {
+  align-items: center;
+  background: rgba(7, 10, 13, 0.54);
+  border: 1px solid var(--border-soft);
+  border-radius: 18px;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 12px;
+}
+
+.platformFeature strong,
+.platformFeature small {
+  display: block;
+}
+
+.platformFeature small,
+.platformFeature em {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 850;
+}
+
+.featureChecks {
+  align-items: center;
+  display: grid;
+  gap: 5px 8px;
+  grid-template-columns: auto auto;
+}
+
+.featureChecks input {
+  accent-color: var(--primary);
+  height: 22px;
+  margin: 0;
+  width: 22px;
+}
+
+.platformFeatureCatalogHeader {
+  align-items: flex-start;
+  background:
+    linear-gradient(135deg, rgba(34, 197, 94, 0.16), rgba(7, 10, 13, 0.72)),
+    rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(34, 197, 94, 0.22);
+  border-radius: 22px;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 18px;
+}
+
+.platformFeatureCatalogHeader span {
+  color: var(--primary);
+  display: block;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.platformFeatureCatalogHeader h3 {
+  font-size: clamp(22px, 2.3vw, 32px);
+  line-height: 1.05;
+  margin-bottom: 8px;
+}
+
+.platformFeatureCatalogHeader .platformMuted {
+  max-width: 760px;
+}
+
+.platformFeatureGrid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.platformFeatureCard {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 255, 255, 0.08), transparent 34%),
+    linear-gradient(180deg, rgba(23, 27, 33, 0.95), rgba(10, 13, 16, 0.96));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 22px;
+  display: grid;
+  gap: 12px;
+  min-height: 250px;
+  padding: 16px;
+}
+
+.platformFeatureCard.released {
+  border-color: rgba(34, 197, 94, 0.34);
+}
+
+.platformFeatureCard.enabled {
+  box-shadow: inset 0 0 0 1px rgba(34, 197, 94, 0.26), 0 18px 52px rgba(0, 0, 0, 0.24);
+}
+
+.platformFeatureCard.upgradeLocked {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(245, 158, 11, 0.12), transparent 34%),
+    linear-gradient(180deg, rgba(23, 27, 33, 0.9), rgba(10, 13, 16, 0.96));
+  border-color: rgba(245, 158, 11, 0.18);
+}
+
+.platformFeatureTop,
+.platformFeatureActions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.platformFeaturePlan,
+.platformFeatureStatus {
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 950;
+  padding: 8px 10px;
+}
+
+.platformFeaturePlan {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+}
+
+.platformFeatureStatus {
+  background: rgba(239, 68, 68, 0.12);
+  color: #fca5a5;
+}
+
+.platformFeatureStatus.released {
+  background: rgba(245, 158, 11, 0.14);
+  color: #fbbf24;
+}
+
+.platformFeatureStatus.active {
+  background: rgba(34, 197, 94, 0.16);
+  color: var(--primary);
+}
+
+.platformFeatureCard h4 {
+  color: var(--text);
+  font-size: clamp(18px, 1.3vw, 24px);
+  line-height: 1.08;
+  margin: 0;
+}
+
+.platformFeatureCard p {
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.platformFeatureKey {
+  align-self: end;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+
+.platformSwitchButton {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 999px;
+  color: var(--text);
+  flex: 1 1 110px;
+  font-size: 13px;
+  font-weight: 950;
+  min-height: 42px;
+  padding: 10px 12px;
+}
+
+.platformSwitchButton.active {
+  background: rgba(245, 158, 11, 0.13);
+  border-color: rgba(245, 158, 11, 0.34);
+  color: #fbbf24;
+}
+
+.platformSwitchButton.green.active {
+  background: rgba(34, 197, 94, 0.16);
+  border-color: rgba(34, 197, 94, 0.38);
+  color: var(--primary);
+}
+
+.platformSwitchButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+@media (max-width: 980px) {
+  .platformHero,
+  .platformLoginHero,
+  .platformGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .platformNewShopCard {
+    position: static;
+  }
+
+  .platformHeroActions {
+    justify-content: flex-start;
+  }
+
+  .platformHeroActions > * {
+    flex: 1 1 190px;
+  }
+
+  .platformStats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .platformHealthOverviewGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .platformFeatureGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .platformShop {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .platformShopActions {
+    justify-content: stretch;
+    max-width: none;
+  }
+
+  .platformShopActions > * {
+    flex: 1 1 160px;
+  }
+
+  .platformEditorHero {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .platformApp {
+    padding-top: max(12px, calc(var(--safe-top) + 10px));
+    padding-right: max(12px, calc(var(--safe-right) + 10px));
+    padding-left: max(12px, calc(var(--safe-left) + 10px));
+  }
+
+  .platformHero,
+  .platformCard {
+    border-radius: 24px;
+    padding: 16px;
+  }
+
+  .platformHero h1 {
+    font-size: clamp(34px, 13vw, 48px);
+  }
+
+  .platformHeroActions,
+  .platformFilters,
+  .platformDiagnosticActions,
+  .platformQuickActions {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .platformHeroActions > *,
+  .platformFilters > *,
+  .platformDiagnosticActions > *,
+  .platformQuickActions > * {
+    width: 100%;
+  }
+
+  .platformTabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+
+  .platformWizardSteps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .platformWizardStep {
+    min-height: 50px;
+  }
+
+  .platformStats,
+  .platformStatsPro,
+  .platformHealthOverviewGrid,
+  .platformTwoCols,
+  .platformHealthGrid,
+  .platformDiagnosticGrid,
+  .platformEditorHero {
+    grid-template-columns: 1fr;
+  }
+
+  .platformStat {
+    min-height: 112px;
+  }
+
+  .platformTitle {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .platformTitle .platformSecondary,
+  .platformTitle .platformDangerGhost {
+    width: 100%;
+  }
+
+  .platformShopActions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .platformShopActions > * {
+    width: 100%;
+  }
+
+  .platformFeature {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .featureChecks {
+    grid-template-columns: 1fr auto;
+    width: 100%;
+  }
+
+  .platformPermissionCard {
+    border-radius: 18px;
+  }
+}
+
+@media (max-width: 720px) {
+  .platformFeatureCatalogHeader {
+    border-radius: 20px;
+    padding: 14px;
+  }
+
+  .platformFeatureGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .platformFeatureCard {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 400px) {
+  .platformHero,
+  .platformCard,
+  .platformStat,
+  .platformShop,
+  .platformArchiveBox,
+  .platformEditorHero div,
+  .platformEditorSection,
+  .platformFeatures {
+    border-radius: 20px;
+  }
+
+  .platformHero h1 {
+    font-size: 34px;
+  }
+
+  .platformPrimary,
+  .platformSecondary,
+  .platformDanger,
+  .platformDangerGhost,
+  .platformShopActions button,
+  .platformShopActions a,
+  .platformTabs button,
+  .platformFilters button {
+    min-height: 46px;
+    padding: 11px 12px;
+  }
 }
 
 .featureGrid {
@@ -5031,7 +6801,7 @@ button:disabled {
   border-radius: 24px;
   display: grid;
   gap: 12px;
-  padding: 14px;
+  padding: 15px;
 }
 
 .customerProfileHeader {
@@ -5051,7 +6821,7 @@ button:disabled {
 .customerProfileHeader strong {
   color: var(--text);
   display: block;
-  font-size: 18px;
+  font-size: 19px;
   line-height: 1.15;
   margin-top: 2px;
 }
@@ -5070,7 +6840,7 @@ button:disabled {
 
 .customerProfileGrid {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
@@ -5248,6 +7018,28 @@ button:disabled {
   margin-bottom: 2px;
 }
 
+.featurePlanTag {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--border-soft);
+  border-radius: 14px;
+  display: flex;
+  justify-content: space-between;
+  margin: 0 0 10px;
+  padding: 9px 10px;
+}
+
+.featurePlanTag span {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.featurePlanTag strong {
+  color: var(--text);
+  font-size: 12px;
+}
+
 .featureDestination span {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--border-soft);
@@ -5317,6 +7109,18 @@ button:disabled {
   opacity: 0.78;
 }
 
+.planBlockedFeature {
+  border-color: rgba(245, 158, 11, 0.24);
+  opacity: 0.88;
+}
+
+.planBlockedFeature .featureHeader span,
+.planBlockedFeature .featureDestination span {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.28);
+  color: var(--warning);
+}
+
 .lockedFeature button {
   background: rgba(82, 88, 102, 0.18);
   border: 1px solid rgba(255, 255, 255, 0.06);
@@ -5368,9 +7172,9 @@ button:disabled {
 .accountHero {
   background: var(--surface);
   border: 1px solid rgba(34, 197, 94, 0.22);
-  border-radius: 22px;
+  border-radius: 20px;
   margin-bottom: 14px;
-  padding: 14px;
+  padding: 16px;
 }
 
 .accountHero span,
@@ -5402,7 +7206,7 @@ button:disabled {
   border: 1px solid var(--border-soft);
   border-radius: 20px;
   margin: 0 0 16px;
-  padding: 14px;
+  padding: 16px;
 }
 
 .passwordPanel h3 {
@@ -5573,21 +7377,129 @@ button:disabled {
   padding: 10px 12px;
 }
 
+.accessRulesPanel {
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.14), transparent 38%),
+    rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  border-radius: 22px;
+  margin: 0 0 12px;
+  padding: 14px;
+}
+
+.accessRulesPanel span {
+  color: var(--success);
+  display: block;
+  font-size: 12px;
+  font-weight: 950;
+  margin-bottom: 5px;
+}
+
+.accessRulesPanel strong {
+  color: var(--text);
+  display: block;
+  font-size: clamp(18px, 2vw, 24px);
+  line-height: 1.12;
+}
+
+.accessRulesPanel p {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 8px 0 0;
+}
+
 .accessList {
   display: grid;
-  gap: 10px;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-bottom: 12px;
 }
 
 .accessItem {
-  background: var(--surface);
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.055), transparent 34%),
+    rgba(16, 20, 24, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  display: grid;
+  gap: 12px;
+  padding: 15px;
+}
+
+.accessItemHeader {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.accessItemHeader strong {
+  color: var(--text);
+  display: block;
+  font-size: 18px;
+  line-height: 1.16;
+  margin-top: 6px;
+  overflow-wrap: anywhere;
+}
+
+.accessItemHeader p {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.35;
+  margin: 6px 0 0;
+}
+
+.accessRoleBadge,
+.accessState {
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 950;
+  line-height: 1;
+  padding: 8px 10px;
+}
+
+.accessRoleBadge {
+  background: rgba(255, 255, 255, 0.055);
   border: 1px solid var(--border-soft);
-  border-radius: 20px;
-  padding: 14px;
+  color: var(--text-secondary);
+}
+
+.accessState {
+  background: rgba(82, 88, 102, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+  flex: 0 0 auto;
+}
+
+.activeAccessState {
+  background: rgba(34, 197, 94, 0.14);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: var(--success);
+}
+
+.accessEmailField {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-soft);
+  border-radius: 18px;
+  padding: 12px;
+}
+
+.accessEmailField input {
+  margin-bottom: 0;
+}
+
+.accessControlsGrid {
+  align-items: end;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) minmax(130px, 0.52fr);
 }
 
 .accessPasswordActions {
-  margin: 10px 0 12px;
+  margin: 0;
 }
 
 .accessPasswordActions .outline {
@@ -5610,14 +7522,34 @@ button:disabled {
   margin-top: 0;
 }
 
+.accessItem .dangerButton {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.28);
+  color: #fca5a5;
+}
+
+.servicesPanelCard .adminItem,
+.professionalsPanelCard .adminItem,
+.agendaPanelCard .adminItem,
+.appearancePanelCard .adminItem,
+.accountPanelCard .accessItem {
+  border-radius: 20px;
+}
+
+.paymentsPanelCard .promotionEditor {
+  border-radius: 20px;
+}
+
 @media (max-width: 430px) {
   .app {
-    padding: 12px;
-    padding-bottom: 28px;
+    padding-top: 12px;
+    padding-right: max(12px, calc(var(--safe-right) + 8px));
+    padding-bottom: max(28px, calc(var(--safe-bottom) + 24px));
+    padding-left: max(12px, calc(var(--safe-left) + 8px));
   }
 
   .adminApp {
-    padding-bottom: 28px;
+    padding-bottom: max(28px, calc(var(--safe-bottom) + 24px));
   }
 
   .adminApp .hero {
@@ -5660,12 +7592,22 @@ button:disabled {
     margin-right: -2px;
     padding-left: 2px;
     padding-right: 2px;
-    top: 6px;
+    top: calc(var(--safe-top) + 6px);
   }
 
   .adminTabs button {
     font-size: 12px;
+    min-height: 42px;
     padding: 10px 13px;
+  }
+
+  .pwaInstallBanner {
+    grid-template-columns: 1fr;
+  }
+
+  .pwaInstallActions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
   }
 
   .adminStats {
@@ -5686,17 +7628,18 @@ button:disabled {
   }
 
   .dashboardHeroCards {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
   }
 
   .dashboardHeroCard {
-    min-height: 150px;
+    height: 128px;
+    min-height: 128px;
     padding: 13px;
   }
 
   .dashboardHeroCard.primary,
   .dashboardHeroCard.revenue {
-    grid-column: 1 / -1;
+    grid-column: auto;
   }
 
   .setupAssistantHeader,
@@ -5722,13 +7665,20 @@ button:disabled {
   }
 
   .dashboardHeroCard > strong {
-    font-size: 25px;
+    font-size: 32px;
   }
 
-  .dashboardHeroCard.service > strong,
   .dashboardHeroCard.next > strong,
   .dashboardHeroCard.billing > strong {
-    font-size: 22px;
+    font-size: 28px;
+  }
+
+  .serviceHeroBody {
+    gap: 6px;
+  }
+
+  .serviceHeroName {
+    font-size: 30px;
   }
 
   .occupancyRing {
@@ -5747,6 +7697,7 @@ button:disabled {
   .operationChecklist,
   .operationActions,
   .portfolioEditorGrid,
+  .premiumAgendaLockGrid,
   .storageGrid,
   .customerInsightPanel,
   .customerMetaGrid,
@@ -5759,6 +7710,11 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 
+  .commandGrid button {
+    min-height: 56px;
+    padding: 12px;
+  }
+
   .agendaFilters {
     grid-template-columns: 1fr;
   }
@@ -5767,9 +7723,17 @@ button:disabled {
     grid-template-columns: repeat(7, minmax(84vw, 1fr));
   }
 
+  .paymentQuickActions {
+    grid-template-columns: 1fr;
+  }
+
   .visualAppointmentTop {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .visualAppointmentTop strong {
+    font-size: 21px;
   }
 
   .appointmentStatusPill {
@@ -5858,6 +7822,10 @@ button:disabled {
     gap: 0;
   }
 
+  .timeGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .barberHeader,
   .featureHeader,
   .planHeader,
@@ -5889,11 +7857,31 @@ button:disabled {
   }
 
   .appearanceCenterHero {
-    display: grid;
+    display: flex;
+    flex-direction: column;
   }
 
-  .appearanceCenterHero .linkButton {
+  .appearanceHeroAction {
+    margin-left: 0;
+    min-width: 0;
     width: 100%;
+  }
+
+  .serviceHeroBody {
+    align-items: flex-start;
+    gap: 8px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .serviceHeroName {
+    font-size: 25px;
+  }
+
+  .serviceHeroCount {
+    justify-content: flex-start;
+    align-items: flex-start;
+    text-align: left;
+    white-space: normal;
   }
 
   .appearancePhoneFrame {
@@ -6017,11 +8005,2798 @@ button:disabled {
   }
 
   .clientFloatingWhatsapp {
-    left: 16px;
-    right: 16px;
+    left: max(12px, calc(var(--safe-left) + 10px));
+    right: max(12px, calc(var(--safe-right) + 10px));
   }
 
   .addressActions {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Painel da barbearia: acabamento premium das abas internas */
+.agendaPanelCard,
+.servicesPanelCard,
+.professionalsPanelCard,
+.appearancePanelCard,
+.improvementsPanelCard {
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.12), transparent 34%),
+    linear-gradient(180deg, rgba(23, 27, 33, 0.98), rgba(10, 14, 18, 0.96));
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
+}
+
+.panelHero,
+.improvementsHero {
+  align-items: center;
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.18), transparent 36%),
+    linear-gradient(135deg, rgba(29, 34, 42, 0.92), rgba(13, 17, 22, 0.96));
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 26px;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-bottom: 16px;
+  padding: 18px;
+}
+
+.panelHero span,
+.improvementsHero span {
+  color: var(--success);
+  display: block;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.02em;
+  margin-bottom: 5px;
+}
+
+.panelHero h2,
+.improvementsHero h2 {
+  font-size: clamp(26px, 4vw, 40px);
+  line-height: 1;
+  margin-bottom: 7px;
+}
+
+.panelHero p,
+.improvementsHero p {
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 680px;
+}
+
+.compactPanelHero {
+  min-height: 132px;
+}
+
+.panelHeroMetric,
+.improvementsPlanCard {
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid var(--border-soft);
+  border-radius: 22px;
+  min-width: 148px;
+  padding: 14px;
+  text-align: center;
+}
+
+.panelHeroMetric strong,
+.improvementsPlanCard strong {
+  color: var(--text);
+  display: block;
+  font-size: 30px;
+  line-height: 1;
+}
+
+.improvementsPlanCard small {
+  color: var(--text-muted);
+  display: block;
+  font-size: 12px;
+  font-weight: 850;
+  margin-top: 6px;
+}
+
+.heroActionButton {
+  background: linear-gradient(135deg, var(--primary), var(--success));
+  border: 0;
+  border-radius: 999px;
+  color: #052e16;
+  font-weight: 950;
+  min-width: 126px;
+  padding: 13px 16px;
+}
+
+.serviceAdminGrid,
+.professionalAdminGrid,
+.premiumFeatureGrid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.serviceAdminCard,
+.professionalAdminCard {
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.055), transparent 34%),
+    rgba(16, 20, 24, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+
+.activeServiceAdminCard {
+  border-color: rgba(34, 197, 94, 0.25);
+}
+
+.serviceAdminHeader,
+.professionalAdminHeader {
+  align-items: flex-start;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+}
+
+.serviceAdminHeader span {
+  color: var(--text-muted);
+  display: block;
+  font-size: 12px;
+  font-weight: 900;
+  margin-bottom: 5px;
+}
+
+.serviceAdminHeader strong {
+  color: var(--text);
+  display: block;
+  font-size: 22px;
+  line-height: 1.08;
+  overflow-wrap: anywhere;
+}
+
+.serviceAdminMetrics {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.serviceAdminMetrics div,
+.featureMetaGrid div,
+.improvementsSummary div {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-soft);
+  border-radius: 18px;
+  padding: 12px;
+}
+
+.serviceAdminMetrics span,
+.featureMetaGrid span,
+.improvementsSummary span {
+  color: var(--text-muted);
+  display: block;
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.serviceAdminMetrics strong,
+.featureMetaGrid strong,
+.improvementsSummary strong {
+  color: var(--text);
+  display: block;
+  font-size: 18px;
+  line-height: 1.12;
+  margin-top: 4px;
+}
+
+.serviceAdminActions,
+.panelSaveBar,
+.professionalPhotoTools {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.panelSaveBar {
+  margin-top: 16px;
+}
+
+.panelSaveBar button,
+.serviceAdminActions button,
+.professionalPhotoTools button,
+.professionalPhotoTools .fileButton {
+  margin: 0;
+  min-height: 48px;
+}
+
+.professionalAdminTitle {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 56px minmax(0, 1fr);
+  min-width: 0;
+}
+
+.professionalAdminTitle strong {
+  color: var(--text);
+  display: block;
+  font-size: 22px;
+  line-height: 1.08;
+  overflow-wrap: anywhere;
+}
+
+.professionalAdminTitle p {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.35;
+  margin: 5px 0 0;
+}
+
+.professionalAdminFields {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+}
+
+.professionalAvatarPhoto {
+  overflow: hidden;
+  padding: 0;
+}
+
+.professionalAvatarPhoto img {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.fileButton {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 950;
+  justify-content: center;
+  padding: 13px 15px;
+  text-align: center;
+}
+
+.fileButton input {
+  display: none;
+}
+
+.appearancePanelCard .appearanceCenterHero,
+.appearancePanelCard .appearanceCenterGrid,
+.appearancePanelCard .appearancePreviewCard,
+.appearancePanelCard .adminItem {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.appearancePanelCard .appearanceCenterHero {
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.18), transparent 40%),
+    rgba(16, 20, 24, 0.9);
+}
+
+.improvementsSummary {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 14px;
+}
+
+.improvementsSummary strong {
+  font-size: 26px;
+}
+
+.premiumFeatureCard {
+  border-radius: 24px;
+  display: flex;
+  flex-direction: column;
+  min-height: 260px;
+  padding: 16px;
+}
+
+.featureMetaGrid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 10px;
+}
+
+.premiumFeatureCard .featureActions {
+  margin-top: auto;
+}
+
+.agendaPanelCard .weeklyGrid {
+  display: grid;
+  gap: 10px;
+}
+
+.agendaPanelCard .dayRow {
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.1), transparent 38%),
+    rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-soft);
+  border-radius: 22px;
+  padding: 14px;
+}
+
+.agendaPanelCard .dayTimes {
+  align-items: center;
+}
+
+/* Abas Agenda, Pagamentos e Conta: acabamento premium consistente */
+.agendaPanelCard,
+.paymentsPanelCard,
+.accountPanelCard {
+  margin-bottom: 16px;
+}
+
+.paymentsPanelCard,
+.accountPanelCard {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(34, 197, 94, 0.12), transparent 34%),
+    linear-gradient(180deg, rgba(23, 27, 33, 0.98), rgba(10, 14, 18, 0.96));
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
+}
+
+.agendaPanelCard > .sectionTitle,
+.paymentsPanelCard > .sectionTitle,
+.accountPanelCard > .sectionTitle {
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.14), transparent 42%),
+    rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--border-soft);
+  border-radius: 22px;
+  margin-bottom: 14px;
+  padding: 14px;
+}
+
+.agendaPanelCard > .sectionTitle h2,
+.paymentsPanelCard > .sectionTitle h2,
+.accountPanelCard > .sectionTitle h2 {
+  font-size: clamp(24px, 2.2vw, 34px);
+  line-height: 1;
+}
+
+.agendaPanelCard > .sectionTitle span,
+.paymentsPanelCard > .sectionTitle span,
+.accountPanelCard > .sectionTitle span {
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.24);
+  border-radius: 999px;
+  color: var(--success);
+  padding: 8px 10px;
+}
+
+.agendaPanelCard .panelLead,
+.paymentsPanelCard .panelLead,
+.accountPanelCard .panelLead {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--border-soft);
+  border-radius: 18px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+}
+
+.agendaPanelCard > label,
+.paymentsPanelCard > label,
+.accountPanelCard > label,
+.promotionEditor label,
+.accessItem label {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.01em;
+}
+
+.agendaPanelCard input,
+.agendaPanelCard select,
+.agendaPanelCard textarea,
+.paymentsPanelCard input,
+.paymentsPanelCard select,
+.accountPanelCard input,
+.accountPanelCard select,
+.accountPanelCard textarea {
+  background: rgba(7, 10, 13, 0.74);
+  border-color: rgba(255, 255, 255, 0.09);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
+.agendaPanelCard input:focus,
+.agendaPanelCard select:focus,
+.agendaPanelCard textarea:focus,
+.paymentsPanelCard input:focus,
+.paymentsPanelCard select:focus,
+.accountPanelCard input:focus,
+.accountPanelCard select:focus,
+.accountPanelCard textarea:focus {
+  border-color: rgba(34, 197, 94, 0.55);
+  box-shadow:
+    0 0 0 3px rgba(34, 197, 94, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
+.agendaPanelCard > .green,
+.paymentsPanelCard > .green,
+.accountPanelCard > .green {
+  border-radius: 999px;
+  min-height: 52px;
+}
+
+.agendaPanelCard .weeklyGrid {
+  grid-template-columns: repeat(3, minmax(240px, 1fr));
+}
+
+.agendaPanelCard .dayRow {
+  align-items: center;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 62px minmax(0, 1fr) minmax(220px, 0.9fr);
+  min-height: 112px;
+  padding: 15px;
+}
+
+.agendaPanelCard .dayToggle {
+  border-radius: 18px;
+  min-height: 62px;
+}
+
+.agendaPanelCard .dayInfo strong {
+  color: var(--text);
+  font-size: 19px;
+  line-height: 1.08;
+}
+
+.agendaPanelCard .dayInfo span {
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.agendaPanelCard .dayTimes {
+  grid-column: auto;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: 100%;
+}
+
+.agendaPanelCard .dayTimes input {
+  font-size: 15px;
+  font-weight: 900;
+  min-height: 50px;
+}
+
+.agendaPanelCard .adminItem {
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.055), transparent 34%),
+    rgba(16, 20, 24, 0.9);
+  display: grid;
+  gap: 10px;
+}
+
+.agendaPanelCard .adminItem > label,
+.agendaPanelCard .adminItem .timePair {
+  margin: 0;
+}
+
+.agendaPanelCard .timePair {
+  gap: 10px;
+}
+
+.agendaPanelCard .black,
+.agendaPanelCard .dangerButton,
+.paymentsPanelCard .black,
+.paymentsPanelCard .dangerButton,
+.accountPanelCard .black,
+.accountPanelCard .outline,
+.accountPanelCard .dangerButton {
+  min-height: 48px;
+}
+
+.premiumAgendaGate,
+.visualAgendaPanel,
+.waitlistPanel {
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.1), transparent 34%),
+    linear-gradient(180deg, rgba(23, 27, 33, 0.98), rgba(10, 14, 18, 0.96));
+}
+
+.agendaControlBar {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--border-soft);
+  border-radius: 22px;
+  padding: 12px;
+}
+
+.visualAgendaBoard,
+.visualWeekBoard {
+  margin-top: 12px;
+}
+
+.waitlistItem {
+  grid-template-columns: 1fr;
+}
+
+.waitlistItem strong {
+  color: var(--text);
+  font-size: 18px;
+  line-height: 1.15;
+}
+
+.paymentsPanelCard > button.selected {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(16, 20, 24, 0.94));
+  border-color: rgba(34, 197, 94, 0.42);
+  color: var(--success);
+  box-shadow: 0 16px 42px rgba(34, 197, 94, 0.12);
+}
+
+.paymentsPanelCard > button:disabled,
+.paymentsPanelCard button:disabled {
+  cursor: not-allowed;
+  opacity: 0.54;
+}
+
+.paymentsPanelCard .compactTitle {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--border-soft);
+  border-radius: 20px;
+  font-size: 22px;
+  margin: 18px 0 10px;
+  padding: 13px 14px;
+}
+
+.promoConfig {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
+.promoConfig > .sectionTitle {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--border-soft);
+  border-radius: 18px;
+  padding: 12px;
+}
+
+.promotionEditor {
+  display: grid;
+  gap: 10px;
+}
+
+.promotionEditor .timePair {
+  align-items: end;
+}
+
+.promotionEditor .statusPill {
+  margin: 0;
+}
+
+.accountHero {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.accountPanelCard > input[readonly] {
+  color: var(--text-secondary);
+}
+
+.passwordPanel,
+.accessHeader,
+.accessItem,
+.planHeader,
+.billingReadout div {
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.045), transparent 34%),
+    rgba(16, 20, 24, 0.9);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.passwordPanel,
+.accessItem {
+  display: grid;
+  gap: 10px;
+}
+
+.accessItem .timePair {
+  align-items: end;
+}
+
+.accessPasswordBox {
+  display: grid;
+  gap: 8px;
+}
+
+.planGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.planCard {
+  display: grid;
+  min-height: 190px;
+}
+
+.planBenefits {
+  align-self: end;
+}
+
+.billingReadout {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 1120px) {
+  .agendaPanelCard .weeklyGrid,
+  .planGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .agendaPanelCard .dayRow {
+    grid-template-columns: 58px minmax(0, 1fr);
+  }
+
+  .agendaPanelCard .dayTimes {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 760px) {
+  .panelHero,
+  .improvementsHero {
+    grid-template-columns: 1fr;
+  }
+
+  .panelHeroMetric,
+  .improvementsPlanCard {
+    text-align: left;
+    width: 100%;
+  }
+
+  .professionalAdminFields,
+  .serviceAdminActions,
+  .panelSaveBar,
+  .professionalPhotoTools {
+    grid-template-columns: 1fr;
+  }
+
+  .improvementsSummary {
+    grid-template-columns: 1fr;
+  }
+
+  .agendaPanelCard .weeklyGrid,
+  .billingReadout,
+  .planGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .agendaPanelCard .dayRow {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 430px) {
+  .panelHero,
+  .improvementsHero {
+    border-radius: 22px;
+    padding: 14px;
+  }
+
+  .serviceAdminGrid,
+  .professionalAdminGrid,
+  .premiumFeatureGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .professionalAdminHeader,
+  .serviceAdminHeader {
+    display: grid;
+  }
+
+  .professionalAdminTitle {
+    grid-template-columns: 50px minmax(0, 1fr);
+  }
+
+  .professionalAvatar {
+    border-radius: 15px;
+    height: 50px;
+    width: 50px;
+  }
+
+  .featureMetaGrid,
+  .serviceAdminMetrics {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Ajuste final dos cards de funcionamento: 3 colunas sem esmagar os horários */
+.agendaPanelCard .dayRow {
+  align-content: start;
+  grid-template-columns: 62px minmax(0, 1fr);
+}
+
+.agendaPanelCard .dayInfo {
+  min-width: 0;
+}
+
+.agendaPanelCard .dayInfo strong,
+.agendaPanelCard .dayInfo span {
+  overflow-wrap: anywhere;
+}
+
+.agendaPanelCard .dayTimes {
+  grid-column: 1 / -1;
+}
+
+.agendaPanelCard .closedDay .dayTimes {
+  opacity: 0.52;
+}
+
+.accountPanelCard .accessList {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.accountPanelCard .accessItem {
+  border-radius: 24px;
+}
+
+.accountPanelCard .passwordPanel .black {
+  background: linear-gradient(135deg, var(--primary), var(--success));
+  border: 0;
+  color: #052e16;
+  box-shadow: 0 14px 34px rgba(34, 197, 94, 0.18);
+}
+
+@media (max-width: 900px) {
+  .accountPanelCard .accessList {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 430px) {
+  .accessItemHeader,
+  .accessControlsGrid {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .accessState {
+    justify-content: center;
+    width: max-content;
+  }
+
+  .accessRulesPanel {
+    border-radius: 20px;
+    padding: 13px;
+  }
+}
+
+/* Refinamento premium dos cards de Conta, Aparencia, Pagamentos e Profissionais */
+.professionalsPanelCard .professionalAdminGrid {
+  align-items: start;
+}
+
+.professionalsPanelCard .professionalAdminCard {
+  align-content: start;
+  border-radius: 26px;
+  min-height: 0;
+  padding: 18px;
+}
+
+.professionalsPanelCard .firstAvailableAdminCard {
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.09), transparent 38%),
+    linear-gradient(180deg, rgba(17, 23, 28, 0.96), rgba(9, 13, 16, 0.96));
+  gap: 14px;
+}
+
+.professionalsPanelCard .firstAvailableAdminCard .professionalAdminHeader {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr;
+}
+
+.professionalsPanelCard .firstAvailableAdminCard .professionalAdminTitle {
+  grid-template-columns: 56px minmax(0, 1fr);
+}
+
+.professionalsPanelCard .firstAvailableAdminCard .statusPill {
+  justify-content: center;
+  justify-self: stretch;
+  min-height: 44px;
+  width: 100%;
+}
+
+.professionalsPanelCard .firstAvailableAdminCard .professionalAdminFields {
+  grid-template-columns: 1fr;
+}
+
+.professionalsPanelCard .firstAvailableHint {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--border-soft);
+  border-radius: 18px;
+  margin: 0;
+  padding: 12px;
+}
+
+.professionalsPanelCard .professionalAdminFields input,
+.professionalsPanelCard .commissionConfig input {
+  min-height: 52px;
+}
+
+.commissionFeatureCard {
+  background:
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.09), transparent 42%),
+    rgba(7, 10, 13, 0.42);
+  border: 1px solid rgba(245, 158, 11, 0.22);
+  border-radius: 22px;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.commissionFeatureSummary {
+  align-items: start;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr;
+}
+
+.commissionFeatureSummary span {
+  color: var(--success);
+  display: block;
+  font-size: 12px;
+  font-weight: 950;
+  margin-bottom: 5px;
+}
+
+.commissionFeatureSummary strong {
+  color: var(--text);
+  display: block;
+  font-size: 22px;
+  line-height: 1.08;
+}
+
+.commissionFeatureSummary p,
+.commissionFeatureSummary small {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1.35;
+  margin: 6px 0 0;
+}
+
+.commissionFeatureSummary small {
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  margin: 0;
+  max-width: none;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.commissionFeatureCard > button {
+  margin: 0;
+  min-height: 46px;
+}
+
+.commissionFeatureCard .activeCommissionToggle {
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.36);
+  color: var(--success);
+}
+
+.lockedCommissionFeature {
+  border-color: rgba(245, 158, 11, 0.2);
+  opacity: 0.92;
+}
+
+.professionalsPanelCard .dangerButton,
+.paymentsPanelCard .dangerButton,
+.appearancePanelCard .dangerButton,
+.accountPanelCard .dangerButton {
+  background: rgba(239, 68, 68, 0.11);
+  border: 1px solid rgba(239, 68, 68, 0.24);
+  color: #fecaca;
+}
+
+.appearancePanelCard > label,
+.appearancePanelCard .adminItem label,
+.appearancePanelCard .appearanceControlCard label,
+.paymentsPanelCard label,
+.accountPanelCard label {
+  color: var(--text-secondary);
+  display: block;
+  font-size: 13px;
+  font-weight: 950;
+  margin: 14px 0 8px;
+}
+
+.appearancePanelCard > input,
+.appearancePanelCard > textarea,
+.appearancePanelCard .adminItem input,
+.appearancePanelCard .adminItem textarea,
+.appearancePanelCard .appearanceControlCard input,
+.appearancePanelCard .appearanceControlCard textarea {
+  background: rgba(7, 10, 13, 0.76);
+  border-color: rgba(255, 255, 255, 0.09);
+  border-radius: 18px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  min-height: 54px;
+}
+
+.appearancePanelCard input[type="file"] {
+  align-items: center;
+  background:
+    radial-gradient(circle at top left, rgba(34, 197, 94, 0.08), transparent 40%),
+    rgba(7, 10, 13, 0.72);
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  padding: 16px;
+}
+
+.appearancePanelCard .brandPreview,
+.appearancePanelCard .adminItem,
+.appearancePanelCard .appearanceControlCard,
+.appearancePanelCard .appearanceLivePreview,
+.paymentsPanelCard .promoConfig,
+.paymentsPanelCard .promotionEditor,
+.accountPanelCard .accountHero,
+.accountPanelCard .passwordPanel,
+.accountPanelCard .accessRulesPanel,
+.accountPanelCard .accessItem {
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.08), transparent 38%),
+    linear-gradient(180deg, rgba(17, 23, 28, 0.94), rgba(8, 12, 15, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
+.appearancePanelCard .adminItem,
+.appearancePanelCard .appearanceControlCard,
+.appearancePanelCard .appearanceLivePreview,
+.paymentsPanelCard .promoConfig,
+.paymentsPanelCard .promotionEditor,
+.accountPanelCard .passwordPanel,
+.accountPanelCard .accessItem {
+  border-radius: 26px;
+  padding: 18px;
+}
+
+.appearancePanelCard .brandPreview {
+  align-items: center;
+  border-radius: 22px;
+  display: flex;
+  gap: 14px;
+  margin: 16px 0;
+  padding: 14px;
+}
+
+.appearancePanelCard .brandPreview .logo {
+  flex: 0 0 auto;
+}
+
+.appearancePanelCard .brandPreview span {
+  color: var(--text-muted);
+  display: block;
+  font-weight: 900;
+}
+
+.appearancePanelCard .brandPreview strong {
+  color: var(--text);
+  display: block;
+  font-size: 22px;
+  line-height: 1.1;
+}
+
+.appearancePanelCard .colorGrid {
+  gap: 14px;
+  margin: 14px 0 18px;
+}
+
+.appearancePanelCard .colorInput {
+  border-radius: 18px;
+  height: 58px;
+  overflow: hidden;
+  padding: 7px;
+}
+
+.appearancePanelCard .addressActions {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  margin-top: 14px;
+}
+
+.appearancePanelCard .addressActions a {
+  align-items: center;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.28);
+  border-radius: 999px;
+  color: var(--success);
+  display: inline-flex;
+  font-weight: 950;
+  justify-content: center;
+  min-height: 48px;
+  text-decoration: none;
+}
+
+.appearancePanelCard > .green,
+.appearancePanelCard .adminItem .black,
+.appearancePanelCard .adminItem .outline,
+.paymentsPanelCard > .green,
+.paymentsPanelCard .promoConfig .black,
+.accountPanelCard > .green {
+  border-radius: 999px;
+  min-height: 52px;
+}
+
+.paymentsPanelCard .promoConfig {
+  margin-top: 18px;
+  padding: 20px;
+}
+
+.paymentsPanelCard .promoConfig > .sectionTitle,
+.paymentsPanelCard .promotionEditor > .sectionTitle {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-soft);
+  border-radius: 18px;
+  padding: 12px;
+}
+
+.paymentsPanelCard .promotionEditor {
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.paymentsPanelCard .promotionEditor select,
+.paymentsPanelCard .promotionEditor input {
+  min-height: 52px;
+}
+
+.accountPanelCard .accountHero {
+  border-radius: 26px;
+  padding: 22px;
+}
+
+.accountPanelCard .accountHero strong {
+  font-size: 34px;
+}
+
+.accountPanelCard > input[readonly] {
+  background: rgba(7, 10, 13, 0.8);
+  color: var(--text-secondary);
+}
+
+.accountPanelCard > .black,
+.accountPanelCard > .outline {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  color: var(--text);
+  margin: 10px 0 16px;
+  min-height: 52px;
+}
+
+.accountPanelCard > .black:hover,
+.accountPanelCard > .outline:hover {
+  border-color: rgba(34, 197, 94, 0.32);
+}
+
+@media (max-width: 760px) {
+  .commissionFeatureSummary,
+  .appearancePanelCard .addressActions {
+    grid-template-columns: 1fr;
+  }
+
+  .commissionFeatureSummary small {
+    max-width: none;
+    text-align: left;
+  }
+
+  .appearancePanelCard .adminItem,
+  .appearancePanelCard .appearanceControlCard,
+  .appearancePanelCard .appearanceLivePreview,
+  .paymentsPanelCard .promoConfig,
+  .paymentsPanelCard .promotionEditor,
+  .accountPanelCard .passwordPanel,
+  .accountPanelCard .accessItem {
+    border-radius: 22px;
+    padding: 14px;
+  }
+}
+
+/* Cliente mobile: endereco legivel, WhatsApp redondo e fluxo sem banners de etapa */
+.addressCard > div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.addressCard strong {
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: none;
+}
+
+.clientFloatingWhatsapp {
+  border-radius: 50%;
+  height: 58px;
+  min-height: 58px;
+  padding: 0;
+  width: 58px;
+}
+
+.clientFloatingWhatsapp svg {
+  display: block;
+  fill: #052e16;
+  height: 31px;
+  width: 31px;
+}
+
+.clientFloatingWhatsapp span {
+  clip: rect(0 0 0 0);
+  border: 0;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.checkoutHeader .stepper,
+.app > .stepper {
+  display: none;
+}
+
+/* Continuidade visual das abas internas que ainda estavam mais cruas */
+.servicesPanelCard .serviceAdminCard,
+.customersPanelCard .customerProfileCard,
+.customersPanelCard .customerSummary div,
+.customersPanelCard .customerInsightPanel div,
+.customersPanelCard .topCustomerCard,
+.agendaPanelCard .dayRow,
+.agendaPanelCard .adminItem,
+.agendaPanelCard .agendaControlBar,
+.agendaPanelCard .waitlistItem {
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.07), transparent 42%),
+    linear-gradient(180deg, rgba(18, 24, 30, 0.94), rgba(8, 12, 15, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
+.servicesPanelCard .serviceAdminCard,
+.customersPanelCard .customerProfileCard,
+.agendaPanelCard .dayRow,
+.agendaPanelCard .adminItem {
+  border-radius: 26px;
+}
+
+.servicesPanelCard .serviceAdminHeader,
+.customersPanelCard .customerProfileHeader,
+.agendaPanelCard .dayRow {
+  align-items: center;
+}
+
+.servicesPanelCard .serviceAdminHeader strong,
+.customersPanelCard .customerProfileHeader strong {
+  color: var(--text);
+  font-size: clamp(21px, 2.2vw, 30px);
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+
+.servicesPanelCard .serviceAdminMetrics div,
+.customersPanelCard .customerProfileGrid div,
+.customersPanelCard .customerNotesBox,
+.customersPanelCard .customerHistoryBox {
+  background: rgba(7, 10, 13, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.065);
+  border-radius: 18px;
+}
+
+.agendaPanelCard .dayToggle,
+.customersPanelCard .customerAvatar {
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.16), transparent 55%),
+    rgba(255, 255, 255, 0.055);
+  border-color: rgba(34, 197, 94, 0.25);
+}
+
+@media (max-width: 760px) {
+  .addressCard {
+    align-items: stretch;
+    display: grid;
+    gap: 12px;
+    grid-template-columns: 1fr;
+    justify-content: stretch;
+    min-height: 0;
+    padding: 16px;
+  }
+
+  .addressCard a {
+    width: min(100%, calc(100% - 72px));
+  }
+
+  .addressCard strong {
+    font-size: 15px;
+    line-height: 1.35;
+  }
+
+  .clientFloatingWhatsapp {
+    bottom: calc(var(--safe-bottom) + 18px);
+    left: auto;
+    right: max(16px, calc(var(--safe-right) + 14px));
+  }
+
+  .servicesPanelCard .serviceAdminCard,
+  .customersPanelCard .customerProfileCard,
+  .agendaPanelCard .dayRow,
+  .agendaPanelCard .adminItem {
+    border-radius: 22px;
+  }
+}
+
+/* Conta: fechamento visual premium da aba de links, senha, acessos e plano */
+.accountPanelHero {
+  margin-bottom: 18px;
+}
+
+.accountPanelHero .panelHeroMetric strong {
+  font-size: clamp(24px, 3vw, 34px);
+  overflow-wrap: anywhere;
+}
+
+.accountSectionBlock {
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.09), transparent 38%),
+    linear-gradient(180deg, rgba(17, 23, 28, 0.95), rgba(8, 12, 15, 0.96));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 28px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  display: grid;
+  gap: 16px;
+  margin-top: 16px;
+  padding: 20px;
+}
+
+.accountIdentityBlock {
+  border-color: rgba(34, 197, 94, 0.17);
+}
+
+.accountSectionHeader {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+}
+
+.accountSectionHeader span,
+.accountInputCard small,
+.accountCopyCard span {
+  color: var(--success);
+  display: block;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.01em;
+}
+
+.accountSectionHeader strong {
+  color: var(--text);
+  display: block;
+  font-size: clamp(26px, 3.2vw, 42px);
+  line-height: 1.02;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+
+.accountSectionHeader small {
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 900;
+  max-width: 45%;
+  padding: 9px 12px;
+  text-align: right;
+}
+
+.accountSectionText {
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 78ch;
+}
+
+.accountFieldGrid,
+.accountCopyGrid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.accountInputCard,
+.accountCopyCard {
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.045), transparent 34%),
+    rgba(7, 10, 13, 0.56);
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 22px;
+  display: grid;
+  gap: 10px;
+  padding: 15px;
+}
+
+.accountInputCard label,
+.accountPanelCard .passwordPanel label,
+.accountPanelCard .billingEditor label,
+.accountPanelCard .accessItem label {
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 950;
+  margin: 0;
+}
+
+.accountInputCard input,
+.accountPanelCard .passwordPanel input,
+.accountPanelCard .billingEditor input,
+.accountPanelCard .billingEditor select,
+.accountPanelCard .accessItem input,
+.accountPanelCard .accessItem select {
+  background: rgba(7, 10, 13, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 18px;
+  color: var(--text);
+  min-height: 54px;
+}
+
+.accountInputCard input:disabled {
+  color: var(--text-muted);
+  opacity: 0.86;
+}
+
+.accountCopyCard strong {
+  color: var(--text-secondary);
+  display: block;
+  font-size: clamp(13px, 1.4vw, 16px);
+  font-weight: 800;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.accountCopyCard button,
+.accountWideAction,
+.accountPanelCard .passwordPanel .black,
+.accountPanelCard .billingEditor .green,
+.accountPanelCard .billingViewer .green {
+  border-radius: 999px;
+  margin-top: 0;
+  min-height: 52px;
+}
+
+.accountPanelCard .passwordPanel {
+  margin-top: 16px;
+}
+
+.accountPanelCard .passwordPanel .accountFieldGrid {
+  align-items: end;
+}
+
+.accountPanelCard .passwordPanel .black,
+.accountWideAction,
+.accountPanelCard .billingEditor .green,
+.accountPanelCard .billingViewer .green {
+  background: linear-gradient(135deg, var(--primary), var(--success));
+  border: 0;
+  color: #052e16;
+  box-shadow: 0 14px 34px rgba(34, 197, 94, 0.18);
+}
+
+.accountPanelCard .accessHeader {
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.1), transparent 38%),
+    rgba(7, 10, 13, 0.5);
+  border-color: rgba(34, 197, 94, 0.18);
+  border-radius: 22px;
+  margin: 0;
+  padding: 15px;
+}
+
+.accountPanelCard .accessHeader button {
+  min-height: 44px;
+  padding-inline: 16px;
+}
+
+.accountPanelCard .accessRulesPanel {
+  margin: 0;
+}
+
+.accountPanelCard .accessList {
+  align-items: start;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.accountPanelCard .accessItem {
+  align-content: start;
+  border-radius: 24px;
+  gap: 14px;
+  min-height: 0;
+}
+
+.accountPanelCard .accessItemHeader {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--border-soft);
+  border-radius: 18px;
+  padding: 12px;
+}
+
+.accountPanelCard .accessItemHeader strong {
+  font-size: clamp(16px, 1.6vw, 22px);
+}
+
+.accountPanelCard .accessEmailField,
+.accountPanelCard .accessPasswordBox {
+  background: rgba(7, 10, 13, 0.5);
+  border-color: rgba(255, 255, 255, 0.075);
+}
+
+.accountPanelCard .accessControlsGrid {
+  align-items: end;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 0.42fr);
+}
+
+.accountPanelCard .accessItem button.selected {
+  background: rgba(34, 197, 94, 0.14) !important;
+  border-color: rgba(34, 197, 94, 0.34) !important;
+  color: var(--success) !important;
+}
+
+.accountBillingBlock {
+  border-color: rgba(245, 158, 11, 0.16);
+}
+
+.accountBillingBlock .accountSectionHeader span {
+  color: #fbbf24;
+}
+
+.accountBillingBlock .accountSectionHeader small {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.22);
+  color: #fbbf24;
+}
+
+.accountPanelCard .planGrid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.accountPanelCard .planCard {
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.045), transparent 36%),
+    rgba(7, 10, 13, 0.56);
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 24px;
+  color: var(--text);
+  display: grid;
+  gap: 9px;
+  margin: 0;
+  min-height: 206px;
+  padding: 16px;
+  text-align: left;
+}
+
+.accountPanelCard .planCard span {
+  color: var(--success);
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.accountPanelCard .planCard strong {
+  color: var(--text);
+  display: block;
+  font-size: clamp(24px, 2.5vw, 34px);
+  line-height: 1.05;
+}
+
+.accountPanelCard .planCard small {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.accountPanelCard .activePlan {
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.14), transparent 42%),
+    rgba(7, 10, 13, 0.66);
+  border-color: rgba(34, 197, 94, 0.38);
+  box-shadow: 0 18px 44px rgba(34, 197, 94, 0.1);
+}
+
+.accountPanelCard .planBenefits {
+  align-self: end;
+  display: grid;
+  gap: 7px;
+  margin: 8px 0 0;
+  padding: 0;
+}
+
+.accountPanelCard .planBenefits li {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.3;
+  list-style: none;
+  padding-left: 16px;
+  position: relative;
+}
+
+.accountPanelCard .planBenefits li::before {
+  color: var(--success);
+  content: "✓";
+  font-weight: 950;
+  left: 0;
+  position: absolute;
+}
+
+.billingEditor,
+.billingViewer {
+  display: grid;
+  gap: 14px;
+}
+
+.accountPanelCard .billingReadout {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.accountPanelCard .billingReadout div {
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.07), transparent 38%),
+    rgba(7, 10, 13, 0.56);
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 22px;
+  padding: 16px;
+}
+
+.accountPanelCard .billingReadout span {
+  color: var(--text-muted);
+  display: block;
+  font-size: 12px;
+  font-weight: 950;
+  margin-bottom: 7px;
+}
+
+.accountPanelCard .billingReadout strong {
+  color: var(--text);
+  display: block;
+  font-size: clamp(23px, 2.3vw, 32px);
+  line-height: 1.06;
+}
+
+@media (max-width: 980px) {
+  .accountFieldGrid,
+  .accountCopyGrid,
+  .accountPanelCard .accessList,
+  .accountPanelCard .planGrid,
+  .accountPanelCard .billingReadout {
+    grid-template-columns: 1fr;
+  }
+
+  .accountSectionHeader {
+    align-items: flex-start;
+    display: grid;
+  }
+
+  .accountSectionHeader small {
+    max-width: none;
+    text-align: left;
+    width: max-content;
+  }
+}
+
+@media (max-width: 520px) {
+  .accountSectionBlock {
+    border-radius: 22px;
+    padding: 14px;
+  }
+
+  .accountInputCard,
+  .accountCopyCard,
+  .accountPanelCard .planCard {
+    border-radius: 20px;
+    padding: 13px;
+  }
+
+  .accountPanelCard .accessControlsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .accountPanelCard .accessState,
+  .accountSectionHeader small {
+    justify-content: center;
+    width: max-content;
+  }
+}
+
+/* Aparencia: fechamento visual premium da identidade, fundos, carrossel e rota */
+.appearancePanelHero {
+  margin-bottom: 18px;
+}
+
+.appearancePanelHero .heroActionButton {
+  flex: 0 0 auto;
+  min-width: 190px;
+}
+
+.appearanceWorkspaceGrid {
+  align-items: start;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.38fr);
+}
+
+.appearanceEditorStack {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.appearanceSectionBlock,
+.appearancePreviewPanel {
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.09), transparent 38%),
+    linear-gradient(180deg, rgba(17, 23, 28, 0.95), rgba(8, 12, 15, 0.96));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 28px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  padding: 20px;
+}
+
+.appearanceIdentityBlock {
+  border-color: rgba(34, 197, 94, 0.18);
+}
+
+.appearancePreviewPanel {
+  position: sticky;
+  top: 18px;
+}
+
+.appearanceSectionHeader {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.appearanceSectionHeader span {
+  color: var(--success);
+  display: block;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.01em;
+  margin-bottom: 4px;
+}
+
+.appearanceSectionHeader h3 {
+  color: var(--text);
+  font-size: clamp(22px, 2.2vw, 32px);
+  line-height: 1.04;
+  margin: 0;
+}
+
+.appearanceSectionHeader strong {
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 950;
+  max-width: 44%;
+  padding: 9px 12px;
+  text-align: right;
+}
+
+.appearanceFieldGrid,
+.appearanceAssetGrid {
+  display: grid;
+  gap: 14px;
+}
+
+.appearanceFieldGrid.twoColumns,
+.appearanceAssetGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.appearanceUploadRow {
+  align-items: end;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 0.28fr);
+}
+
+.appearancePanelCard label,
+.appearanceSectionBlock label,
+.appearanceAssetCard label {
+  color: var(--text-secondary);
+  display: block;
+  font-size: 13px;
+  font-weight: 950;
+  margin: 0 0 8px;
+}
+
+.appearancePanelCard input,
+.appearancePanelCard textarea {
+  background: rgba(7, 10, 13, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 18px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  color: var(--text);
+  min-height: 54px;
+}
+
+.appearancePanelCard textarea {
+  min-height: 108px;
+  resize: vertical;
+}
+
+.appearancePanelCard input[type="file"] {
+  background:
+    radial-gradient(circle at top left, rgba(34, 197, 94, 0.08), transparent 40%),
+    rgba(7, 10, 13, 0.72);
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  padding: 15px;
+}
+
+.appearancePanelCard .brandPreview {
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.12), transparent 42%),
+    rgba(7, 10, 13, 0.56);
+  border: 1px solid rgba(34, 197, 94, 0.16);
+  border-radius: 24px;
+  margin: 0;
+  padding: 16px;
+}
+
+.appearanceAssetCard,
+.portfolioEditorItem {
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.045), transparent 34%),
+    rgba(7, 10, 13, 0.56);
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 24px;
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 16px;
+}
+
+.appearanceAssetCard > div > span,
+.portfolioEditorItem > label:first-child {
+  color: var(--success);
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.appearanceAssetCard > div > strong {
+  color: var(--text);
+  display: block;
+  font-size: clamp(18px, 1.7vw, 24px);
+  line-height: 1.12;
+}
+
+.appearancePanelCard .colorInput {
+  height: 58px;
+  padding: 7px;
+}
+
+.appearancePanelCard .appearanceModeSwitch {
+  margin: 0;
+}
+
+.appearancePanelCard .compactSaveButton,
+.appearancePanelCard .black,
+.appearancePanelCard .outline,
+.appearancePanelCard .dangerButton,
+.appearancePanelCard .addressActions a,
+.appearancePanelCard .heroActionButton {
+  border-radius: 999px;
+  min-height: 52px;
+}
+
+.appearancePanelCard .compactSaveButton,
+.appearancePanelCard .heroActionButton {
+  background: linear-gradient(135deg, var(--primary), var(--success));
+  border: 0;
+  color: #052e16;
+  font-weight: 950;
+  box-shadow: 0 14px 34px rgba(34, 197, 94, 0.18);
+}
+
+.appearancePanelCard .heroActionButton {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.appearancePanelCard .outline {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-soft);
+  color: var(--text);
+}
+
+.appearancePanelCard .dangerButton {
+  background: rgba(239, 68, 68, 0.11);
+  border: 1px solid rgba(239, 68, 68, 0.24);
+  color: #fecaca;
+}
+
+.appearancePanelCard .addressActions {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.appearancePanelCard .addressActions a {
+  align-items: center;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.28);
+  color: var(--success);
+  display: inline-flex;
+  font-weight: 950;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.appearancePreviewPanel .appearanceLivePreview {
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
+.appearancePreviewPanel .fullPreviewLink {
+  margin-top: 0;
+  width: 100%;
+}
+
+.appearancePreviewPanel .appearancePhoneFrame {
+  max-width: 320px;
+  width: min(100%, 320px);
+}
+
+.appearancePreviewPanel .appearancePhoneCover {
+  min-height: 330px;
+}
+
+.appearancePreviewPanel .appearancePreviewGallery {
+  margin: 12px 0;
+}
+
+.appearancePanelCard .portfolioEditorGrid {
+  gap: 14px;
+}
+
+.appearancePanelCard .portfolioEditorPreview,
+.appearancePanelCard .portfolioEditorEmpty {
+  border-radius: 20px;
+  min-height: 148px;
+}
+
+.appearancePanelCard .assetValueInput {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 1180px) {
+  .appearanceWorkspaceGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .appearancePreviewPanel {
+    position: static;
+  }
+}
+
+@media (max-width: 760px) {
+  .appearancePanelHero .heroActionButton {
+    width: 100%;
+  }
+
+  .appearanceSectionBlock,
+  .appearancePreviewPanel {
+    border-radius: 24px;
+    padding: 15px;
+  }
+
+  .appearanceSectionHeader {
+    align-items: flex-start;
+    display: grid;
+  }
+
+  .appearanceSectionHeader strong {
+    max-width: none;
+    text-align: left;
+    width: fit-content;
+  }
+
+  .appearanceFieldGrid.twoColumns,
+  .appearanceAssetGrid,
+  .appearanceUploadRow,
+  .appearancePanelCard .addressActions {
+    grid-template-columns: 1fr;
+  }
+
+  .appearancePreviewPanel .appearancePhoneFrame {
+    max-width: 100%;
+  }
+}
+
+/* Pagamentos: fechamento visual premium para PIX e promocoes */
+.paymentsPanelCard {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(34, 197, 94, 0.14), transparent 34%),
+    linear-gradient(180deg, rgba(17, 23, 28, 0.96), rgba(7, 10, 13, 0.97));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
+  display: grid;
+  gap: 18px;
+}
+
+.paymentsPanelHero {
+  margin-bottom: 0;
+}
+
+.paymentsHeroMetric strong {
+  font-size: clamp(42px, 6vw, 76px);
+}
+
+.paymentsWorkspaceGrid {
+  align-items: stretch;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.65fr);
+}
+
+.paymentsSectionBlock {
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.09), transparent 38%),
+    linear-gradient(180deg, rgba(17, 23, 28, 0.95), rgba(8, 12, 15, 0.96));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 28px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  padding: 20px;
+}
+
+.paymentsPixBlock {
+  border-color: rgba(34, 197, 94, 0.2);
+}
+
+.paymentsSummaryBlock {
+  align-content: start;
+}
+
+.paymentsPromotionsBlock {
+  border-color: rgba(34, 197, 94, 0.16);
+}
+
+.paymentsSectionHeader,
+.promotionEditorHeader {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.paymentsSectionHeader span,
+.promotionEditorHeader span,
+.paymentsInputCard small,
+.emptyPromotionState span {
+  color: var(--success);
+  display: block;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.01em;
+}
+
+.paymentsSectionHeader h3,
+.promotionEditorHeader h3 {
+  color: var(--text);
+  font-size: clamp(22px, 2.1vw, 34px);
+  line-height: 1.04;
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.paymentsSectionHeader > strong {
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 950;
+  max-width: 44%;
+  padding: 9px 12px;
+  text-align: right;
+}
+
+.paymentsSectionText {
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 78ch;
+}
+
+.pixToggleButton {
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.045), transparent 34%),
+    rgba(7, 10, 13, 0.56);
+  border: 1px solid rgba(255, 255, 255, 0.085);
+  border-radius: 24px;
+  color: var(--text);
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  min-height: 96px;
+  padding: 17px;
+  text-align: left;
+  width: 100%;
+}
+
+.pixToggleButton span {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.pixToggleButton strong {
+  color: var(--text);
+  display: block;
+  font-size: clamp(22px, 2.4vw, 34px);
+  line-height: 1.05;
+}
+
+.pixToggleButton.active {
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.22), transparent 40%),
+    rgba(7, 10, 13, 0.66);
+  border-color: rgba(34, 197, 94, 0.42);
+  box-shadow: 0 18px 44px rgba(34, 197, 94, 0.1);
+}
+
+.pixToggleButton.active span,
+.pixToggleButton.active strong {
+  color: var(--success);
+}
+
+.paymentsFieldGrid,
+.promotionDiscountGrid,
+.promotionFormGrid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.paymentsInputCard,
+.emptyPromotionState,
+.promotionEditor {
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.045), transparent 34%),
+    rgba(7, 10, 13, 0.56);
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 24px;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 16px;
+}
+
+.paymentsInputCard label,
+.promotionEditor label {
+  color: var(--text-secondary);
+  display: block;
+  font-size: 13px;
+  font-weight: 950;
+  margin: 0 0 8px;
+}
+
+.paymentsPanelCard input,
+.paymentsPanelCard select {
+  background: rgba(7, 10, 13, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 18px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  color: var(--text);
+  min-height: 54px;
+}
+
+.paymentsPanelCard input:focus,
+.paymentsPanelCard select:focus {
+  border-color: rgba(34, 197, 94, 0.55);
+  box-shadow:
+    0 0 0 3px rgba(34, 197, 94, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
+.paymentsStatusGrid {
+  display: grid;
+  gap: 12px;
+}
+
+.paymentsStatusGrid div {
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.08), transparent 38%),
+    rgba(7, 10, 13, 0.56);
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 22px;
+  padding: 15px;
+}
+
+.paymentsStatusGrid span {
+  color: var(--text-muted);
+  display: block;
+  font-size: 12px;
+  font-weight: 950;
+  margin-bottom: 6px;
+}
+
+.paymentsStatusGrid strong {
+  color: var(--text);
+  display: block;
+  font-size: clamp(22px, 2.1vw, 30px);
+  line-height: 1.05;
+}
+
+.emptyPromotionState {
+  align-items: center;
+  grid-template-columns: minmax(0, 0.45fr) minmax(0, 1fr);
+}
+
+.emptyPromotionState strong {
+  color: var(--text);
+  font-size: clamp(20px, 2vw, 30px);
+  line-height: 1.06;
+}
+
+.emptyPromotionState span {
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.promotionEditorGrid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.promotionEditor {
+  align-content: start;
+  border-radius: 26px;
+  gap: 14px;
+}
+
+.activePromotionEditor {
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.12), transparent 40%),
+    rgba(7, 10, 13, 0.62);
+  border-color: rgba(34, 197, 94, 0.22);
+}
+
+.promotionEditorHeader {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--border-soft);
+  border-radius: 18px;
+  padding: 12px;
+}
+
+.promotionEditorHeader h3 {
+  font-size: clamp(18px, 1.7vw, 25px);
+}
+
+.promotionEditorHeader .statusPill {
+  justify-content: center;
+  margin: 0;
+  min-height: 42px;
+  min-width: 96px;
+}
+
+.promotionWideField {
+  grid-column: 1 / -1;
+}
+
+.promotionValueCard {
+  border-color: rgba(34, 197, 94, 0.14);
+}
+
+.paymentsPanelCard .dangerButton,
+.paymentsPanelCard .black,
+.paymentsPanelCard .green {
+  border-radius: 999px;
+  margin-top: 0;
+  min-height: 52px;
+}
+
+.paymentsPanelCard .green {
+  background: linear-gradient(135deg, var(--primary), var(--success));
+  border: 0;
+  color: #052e16;
+  box-shadow: 0 14px 34px rgba(34, 197, 94, 0.18);
+}
+
+.paymentsPanelCard .black {
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid var(--border-soft);
+  color: var(--text);
+}
+
+.paymentsPanelCard .dangerButton {
+  background: rgba(239, 68, 68, 0.11);
+  border: 1px solid rgba(239, 68, 68, 0.24);
+  color: #fecaca;
+}
+
+.paymentsActionRow {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 0.38fr) minmax(0, 0.62fr);
+}
+
+.paymentsPanelCard button:disabled,
+.paymentsPanelCard input:disabled,
+.paymentsPanelCard select:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+@media (max-width: 1100px) {
+  .paymentsWorkspaceGrid,
+  .promotionEditorGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .paymentsPanelHero,
+  .paymentsSectionHeader,
+  .promotionEditorHeader {
+    align-items: flex-start;
+    display: grid;
+  }
+
+  .paymentsSectionHeader > strong {
+    max-width: none;
+    text-align: left;
+    width: fit-content;
+  }
+
+  .paymentsFieldGrid,
+  .promotionDiscountGrid,
+  .promotionFormGrid,
+  .emptyPromotionState,
+  .paymentsActionRow {
+    grid-template-columns: 1fr;
+  }
+
+  .paymentsSectionBlock {
+    border-radius: 24px;
+    padding: 15px;
+  }
+
+  .pixToggleButton,
+  .promotionEditor,
+  .paymentsInputCard {
+    border-radius: 20px;
+  }
+}
+
+/* Agenda Hoje: prévia operacional para uso diário da barbearia */
+.agendaTodayPanelCard {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(34, 197, 94, 0.13), transparent 34%),
+    linear-gradient(180deg, rgba(17, 23, 28, 0.97), rgba(7, 10, 13, 0.97));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
+  display: grid;
+  gap: 18px;
+}
+
+.agendaTodayHero {
+  margin-bottom: 0;
+}
+
+.agendaTodayHeroMetric strong {
+  font-size: clamp(44px, 6vw, 78px);
+}
+
+.agendaTodayMetrics {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.agendaTodayMetrics article {
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.09), transparent 38%),
+    rgba(7, 10, 13, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 24px;
+  display: grid;
+  gap: 8px;
+  min-height: 132px;
+  padding: 17px;
+}
+
+.agendaTodayMetrics span,
+.agendaTodayDetailsHeader span,
+.agendaTodayDetailGrid span,
+.agendaTodayNextList small {
+  color: var(--text-muted);
+  display: block;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.01em;
+}
+
+.agendaTodayMetrics strong {
+  color: var(--text);
+  display: block;
+  font-size: clamp(30px, 3vw, 46px);
+  line-height: 1.02;
+}
+
+.agendaTodayMetrics small {
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.agendaTodayToolbar {
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.045), transparent 36%),
+    rgba(7, 10, 13, 0.52);
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 26px;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  padding: 15px;
+}
+
+.agendaTodayDateStepper,
+.agendaTodayFilters {
+  align-items: end;
+  display: grid;
+  gap: 10px;
+}
+
+.agendaTodayDateStepper {
+  grid-template-columns: minmax(100px, 0.24fr) minmax(180px, 1fr) minmax(100px, 0.24fr);
+}
+
+.agendaTodayFilters {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.82fr);
+}
+
+.agendaTodayDateStepper label,
+.agendaTodayFilters label {
+  color: var(--text-secondary);
+  display: grid;
+  font-size: 13px;
+  font-weight: 950;
+  gap: 8px;
+}
+
+.agendaTodayToolbar input,
+.agendaTodayToolbar select {
+  background: rgba(7, 10, 13, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 18px;
+  color: var(--text);
+  min-height: 52px;
+}
+
+.agendaTodayToolbar button {
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  color: var(--text);
+  margin: 0;
+  min-height: 52px;
+}
+
+.agendaTodayWorkspace {
+  align-items: start;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1.45fr) minmax(330px, 0.55fr);
+}
+
+.agendaTodayTimeline,
+.agendaTodayDetails {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.agendaTodayAppointment,
+.agendaTodayDetails,
+.agendaTodayEmpty {
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.045), transparent 34%),
+    rgba(7, 10, 13, 0.58);
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 26px;
+  min-width: 0;
+}
+
+.agendaTodayAppointment {
+  align-items: center;
+  cursor: pointer;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 96px minmax(0, 1fr) minmax(238px, 0.62fr);
+  min-height: 142px;
+  padding: 16px;
+  transition: border-color 0.18s ease, transform 0.18s ease, background 0.18s ease;
+}
+
+.agendaTodayAppointment:hover,
+.agendaTodayAppointment.active {
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.12), transparent 38%),
+    rgba(7, 10, 13, 0.68);
+  border-color: rgba(34, 197, 94, 0.34);
+  transform: translateY(-1px);
+}
+
+.agendaTodayAppointment.status-pending {
+  border-color: rgba(245, 158, 11, 0.22);
+}
+
+.agendaTodayAppointment.status-confirmed,
+.agendaTodayAppointment.status-paid {
+  border-color: rgba(34, 197, 94, 0.22);
+}
+
+.agendaTodayAppointment.status-cancelled,
+.agendaTodayAppointment.status-missed {
+  border-color: rgba(239, 68, 68, 0.2);
+  opacity: 0.84;
+}
+
+.agendaTodayTime {
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.12), transparent 42%),
+    rgba(255, 255, 255, 0.045);
+  border: 1px solid var(--border-soft);
+  border-radius: 22px;
+  display: grid;
+  gap: 6px;
+  min-height: 90px;
+  padding: 14px;
+  place-items: center;
+  text-align: center;
+}
+
+.agendaTodayTime strong {
+  color: var(--text);
+  font-size: clamp(27px, 2.7vw, 38px);
+  line-height: 1;
+}
+
+.agendaTodayTime span,
+.agendaTodayMeta span {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.agendaTodayInfo {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.agendaTodayCardHeader {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.agendaTodayCardHeader strong {
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: var(--text);
+  display: -webkit-box;
+  flex: 1 1 auto;
+  font-size: clamp(20px, 1.7vw, 28px);
+  line-height: 1.08;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  text-overflow: ellipsis;
+  word-break: break-word;
+}
+
+.agendaTodayCardHeader .appointmentStatusPill {
+  flex: 0 0 auto;
+}
+
+.agendaTodayInfo p {
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: var(--text-secondary);
+  display: -webkit-box;
+  font-size: 15px;
+  font-weight: 850;
+  line-height: 1.35;
+  margin: 0;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  text-overflow: ellipsis;
+}
+
+.agendaTodayMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.agendaTodayMeta span {
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  padding: 7px 10px;
+}
+
+.agendaTodayActions {
+  align-content: center;
+  display: grid;
+  gap: 9px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.agendaTodayActions.compact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.agendaTodayActions button,
+.agendaTodayActions a {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  color: var(--text);
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 950;
+  justify-content: center;
+  margin: 0;
+  min-height: 42px;
+  padding: 10px 12px;
+  text-align: center;
+  text-decoration: none;
+}
+
+.agendaTodayActions button:first-child {
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.28);
+  color: var(--success);
+}
+
+.agendaTodayActions .agendaTodayWhatsapp {
+  background: rgba(37, 211, 102, 0.13);
+  border-color: rgba(37, 211, 102, 0.28);
+  color: #63e68f;
+}
+
+.agendaTodayActions .dangerAction {
+  background: rgba(239, 68, 68, 0.11);
+  border-color: rgba(239, 68, 68, 0.24);
+  color: #fecaca;
+}
+
+.agendaTodayDetails {
+  border-radius: 28px;
+  overflow: hidden;
+  padding: 18px;
+  position: sticky;
+  top: 16px;
+}
+
+.agendaTodayDetailsHeader {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--border-soft);
+  border-radius: 20px;
+  display: flex;
+  justify-content: space-between;
+  padding: 13px;
+}
+
+.agendaTodayDetailsHeader strong {
+  color: var(--text);
+  font-size: 34px;
+  line-height: 1;
+}
+
+.agendaTodayDetails h3 {
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: var(--text);
+  display: -webkit-box;
+  font-size: clamp(23px, 2vw, 32px);
+  line-height: 1.08;
+  margin: 4px 0 0;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  text-overflow: ellipsis;
+  word-break: break-word;
+}
+
+.agendaTodayDetails p,
+.agendaTodayHint {
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 850;
+  line-height: 1.45;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.agendaTodayDetailGrid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.agendaTodayDetailGrid div {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-soft);
+  border-radius: 18px;
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+}
+
+.agendaTodayDetailGrid strong {
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.agendaTodayNote,
+.agendaTodayReschedule {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.22);
+  border-radius: 18px;
+  color: #fbbf24 !important;
+  padding: 12px;
+}
+
+.agendaTodayEmpty {
+  display: grid;
+  gap: 10px;
+  min-height: 260px;
+  padding: 22px;
+  place-items: center;
+  text-align: center;
+}
+
+.agendaTodayEmpty strong {
+  color: var(--text);
+  font-size: clamp(25px, 2.7vw, 42px);
+  line-height: 1.04;
+}
+
+.agendaTodayEmpty span {
+  color: var(--text-secondary);
+  max-width: 48ch;
+}
+
+.agendaTodayNextList {
+  display: grid;
+  gap: 8px;
+  width: min(100%, 560px);
+}
+
+.agendaTodayNextList button {
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  color: var(--text);
+  margin: 0;
+  min-height: 44px;
+}
+
+@media (max-width: 1180px) {
+  .agendaTodayWorkspace,
+  .agendaTodayToolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .agendaTodayDetails {
+    position: static;
+  }
+}
+
+@media (max-width: 900px) {
+  .agendaTodayMetrics {
+    grid-template-columns: 1fr;
+  }
+
+  .agendaTodayAppointment {
+    grid-template-columns: 82px minmax(0, 1fr);
+  }
+
+  .agendaTodayActions.compact {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .agendaTodayPanelCard {
+    gap: 14px;
+  }
+
+  .agendaTodayToolbar,
+  .agendaTodayAppointment,
+  .agendaTodayDetails,
+  .agendaTodayMetrics article {
+    border-radius: 22px;
+  }
+
+  .agendaTodayDateStepper,
+  .agendaTodayFilters,
+  .agendaTodayAppointment,
+  .agendaTodayActions,
+  .agendaTodayActions.compact,
+  .agendaTodayDetailGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .agendaTodayTime {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    min-height: 70px;
+  }
+
+  .agendaTodayCardHeader {
+    align-items: flex-start;
+    display: grid;
   }
 }

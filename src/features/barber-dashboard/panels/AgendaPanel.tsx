@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import type { Appointment, Barbershop } from "../../../types/app";
+import { whatsappUrl } from "../../../lib/phone";
 
 export type WeekDayKey = "sun" | "mon" | "tue" | "wed" | "thu" | "fri" | "sat";
 
@@ -100,6 +101,7 @@ export type AgendaPanelModel = {
     field: keyof WorkingDayConfig,
     value: string | boolean
   ) => void;
+  visualAgendaAvailable: boolean;
   waitlist: AgendaWaitlistEntry[];
   waitlistAvailable: boolean;
   weekDays: WeekDay[];
@@ -110,6 +112,12 @@ type AgendaPanelProps = {
 };
 
 type AgendaViewMode = "day" | "week";
+
+type AgendaPanelState = {
+  date?: string;
+  professional?: string;
+  view?: AgendaViewMode;
+};
 
 type VisualAppointmentStatus =
   | "confirmed"
@@ -151,6 +159,42 @@ function addDays(dateKey: string, amount: number) {
   const date = dateFromKey(dateKey);
   date.setDate(date.getDate() + amount);
   return toDateKey(date);
+}
+
+const agendaPanelStatePrefix = "agendapro:agenda-panel:";
+
+function agendaPanelStateKey(slug = "default") {
+  return `${agendaPanelStatePrefix}${slug || "default"}`;
+}
+
+function readAgendaPanelState(slug?: string): AgendaPanelState {
+  if (typeof window === "undefined") return {};
+
+  try {
+    const data = window.localStorage.getItem(agendaPanelStateKey(slug));
+    if (!data) return {};
+    return JSON.parse(data) || {};
+  } catch {
+    return {};
+  }
+}
+
+function saveAgendaPanelState(slug: string | undefined, state: AgendaPanelState) {
+  if (typeof window === "undefined") return;
+
+  try {
+    window.localStorage.setItem(agendaPanelStateKey(slug), JSON.stringify(state));
+  } catch {
+    // O painel continua funcionando mesmo se o navegador bloquear o cache local.
+  }
+}
+
+function currentPanelSlugFromPath() {
+  if (typeof window === "undefined") return "";
+
+  const parts = window.location.pathname.split("/").filter(Boolean);
+  const panelIndex = parts.findIndex((part) => part.toLowerCase() === "painel");
+  return panelIndex >= 0 ? String(parts[panelIndex + 1] || "").trim().toLowerCase() : "";
 }
 
 function getVisualStatus(appointment: AgendaAppointment): VisualAppointmentStatus {
@@ -214,14 +258,31 @@ export default function AgendaPanel({ model }: AgendaPanelProps) {
     updateAppointmentNote,
     updateWaitlistStatus,
     updateWorkingDay,
+    visualAgendaAvailable,
     waitlist,
     waitlistAvailable,
     weekDays,
   } = model;
 
-  const [agendaView, setAgendaView] = useState<AgendaViewMode>("day");
-  const [selectedAgendaDate, setSelectedAgendaDate] = useState(() => toDateKey(new Date()));
-  const [professionalFilter, setProfessionalFilter] = useState("Todos");
+  const todayDateKey = toDateKey(new Date());
+  const agendaStateSlug = currentPanelSlugFromPath() || business.slug;
+  const savedAgendaPanelState = readAgendaPanelState(agendaStateSlug);
+  const savedAgendaDate =
+    savedAgendaPanelState.date && savedAgendaPanelState.date >= todayDateKey
+      ? savedAgendaPanelState.date
+      : "";
+  const [agendaView, setAgendaView] = useState<AgendaViewMode>(
+    savedAgendaPanelState.view === "week" ? "week" : "day"
+  );
+  const [selectedAgendaDate, setSelectedAgendaDate] = useState(
+    () => savedAgendaDate || todayDateKey
+  );
+  const [agendaDateTouched, setAgendaDateTouched] = useState(Boolean(savedAgendaDate));
+  const [professionalFilter, setProfessionalFilter] = useState(
+    savedAgendaPanelState.professional || "Todos"
+  );
+  const premiumAgendaPlanEnabled = String(business.plan || "").toLowerCase() === "premium";
+  const premiumAgendaTabActive = activeAdminTab === "agendaPremium";
 
   const professionalOptions = ["Todos", ...realProfessionals()];
   const filteredAppointments = sortAppointments(
@@ -230,6 +291,10 @@ export default function AgendaPanel({ model }: AgendaPanelProps) {
         professionalFilter === "Todos" || appointment.professional === professionalFilter
     )
   );
+  const firstUpcomingAppointmentDate = filteredAppointments.find((appointment) => {
+    const status = getVisualStatus(appointment);
+    return status !== "cancelled" && appointment.date >= todayDateKey;
+  })?.date;
   const dayAppointments = filteredAppointments.filter(
     (appointment) => appointment.date === selectedAgendaDate
   );
@@ -242,6 +307,33 @@ export default function AgendaPanel({ model }: AgendaPanelProps) {
     agendaView === "day"
       ? dayAppointments
       : filteredAppointments.filter((appointment) => weekDateKeys.includes(appointment.date));
+
+  useEffect(() => {
+    if (!premiumAgendaTabActive || agendaDateTouched || !firstUpcomingAppointmentDate) return;
+    if (selectedAgendaDate === firstUpcomingAppointmentDate) return;
+
+    setSelectedAgendaDate(firstUpcomingAppointmentDate);
+  }, [
+    agendaDateTouched,
+    firstUpcomingAppointmentDate,
+    premiumAgendaTabActive,
+    selectedAgendaDate,
+  ]);
+
+  useEffect(() => {
+    saveAgendaPanelState(agendaStateSlug, {
+      date: selectedAgendaDate,
+      professional: professionalFilter,
+      view: agendaView,
+    });
+  }, [agendaStateSlug, agendaView, professionalFilter, selectedAgendaDate]);
+
+  function chooseAgendaDate(dateKey: string) {
+    if (!dateKey) return;
+
+    setAgendaDateTouched(true);
+    setSelectedAgendaDate(dateKey);
+  }
 
   function renderAppointmentCard(appointment: AgendaAppointment) {
     const status = getVisualStatus(appointment);
@@ -340,13 +432,31 @@ export default function AgendaPanel({ model }: AgendaPanelProps) {
     );
   }
 
+  function renderPremiumLockedCard(title: string, description: string) {
+    return (
+      <article className="premiumAgendaLockedCard">
+        <span>Plano Premium</span>
+        <strong>{title}</strong>
+        <p>{description}</p>
+        <small>
+          {premiumAgendaPlanEnabled
+            ? "Libere e ative este recurso na aba Melhorias."
+            : "Altere para o plano Premium para liberar este recurso nesta barbearia."}
+        </small>
+      </article>
+    );
+  }
+
   return (
     <>
-        <section className={activeAdminTab === "agenda" && canManageBusinessSettings ? "card" : "hiddenPanel"}>
+        <section className={activeAdminTab === "agenda" && canManageBusinessSettings ? "card agendaPanelCard" : "hiddenPanel"}>
           <div className="sectionTitle">
             <h2>Agenda real</h2>
             <span>Funcionamento</span>
           </div>
+          <p className="hint panelLead">
+            Configure horários, pausas e bloqueios para manter a disponibilidade real no cliente.
+          </p>
 
           <label>Intervalo entre horários disponíveis</label>
           <input
@@ -403,7 +513,7 @@ export default function AgendaPanel({ model }: AgendaPanelProps) {
           </div>
         </section>
 
-        <section className={activeAdminTab === "agenda" && canManageBusinessSettings ? "card" : "hiddenPanel"}>
+        <section className={activeAdminTab === "agenda" && canManageBusinessSettings ? "card agendaPanelCard" : "hiddenPanel"}>
           <div className="sectionTitle">
             <h2>Intervalos</h2>
             <span>Almoço e pausas</span>
@@ -436,7 +546,7 @@ export default function AgendaPanel({ model }: AgendaPanelProps) {
           </button>
         </section>
 
-        <section className={activeAdminTab === "agenda" && canManageBusinessSettings ? "card" : "hiddenPanel"}>
+        <section className={activeAdminTab === "agenda" && canManageBusinessSettings ? "card agendaPanelCard" : "hiddenPanel"}>
           <div className="sectionTitle">
             <h2>Folgas</h2>
             <span>Dias fechados</span>
@@ -459,7 +569,7 @@ export default function AgendaPanel({ model }: AgendaPanelProps) {
           </button>
         </section>
 
-        <section className={activeAdminTab === "agenda" && canManageBusinessSettings ? "card" : "hiddenPanel"}>
+        <section className={activeAdminTab === "agenda" && canManageBusinessSettings ? "card agendaPanelCard" : "hiddenPanel"}>
           <div className="sectionTitle">
             <h2>Bloqueios</h2>
             <span>Imprevistos</span>
@@ -506,7 +616,29 @@ export default function AgendaPanel({ model }: AgendaPanelProps) {
         </section>
 
 
-        <section className={activeAdminTab === "agenda" ? "card visualAgendaPanel" : "hiddenPanel"}>
+        {premiumAgendaTabActive && (!visualAgendaAvailable || !waitlistAvailable) && (
+          <section className="card agendaPanelCard premiumAgendaGate">
+            <div className="sectionTitle">
+              <h2>Agenda Premium</h2>
+              <span>{premiumAgendaPlanEnabled ? "Ative em Melhorias" : "Bloqueado no plano atual"}</span>
+            </div>
+            <p className="hint panelLead">
+              Agenda visual e lista de espera são recursos do plano Premium.
+            </p>
+            <div className="premiumAgendaLockGrid">
+              {!visualAgendaAvailable && renderPremiumLockedCard(
+                "Agenda visual",
+                "Visão por dia e semana, status dos atendimentos, filtros por profissional e ações rápidas."
+              )}
+              {!waitlistAvailable && renderPremiumLockedCard(
+                "Lista de espera",
+                "Fila de clientes aguardando encaixe com contato rápido pelo WhatsApp."
+              )}
+            </div>
+          </section>
+        )}
+
+        <section className={premiumAgendaTabActive && visualAgendaAvailable ? "card agendaPanelCard visualAgendaPanel" : "hiddenPanel"}>
           <div className="sectionTitle">
             <h2>Agenda visual</h2>
             <span>{visualAppointments.length} agendamentos</span>
@@ -538,7 +670,7 @@ export default function AgendaPanel({ model }: AgendaPanelProps) {
                   value={selectedAgendaDate}
                   onChange={(event) => {
                     if (event.target.value) {
-                      setSelectedAgendaDate(event.target.value);
+                      chooseAgendaDate(event.target.value);
                     }
                   }}
                 />
@@ -600,7 +732,7 @@ export default function AgendaPanel({ model }: AgendaPanelProps) {
 
         </section>
 
-        <section className={activeAdminTab === "agenda" ? "card" : "hiddenPanel"}>
+        <section className={premiumAgendaTabActive && waitlistAvailable ? "card agendaPanelCard waitlistPanel" : "hiddenPanel"}>
           <div className="sectionTitle">
             <h2>Lista de espera</h2>
             <span>{waitlist.length} pedidos</span>
@@ -634,9 +766,10 @@ export default function AgendaPanel({ model }: AgendaPanelProps) {
                 </button>
                 <a
                   className="whatsappAction"
-                  href={`https://wa.me/${business.whatsapp}?text=${encodeURIComponent(
+                  href={whatsappUrl(
+                    business.whatsapp,
                     `Cliente na lista de espera: ${item.clientName} | WhatsApp: ${item.whatsapp} | Data: ${formatDate(item.date)} | Serviço: ${item.services}`
-                  )}`}
+                  )}
                   target="_blank"
                   rel="noreferrer"
                 >

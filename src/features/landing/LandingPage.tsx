@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 const planCards = [
   {
@@ -60,11 +60,47 @@ function normalizeSlug(value: string) {
     .slice(0, 48);
 }
 
+function formatCount(value: number) {
+  return new Intl.NumberFormat("pt-BR").format(Math.max(0, Number(value || 0)));
+}
+
 export default function LandingPage() {
   const [slug, setSlug] = useState("");
   const [slugError, setSlugError] = useState("");
+  const [metrics, setMetrics] = useState({
+    appointments: 0,
+    barbershops: 0,
+    source: "fallback",
+  });
   const slugInputRef = useRef<HTMLInputElement | null>(null);
   const cleanSlug = normalizeSlug(slug);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadPublicMetrics() {
+      try {
+        const response = await fetch("/api/public-metrics");
+        if (!response.ok) return;
+        const data = await response.json();
+        if (!active || !data?.ok) return;
+
+        setMetrics({
+          appointments: Number(data.appointments || 0),
+          barbershops: Number(data.barbershops || 0),
+          source: String(data.source || "fallback"),
+        });
+      } catch {
+        // mantém fallback visual
+      }
+    }
+
+    loadPublicMetrics();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   function goTo(path: "agendamento" | "painel") {
     if (!cleanSlug) {
@@ -74,7 +110,8 @@ export default function LandingPage() {
       return;
     }
 
-    window.location.href = path === "painel" ? `/painel/${cleanSlug}` : `/${cleanSlug}`;
+    window.location.href =
+      path === "painel" ? `/painel/${cleanSlug}` : `/agendamento/${cleanSlug}`;
   }
 
   return (
@@ -89,7 +126,7 @@ export default function LandingPage() {
             Quero agendar
           </button>
           <button type="button" onClick={() => goTo("painel")}>
-            Entrar no painel da barbearia
+            Sou barbearia
           </button>
           <a href="/plataforma?platform=1">Painel Plataforma</a>
         </div>
@@ -101,11 +138,13 @@ export default function LandingPage() {
             <img src="/agenda-pro-logo.png" alt="AgendaPro" />
             <span>AgendaPro</span>
           </div>
-          <h1>AgendaPro</h1>
-          <p className="landingLead">Agendamento inteligente para barbearias, salões e estética.</p>
+          <h1>Sua barbearia com agendamento profissional</h1>
+          <p className="landingLead">
+            Seus clientes agendam pelo celular. Você gerencia tudo em um painel.
+          </p>
           <p>
-            Crie uma página própria para cada estabelecimento, venda planos por assinatura e entregue
-            uma agenda bonita, simples e funcional para o cliente marcar pelo celular.
+            Crie uma página exclusiva para cada estabelecimento, venda planos por assinatura e
+            entregue uma experiência premium de agendamento.
           </p>
 
           <div className="landingActions">
@@ -113,9 +152,9 @@ export default function LandingPage() {
               Quero agendar
             </button>
             <button type="button" onClick={() => goTo("painel")}>
-              Entrar no painel da barbearia
+              Sou barbearia
             </button>
-            <a href="/plataforma?platform=1">Painel Plataforma</a>
+            <a href="/agendamento/demo">Ver demonstração</a>
           </div>
         </div>
 
@@ -155,6 +194,25 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <section className="landingSocialProof" aria-label="Números do AgendaPro">
+        <article>
+          <strong>{formatCount(metrics.barbershops)}</strong>
+          <span>barbearias cadastradas</span>
+        </article>
+        <article>
+          <strong>{formatCount(metrics.appointments)}</strong>
+          <span>agendamentos realizados</span>
+        </article>
+        <article>
+          <strong>Grátis para começar</strong>
+          <span>
+            {metrics.source === "supabase"
+              ? "Dados sincronizados em tempo real"
+              : "Ative o Supabase para métricas ao vivo"}
+          </span>
+        </article>
+      </section>
+
       <section className="landingSlugBox">
         <div>
           <span>Link da barbearia</span>
@@ -189,7 +247,7 @@ export default function LandingPage() {
       <section className="landingResourceSection">
         <div className="landingSectionIntro">
           <h2>Recursos para vender, operar e crescer</h2>
-          <p>O AgendaPro junta a página do cliente, o painel da barbearia e o controle da plataforma.</p>
+          <p>O AgendaPro junta página do cliente, painel da barbearia e controle da plataforma.</p>
         </div>
 
         <div className="landingResourceGrid">
@@ -226,9 +284,7 @@ export default function LandingPage() {
       <section className="landingBenefitSection">
         <div>
           <h2>Benefícios claros para quem agenda e para quem atende</h2>
-          <p>
-            Menos improviso, mais previsibilidade e uma experiência com cara de app profissional.
-          </p>
+          <p>Menos improviso, mais previsibilidade e uma experiência com cara de app profissional.</p>
         </div>
 
         <div className="landingBenefitGrid">

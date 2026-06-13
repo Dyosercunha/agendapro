@@ -28,6 +28,8 @@ export type FeatureKey =
   | "backplate"
   | "appearance_media"
   | "promotions"
+  | "visual_agenda"
+  | "commissions"
   | "waitlist"
   | "loyalty"
   | "google_login"
@@ -46,8 +48,33 @@ export type FeatureFlags = Partial<Record<FeatureKey, FeatureFlag>>;
 export type FeatureDefinition = {
   description: string;
   key: FeatureKey;
+  planFeature?: PlanFeatureKey;
+  minPlan?: PlanKey;
   released: boolean;
   title: string;
+};
+
+export type PlanFeatureKey =
+  | "multi_barbeiro"
+  | "lembretes_whatsapp"
+  | "relatorio_financeiro"
+  | "historico_clientes"
+  | "temas_personalizados"
+  | "limite_agendamentos_mes";
+
+export type PlanFeatureSet = {
+  feature_historico_clientes: boolean;
+  feature_lembretes_whatsapp: boolean;
+  feature_limite_agendamentos_mes: number;
+  feature_multi_barbeiro: boolean;
+  feature_relatorio_financeiro: boolean;
+  feature_temas_personalizados: boolean;
+};
+
+export type PlanRecord = PlanFeatureSet & {
+  id: PlanKey | string;
+  nome: string;
+  valor_mensal: number;
 };
 
 export type Promotion = {
@@ -119,6 +146,7 @@ export type Professional = {
   fixed?: boolean;
   id?: string;
   name: string;
+  photoUrl?: string;
 };
 
 export type Appointment = {

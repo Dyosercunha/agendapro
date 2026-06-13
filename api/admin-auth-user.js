@@ -13,6 +13,7 @@ const serviceRoleKey =
   process.env.SUPABASE_SECRET_KEY;
 
 const platformDeveloperEmails = ["dyoser2@gmail.com", "appagenda.pro@gmail.com"];
+const allowedAccessEmailDomains = ["gmail.com", "agendapro.com"];
 
 function cleanEmail(value = "") {
   return String(value).trim().toLowerCase();
@@ -20,6 +21,11 @@ function cleanEmail(value = "") {
 
 function isPlatformDeveloperEmail(value = "") {
   return platformDeveloperEmails.includes(cleanEmail(value));
+}
+
+function isAllowedAccessEmailDomain(value = "") {
+  const domain = cleanEmail(value).split("@").pop() || "";
+  return allowedAccessEmailDomains.includes(domain);
 }
 
 function errorMessage(error) {
@@ -116,6 +122,13 @@ export default async function handler(request, response) {
 
   if (!email || !email.includes("@")) {
     return response.status(400).json({ ok: false, error: "Informe um e-mail válido." });
+  }
+
+  if (!isAllowedAccessEmailDomain(email)) {
+    return response.status(400).json({
+      ok: false,
+      error: "Use um e-mail @gmail.com ou @agendapro.com cadastrado pela plataforma.",
+    });
   }
 
   if (password.length < 6) {

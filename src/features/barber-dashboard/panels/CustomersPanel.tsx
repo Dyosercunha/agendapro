@@ -1,5 +1,6 @@
 import React from "react";
 import type { Appointment, Barbershop, Client } from "../../../types/app";
+import { whatsappUrl } from "../../../lib/phone";
 
 export type CustomersPanelModel = {
   activeAdminTab: string;
@@ -117,11 +118,14 @@ export default function CustomersPanel({ model }: CustomersPanelProps) {
 
   return (
     <>
-      <section className={activeAdminTab === "customers" ? "card customerCard" : "hiddenPanel"}>
+      <section className={activeAdminTab === "customers" ? "card customerCard customersPanelCard" : "hiddenPanel"}>
         <div className="sectionTitle">
           <h2>Clientes</h2>
           <span>Histórico e recorrência</span>
         </div>
+        <p className="hint panelLead">
+          Acompanhe histórico, perfil de consumo e observações para aumentar recorrência.
+        </p>
 
         <div className="customerSummary">
           <div>
@@ -185,9 +189,9 @@ export default function CustomersPanel({ model }: CustomersPanelProps) {
             </div>
             <a
               className="whatsappAction"
-              href={`https://wa.me/${topCustomer.whatsappLink}?text=${encodeURIComponent(
+              href={whatsappUrl(topCustomer.whatsappLink || topCustomer.whatsapp,
                 `Olá, ${topCustomer.name}! Aqui é da ${business.name}.`
-              )}`}
+              )}
               target="_blank"
               rel="noreferrer"
             >
@@ -225,9 +229,9 @@ export default function CustomersPanel({ model }: CustomersPanelProps) {
                   </div>
                   <a
                     className="whatsappAction"
-                    href={`https://wa.me/${customer.whatsappLink}?text=${encodeURIComponent(
+                    href={whatsappUrl(customer.whatsappLink || customer.whatsapp,
                       `Olá, ${customer.name}! Aqui é da ${business.name}.`
-                    )}`}
+                    )}
                     target="_blank"
                     rel="noreferrer"
                   >

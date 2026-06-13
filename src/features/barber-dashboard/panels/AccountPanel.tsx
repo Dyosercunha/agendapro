@@ -97,6 +97,7 @@ export default function AccountPanel({ model }: AccountPanelProps) {
 
   const monthlyStatus: SubscriptionStatus = business.monthlyStatus || "active";
   const monthlyStatusText = monthlyStatusLabels[monthlyStatus] || monthlyStatusLabels.active;
+  const activeAccessCount = accessAccounts.filter((account) => account.active).length;
 
   function handlePlanSelection(planId: PlanKey | string) {
     if (canManageBilling) {
@@ -115,100 +116,147 @@ export default function AccountPanel({ model }: AccountPanelProps) {
 
   return (
     <>
-        <section className={activeAdminTab === "account" ? "card accountCard" : "hiddenPanel"}>
-          <div className="sectionTitle">
+      <section className={activeAdminTab === "account" ? "card accountCard accountPanelCard" : "hiddenPanel"}>
+        <div className="panelHero accountPanelHero">
+          <div>
+            <span>Conta e segurança</span>
             <h2>Conta</h2>
-            <span>{canManageBilling ? "Mensalidade e link" : "Renovação e link"}</span>
-          </div>
-
-          <div className="accountHero">
-            <span>App da barbearia</span>
-            <strong>{business.slug || "barbearia"}</strong>
             <p>
-              Cada barbearia tem um app próprio, definido pelo identificador do link.
-              O cliente acessa o agendamento; o responsável acessa o painel protegido.
+              Gerencie links oficiais, senha, acessos e mensalidade sem misturar com a operação da agenda.
             </p>
           </div>
+          <div className="panelHeroMetric">
+            <span>{canManageBilling ? "Gestão" : "Plano atual"}</span>
+            <strong>{currentPlan.name}</strong>
+          </div>
+        </div>
 
-          <label>E-mail responsável</label>
-          <input
-            type="email"
-            value={business.ownerEmail || ""}
-            disabled={!isDeveloperRole}
-            onChange={(event) => setBusiness({ ...business, ownerEmail: event.target.value })}
-          />
+        <div className="accountSectionBlock accountIdentityBlock">
+          <div className="accountSectionHeader">
+            <div>
+              <span>App da barbearia</span>
+              <strong>{business.slug || "barbearia"}</strong>
+            </div>
+            <small>Link público e painel protegido</small>
+          </div>
 
-          <label>Identificador do link</label>
-          <input
-            value={business.slug || ""}
-            disabled={!isDeveloperRole}
-            onChange={(event) => updateBusinessSlug(event.target.value)}
-            placeholder="agenda-pro"
-          />
+          <p className="accountSectionText">
+            Cada barbearia tem um identificador próprio. O cliente usa o link de agendamento; o responsável
+            entra pelo painel protegido.
+          </p>
 
-          <label>Link para divulgar</label>
-          <input value={publicScheduleLink} readOnly />
-
-          <button type="button" className="black" onClick={() => copyText(publicScheduleLink)}>
-            Copiar link de agendamento
-          </button>
-
-          <label>Link do painel</label>
-          <input value={adminPanelLink} readOnly />
-
-          <button type="button" className="outline" onClick={() => copyText(adminPanelLink)}>
-            Copiar link do painel
-          </button>
-
-          <div className="passwordPanel">
-            <div className="sectionTitle">
-              <h3>Minha senha</h3>
-              <span>Acesso atual</span>
+          <div className="accountFieldGrid">
+            <div className="accountInputCard">
+              <label>E-mail responsável</label>
+              <input
+                type="email"
+                value={business.ownerEmail || ""}
+                disabled={!isDeveloperRole}
+                onChange={(event) => setBusiness({ ...business, ownerEmail: event.target.value })}
+              />
+              <small>{isDeveloperRole ? "Somente desenvolvedor altera o dono." : "Definido pela plataforma."}</small>
             </div>
 
-            <p className="hint">
-              Altere aqui a senha do e-mail que está logado neste painel. Para trocar a senha de outro
-              acesso, use a lista abaixo.
-            </p>
-
-            <label>Nova senha</label>
-            <input
-              type="password"
-              autoComplete="new-password"
-              value={passwordForm.next}
-              placeholder="mínimo 6 caracteres"
-              onChange={(event) => setPasswordForm({ ...passwordForm, next: event.target.value })}
-            />
-
-            <label>Confirmar nova senha</label>
-            <input
-              type="password"
-              autoComplete="new-password"
-              value={passwordForm.confirm}
-              placeholder="repita a nova senha"
-              onChange={(event) => setPasswordForm({ ...passwordForm, confirm: event.target.value })}
-            />
-
-            {passwordMessage && <p className="adminNote">{passwordMessage}</p>}
-
-            <button
-              type="button"
-              className="black"
-              disabled={passwordSaving === "password"}
-              onClick={updateOwnPassword}
-            >
-              {passwordSaving === "password" ? "Salvando senha..." : "Alterar minha senha"}
-            </button>
+            <div className="accountInputCard">
+              <label>Identificador do link</label>
+              <input
+                value={business.slug || ""}
+                disabled={!isDeveloperRole}
+                onChange={(event) => updateBusinessSlug(event.target.value)}
+                placeholder="agenda-pro"
+              />
+              <small>Esse texto monta os links da agenda e do painel.</small>
+            </div>
           </div>
 
+          <div className="accountCopyGrid">
+            <article className="accountCopyCard">
+              <span>Link para divulgar</span>
+              <strong>{publicScheduleLink}</strong>
+              <button type="button" className="black" onClick={() => copyText(publicScheduleLink)}>
+                Copiar link de agendamento
+              </button>
+            </article>
+
+            <article className="accountCopyCard">
+              <span>Link do painel</span>
+              <strong>{adminPanelLink}</strong>
+              <button type="button" className="outline" onClick={() => copyText(adminPanelLink)}>
+                Copiar link do painel
+              </button>
+            </article>
+          </div>
+        </div>
+
+        <div className="passwordPanel accountSectionBlock">
+          <div className="accountSectionHeader">
+            <div>
+              <span>Segurança</span>
+              <strong>Minha senha</strong>
+            </div>
+            <small>Acesso atual</small>
+          </div>
+
+          <p className="accountSectionText">
+            Altere aqui a senha do e-mail que está logado neste painel. Para trocar a senha de outro acesso,
+            use a lista abaixo.
+          </p>
+
+          <div className="accountFieldGrid">
+            <div>
+              <label>Nova senha</label>
+              <input
+                type="password"
+                autoComplete="new-password"
+                value={passwordForm.next}
+                placeholder="mínimo 6 caracteres"
+                onChange={(event) => setPasswordForm({ ...passwordForm, next: event.target.value })}
+              />
+            </div>
+            <div>
+              <label>Confirmar nova senha</label>
+              <input
+                type="password"
+                autoComplete="new-password"
+                value={passwordForm.confirm}
+                placeholder="repita a nova senha"
+                onChange={(event) => setPasswordForm({ ...passwordForm, confirm: event.target.value })}
+              />
+            </div>
+          </div>
+
+          {passwordMessage && <p className="adminNote">{passwordMessage}</p>}
+
+          <button
+            type="button"
+            className="black"
+            disabled={passwordSaving === "password"}
+            onClick={updateOwnPassword}
+          >
+            {passwordSaving === "password" ? "Salvando senha..." : "Alterar minha senha"}
+          </button>
+        </div>
+
+        <div className="accountSectionBlock">
           <div className="accessHeader">
             <div>
               <span>Acessos ao painel</span>
-              <strong>{accessAccounts.filter((account) => account.active).length} ativos</strong>
+              <strong>{activeAccessCount} ativos</strong>
             </div>
             {canManageAccessAccounts && (
-              <button type="button" onClick={addAccessAccount}>Adicionar</button>
+              <button type="button" onClick={addAccessAccount}>
+                Adicionar acesso
+              </button>
             )}
+          </div>
+
+          <div className="accessRulesPanel">
+            <span>E-mails aceitos</span>
+            <strong>@gmail.com e @agendapro.com cadastrados</strong>
+            <p>
+              Somente contas adicionadas nesta lista conseguem abrir o painel da barbearia. Desenvolvedor
+              entra em qualquer barbearia; dono e funcionário ficam limitados a este painel.
+            </p>
           </div>
 
           <div className="accessList">
@@ -222,14 +270,33 @@ export default function AccountPanel({ model }: AccountPanelProps) {
 
               return (
                 <div className="accessItem" key={account.id || index}>
-                  <label>E-mail de acesso</label>
-                  <input
-                    type="email"
-                    value={account.email}
-                    disabled={account.fixed}
-                    placeholder="funcionario@barbearia.com"
-                    onChange={(event) => updateAccessAccount(index, "email", event.target.value)}
-                  />
+                  <div className="accessItemHeader">
+                    <div>
+                      <span className="accessRoleBadge">{account.role || "Acesso"}</span>
+                      <strong>{account.email || "Novo acesso"}</strong>
+                      <p>
+                        {account.fixed
+                          ? "Acesso principal protegido."
+                          : account.active
+                            ? "Liberado para entrar neste painel."
+                            : "Acesso pausado para este painel."}
+                      </p>
+                    </div>
+                    <span className={account.active ? "accessState activeAccessState" : "accessState"}>
+                      {account.active ? "Ativo" : "Inativo"}
+                    </span>
+                  </div>
+
+                  <div className="accessEmailField">
+                    <label>E-mail de acesso</label>
+                    <input
+                      type="email"
+                      value={account.email}
+                      disabled={account.fixed}
+                      placeholder="funcionario@gmail.com"
+                      onChange={(event) => updateAccessAccount(index, "email", event.target.value)}
+                    />
+                  </div>
 
                   {!needsInitialPassword && (
                     <div className="accessPasswordActions">
@@ -270,7 +337,7 @@ export default function AccountPanel({ model }: AccountPanelProps) {
                     </div>
                   )}
 
-                  <div className="timePair">
+                  <div className="accessControlsGrid">
                     <div>
                       <label>Função</label>
                       <select
@@ -287,7 +354,8 @@ export default function AccountPanel({ model }: AccountPanelProps) {
                     </div>
                     <div>
                       <label>Status</label>
-                      <button type="button"
+                      <button
+                        type="button"
                         className={account.active ? "selected" : ""}
                         disabled={account.fixed}
                         onClick={() => updateAccessAccount(index, "active", !account.active)}
@@ -312,22 +380,25 @@ export default function AccountPanel({ model }: AccountPanelProps) {
           </div>
 
           {canManageAccessAccounts && (
-            <button type="button" className="green" onClick={saveAccessAccountsToCloud}>
+            <button type="button" className="green accountWideAction" onClick={saveAccessAccountsToCloud}>
               {cloudSaving === "access" ? "Salvando acessos..." : "Salvar acessos"}
             </button>
           )}
+        </div>
 
-          <div className="planHeader">
+        <div className="accountSectionBlock accountBillingBlock">
+          <div className="accountSectionHeader">
             <div>
               <span>{monthlyStatus === "pending" && !canManageBilling ? "Plano solicitado" : "Plano atual"}</span>
               <strong>{currentPlan.name}</strong>
             </div>
-            <b>{currentPlan.price}</b>
+            <small>{currentPlan.price}</small>
           </div>
 
           <div className="planGrid">
             {planOptions.map((plan) => (
-              <button type="button"
+              <button
+                type="button"
                 key={plan.id}
                 className={business.plan === plan.id ? "planCard activePlan" : "planCard"}
                 onClick={() => handlePlanSelection(plan.id)}
@@ -347,39 +418,43 @@ export default function AccountPanel({ model }: AccountPanelProps) {
           </div>
 
           {canManageBilling ? (
-            <>
-              <label>Status da mensalidade</label>
-              <select
-                value={business.monthlyStatus || "active"}
-                onChange={(event) =>
-                  setBusiness({ ...business, monthlyStatus: event.target.value as SubscriptionStatus })
-                }
-              >
-                <option value="pending">Pagamento pendente</option>
-                {statusOptions.filter((item) => item.value !== "archived").map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {monthlyStatusLabels[item.value] || item.label}
-                  </option>
-                ))}
-              </select>
+            <div className="billingEditor">
+              <div className="accountFieldGrid">
+                <div>
+                  <label>Status da mensalidade</label>
+                  <select
+                    value={business.monthlyStatus || "active"}
+                    onChange={(event) =>
+                      setBusiness({ ...business, monthlyStatus: event.target.value as SubscriptionStatus })
+                    }
+                  >
+                    <option value="pending">Pagamento pendente</option>
+                    {statusOptions.filter((item) => item.value !== "archived").map((item) => (
+                      <option key={item.value} value={item.value}>
+                        {monthlyStatusLabels[item.value] || item.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <label>Próxima cobrança</label>
-              <input
-                type="date"
-                value={business.nextBillingDate || ""}
-                onChange={(event) => setBusiness({ ...business, nextBillingDate: event.target.value })}
-              />
+                <div>
+                  <label>Próxima cobrança</label>
+                  <input
+                    type="date"
+                    value={business.nextBillingDate || ""}
+                    onChange={(event) => setBusiness({ ...business, nextBillingDate: event.target.value })}
+                  />
+                </div>
+              </div>
 
-              <p className="adminNote">
-                Somente a plataforma altera status e vencimento da mensalidade.
-              </p>
+              <p className="adminNote">Somente a plataforma altera status e vencimento da mensalidade.</p>
 
               <button type="button" className="green" onClick={saveBusinessToCloud}>
                 {cloudSaving === "business" ? "Salvando conta..." : "Salvar conta"}
               </button>
-            </>
+            </div>
           ) : (
-            <>
+            <div className="billingViewer">
               <div className="billingReadout">
                 <div>
                   <span>Status da mensalidade</span>
@@ -399,11 +474,10 @@ export default function AccountPanel({ model }: AccountPanelProps) {
               <button type="button" className="green" onClick={saveBusinessToCloud}>
                 {cloudSaving === "business" ? "Salvando solicitação..." : "Salvar solicitação de plano"}
               </button>
-            </>
+            </div>
           )}
-        </section>
-
-
+        </div>
+      </section>
     </>
   );
 }

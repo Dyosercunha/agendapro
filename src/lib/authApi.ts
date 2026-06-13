@@ -12,7 +12,12 @@ export function onAuthStateChange(callback: Parameters<typeof supabase.auth.onAu
 export function loginWithGoogleRedirect(redirectTo: string) {
   return supabase.auth.signInWithOAuth({
     provider: "google",
-    options: { redirectTo },
+    options: {
+      queryParams: {
+        prompt: "select_account",
+      },
+      redirectTo,
+    },
   });
 }
 
@@ -49,4 +54,18 @@ export async function syncAdminAuthUser(payload: {
 }) {
   const token = await getSessionToken();
   return postJson("/api/admin-auth-user", payload, token);
+}
+
+export async function getPlatformAuthAccesses() {
+  const token = await getSessionToken();
+  return postJson("/api/platform-auth-user", { action: "list" }, token);
+}
+
+export async function syncPlatformAuthUser(payload: {
+  active?: boolean;
+  email: string;
+  password?: string;
+}) {
+  const token = await getSessionToken();
+  return postJson("/api/platform-auth-user", { action: "upsert", ...payload }, token);
 }

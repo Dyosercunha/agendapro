@@ -1,5 +1,6 @@
 import { supabase } from "./supabaseClient";
-import { callRpc, callRpcWithRestFallback } from "./apiCore";
+import { callAdminRpc, callRpc, callRpcWithRestFallback } from "./apiCore";
+import { getAdminAppointments } from "./appointmentsApi";
 
 export const assetBucketName = "agendapro-assets";
 
@@ -22,7 +23,10 @@ export function getProfessionalsByBarbershop(barbershopId: string) {
   return supabase.from("professionals").select("*").eq("barbershop_id", barbershopId);
 }
 
-export async function getBarbershopCloudBundle(slug: string) {
+export async function getBarbershopCloudBundle(
+  slug: string,
+  options: { includeAdminData?: boolean } = {}
+) {
   const businessResult = await getBarbershopBySlug(slug);
 
   if (businessResult.error || !businessResult.data) {
@@ -30,6 +34,7 @@ export async function getBarbershopCloudBundle(slug: string) {
   }
 
   const business = businessResult.data;
+  const includeAdminData = Boolean(options.includeAdminData);
   const relatedResults = await Promise.all([
     supabase.from("barbershop_accounts").select("*").eq("barbershop_id", business.id).maybeSingle(),
     supabase
@@ -48,8 +53,12 @@ export async function getBarbershopCloudBundle(slug: string) {
     supabase.from("schedule_breaks").select("*").eq("barbershop_id", business.id),
     supabase.from("days_off").select("*").eq("barbershop_id", business.id),
     supabase.from("schedule_blocks").select("*").eq("barbershop_id", business.id),
-    callRpc("get_admin_appointments", { target_slug: business.slug }),
-    callRpc("get_barbershop_accesses", { target_slug: business.slug }),
+    includeAdminData
+      ? getAdminAppointments({ target_slug: business.slug })
+      : Promise.resolve({ data: [], error: null }),
+    includeAdminData
+      ? callRpc("get_barbershop_accesses", { target_slug: business.slug })
+      : Promise.resolve({ data: [], error: null }),
     supabase.from("feature_flags").select("*").eq("barbershop_id", business.id),
     supabase
       .from("waitlist")
@@ -62,43 +71,47 @@ export async function getBarbershopCloudBundle(slug: string) {
 }
 
 export function saveBusinessSettings(payload: Record<string, unknown>) {
-  return callRpcWithRestFallback("save_business_settings", payload);
+  return callAdminRpc("save_business_settings", payload);
 }
 
 export function savePromotionSettings(payload: Record<string, unknown>) {
-  return callRpcWithRestFallback("save_promotion_settings", payload);
+  return callAdminRpc("save_promotion_settings", payload);
 }
 
 export function savePromotions(payload: Record<string, unknown>) {
-  return callRpcWithRestFallback("save_promotions", payload);
+  return callAdminRpc("save_promotions", payload);
 }
 
 export function saveBarbershopAccesses(payload: Record<string, unknown>) {
-  return callRpcWithRestFallback("save_barbershop_accesses", payload);
+  return callAdminRpc("save_barbershop_accesses", payload);
 }
 
 export function saveFeatureFlags(payload: Record<string, unknown>) {
-  return callRpcWithRestFallback("save_feature_flags", payload);
+  return callAdminRpc("save_feature_flags", payload);
 }
 
 export function saveProfessionals(payload: Record<string, unknown>) {
-  return callRpcWithRestFallback("save_professionals", payload);
+  return callAdminRpc("save_professionals", payload);
 }
 
 export function saveScheduleSettings(payload: Record<string, unknown>) {
-  return callRpcWithRestFallback("save_schedule_settings", payload);
+  return callAdminRpc("save_schedule_settings", payload);
 }
 
 export function saveBackgroundSettings(payload: Record<string, unknown>) {
-  return callRpcWithRestFallback("save_background_settings", payload);
+  return callAdminRpc("save_background_settings", payload);
 }
 
 export function saveAppearanceCenter(payload: Record<string, unknown>) {
-  return callRpcWithRestFallback("save_appearance_center", payload);
+  return callAdminRpc("save_appearance_center", payload);
 }
 
 export function savePremiumAppearance(payload: Record<string, unknown>) {
-  return callRpcWithRestFallback("save_premium_appearance", payload);
+  return callAdminRpc("save_premium_appearance", payload);
+}
+
+export function hasFeature(slug: string, feature: string) {
+  return callRpc("has_feature", { target_slug: slug, feature });
 }
 
 export function getClientHistory(payload: Record<string, unknown>) {

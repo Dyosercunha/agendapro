@@ -1,9 +1,9 @@
-import { callRpcWithRestFallback } from "./apiCore";
+import { callAdminRpc } from "./apiCore";
 
 export function saveServices(payload: Record<string, unknown>) {
-  return callRpcWithRestFallback("save_services", payload);
+  return callAdminRpc("save_services", payload);
 }
 
 export function softDeleteService(payload: Record<string, unknown>) {
-  return callRpcWithRestFallback("soft_delete_service", payload);
+  return callAdminRpc("soft_delete_service", payload);
 }

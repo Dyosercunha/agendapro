@@ -51,22 +51,25 @@ function getAdminClient() {
 function whatsappProviderStatus() {
   const provider = String(process.env.WHATSAPP_PROVIDER || "meta").toLowerCase();
   const serviceRoleConfigured = Boolean(serviceRoleKey);
-  const metaConfigured = Boolean(process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID);
+  const whatsappToken = process.env.WHATSAPP_ACCESS_TOKEN || process.env.WHATSAPP_TOKEN;
+  const metaConfigured = Boolean(whatsappToken && process.env.WHATSAPP_PHONE_NUMBER_ID);
   const webhookConfigured = Boolean(process.env.WHATSAPP_WEBHOOK_URL);
+  const mockConfigured = provider === "mock";
   const providerConfigured = provider === "webhook" ? webhookConfigured : metaConfigured;
-  const providerLabel = provider === "webhook" ? "Webhook externo" : "WhatsApp Cloud API";
+  const providerLabel =
+    provider === "mock" ? "Simulação local" : provider === "webhook" ? "Webhook externo" : "WhatsApp Cloud API";
 
   return {
     provider,
     providerLabel,
     serviceRoleConfigured,
-    providerConfigured,
-    ready: serviceRoleConfigured && providerConfigured,
+    providerConfigured: mockConfigured || providerConfigured,
+    ready: serviceRoleConfigured && (mockConfigured || providerConfigured),
     missing: [
       !serviceRoleConfigured ? "SUPABASE_SERVICE_ROLE_KEY" : "",
       provider === "webhook" && !webhookConfigured ? "WHATSAPP_WEBHOOK_URL" : "",
-      provider !== "webhook" && !process.env.WHATSAPP_TOKEN ? "WHATSAPP_TOKEN" : "",
-      provider !== "webhook" && !process.env.WHATSAPP_PHONE_NUMBER_ID ? "WHATSAPP_PHONE_NUMBER_ID" : "",
+      !mockConfigured && provider !== "webhook" && !whatsappToken ? "WHATSAPP_ACCESS_TOKEN ou WHATSAPP_TOKEN" : "",
+      !mockConfigured && provider !== "webhook" && !process.env.WHATSAPP_PHONE_NUMBER_ID ? "WHATSAPP_PHONE_NUMBER_ID" : "",
     ].filter(Boolean),
   };
 }
@@ -135,7 +138,7 @@ async function validateBarbershopDestination(payload, response) {
 }
 
 async function sendWithMetaCloud(to, body) {
-  const token = process.env.WHATSAPP_TOKEN;
+  const token = process.env.WHATSAPP_ACCESS_TOKEN || process.env.WHATSAPP_TOKEN;
   const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
   const graphVersion = process.env.WHATSAPP_GRAPH_VERSION || "v20.0";
 
@@ -144,7 +147,7 @@ async function sendWithMetaCloud(to, body) {
       ok: false,
       status: 501,
       error:
-        "WhatsApp Cloud API ainda não configurado. Cadastre WHATSAPP_TOKEN e WHATSAPP_PHONE_NUMBER_ID no Vercel.",
+        "WhatsApp Cloud API ainda não configurado. Cadastre WHATSAPP_ACCESS_TOKEN e WHATSAPP_PHONE_NUMBER_ID no Vercel.",
     };
   }
 
@@ -253,6 +256,18 @@ export default async function handler(request, response) {
   }
 
   const provider = String(process.env.WHATSAPP_PROVIDER || "meta").toLowerCase();
+  if (provider === "mock") {
+    return response.status(200).json({
+      ok: true,
+      provider,
+      data: {
+        messages: [{ id: `mock-${Date.now()}` }],
+        to: validation.to,
+        body,
+      },
+    });
+  }
+
   const result =
     provider === "webhook"
       ? await sendWithWebhook(validation.to, body)

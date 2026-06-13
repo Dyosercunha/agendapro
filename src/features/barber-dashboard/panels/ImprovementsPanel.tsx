@@ -1,4 +1,8 @@
 import React from "react";
+import {
+  featureMinimumPlanLabel,
+  planMeetsFeaturePlan,
+} from "../../../lib/features";
 import type {
   AdminRole,
   Barbershop,
@@ -56,52 +60,111 @@ export default function ImprovementsPanel({ model }: ImprovementsPanelProps) {
     updateFeatureFlag,
   } = model;
 
+  function isPlanAllowed(feature: FeatureDefinition) {
+    return planMeetsFeaturePlan(business.plan, feature.minPlan);
+  }
+
+  const releasedCount = platformFeatures.filter((feature) => featureFlags[feature.key]?.released).length;
+  const activeCount = platformFeatures.filter((feature) => {
+    const state = featureFlags[feature.key];
+    return Boolean(state?.released && state?.enabled && isPlanAllowed(feature));
+  }).length;
+  const blockedCount = Math.max(platformFeatures.length - releasedCount, 0);
+
   return (
     <>
-        <section className={activeAdminTab === "improvements" ? "card" : "hiddenPanel"}>
-          <div className="sectionTitle">
-            <h2>Melhorias</h2>
-            <span>Liberação da plataforma</span>
+      <section className={activeAdminTab === "improvements" ? "card improvementsPanelCard" : "hiddenPanel"}>
+        <div className="improvementsHero">
+          <div>
+            <span>Central de recursos</span>
+            <h2>Melhorias da barbearia</h2>
+            <p>
+              Controle o que fica liberado, ativo ou bloqueado nesta conta. O visual segue a mesma lógica do Painel Plataforma.
+            </p>
           </div>
+          <div className="improvementsPlanCard">
+            <span>Plano atual</span>
+            <strong>{currentPlan.name}</strong>
+            <small>{canManageBilling ? "Você pode ativar o que estiver liberado." : "Liberação controlada pela plataforma."}</small>
+          </div>
+        </div>
 
-          <p className="hint">
-            {canManageBilling
-              ? `Novos recursos começam bloqueados e são liberados por atualização ou pelo plano da mensalidade. Plano atual: ${currentPlan.name}.`
-              : "Novos recursos começam bloqueados e são liberados pela plataforma quando estiverem disponíveis para esta conta."}
-          </p>
+        <div className="improvementsSummary">
+          <div>
+            <span>Ativas</span>
+            <strong>{activeCount}</strong>
+          </div>
+          <div>
+            <span>Liberadas</span>
+            <strong>{releasedCount}</strong>
+          </div>
+          <div>
+            <span>Bloqueadas</span>
+            <strong>{blockedCount}</strong>
+          </div>
+        </div>
 
-          <div className="featureGrid">
-            {platformFeatures.map((feature) => {
-              const featureState = featureFlags[feature.key] || {
-                enabled: false,
-                released: false,
-              };
-              const shortcut = featureShortcut(feature.key);
+        <div className="featureGrid premiumFeatureGrid">
+          {platformFeatures.map((feature) => {
+            const featureState = featureFlags[feature.key] || {
+              enabled: false,
+              released: false,
+            };
+            const shortcut = featureShortcut(feature.key);
+            const planAllowed = isPlanAllowed(feature);
+            const minimumPlanLabel = featureMinimumPlanLabel(feature.minPlan);
+            const canActivate =
+              featureState.released &&
+              planAllowed &&
+              !isFutureOnlyFeature(feature.key);
 
-              return (
-                <div
-                  className={[
-                    "featureCard",
-                    featureState.released ? "availableFeature" : "lockedFeature",
-                    featureState.released && featureState.enabled ? "activeFeature" : "",
-                  ].join(" ")}
-                  key={feature.key}
-                >
+            return (
+              <article
+                className={[
+                  "featureCard premiumFeatureCard",
+                  featureState.released ? "availableFeature" : "lockedFeature",
+                  featureState.released && featureState.enabled && planAllowed ? "activeFeature" : "",
+                  !planAllowed ? "planBlockedFeature" : "",
+                ].join(" ")}
+                key={feature.key}
+              >
                 <div className="featureHeader">
                   <strong>{feature.title}</strong>
                   <span>
-                    {featureState.released
+                    {!planAllowed
+                      ? `Plano ${minimumPlanLabel}`
+                      : featureState.released
                       ? featureState.enabled
                         ? "Ativo"
                         : "Liberado"
                       : "Bloqueado"}
                   </span>
                 </div>
+
                 <p>{feature.description}</p>
+
+                <div className="featureMetaGrid">
+                  <div>
+                    <span>Plano mínimo</span>
+                    <strong>{minimumPlanLabel}</strong>
+                  </div>
+                  <div>
+                    <span>Status</span>
+                    <strong>
+                      {featureState.released
+                        ? featureState.enabled && planAllowed
+                          ? "Em uso"
+                          : "Disponível"
+                        : "Travado"}
+                    </strong>
+                  </div>
+                </div>
 
                 <div className="featureDestination">
                   <span>
-                    {isFutureOnlyFeature(feature.key)
+                    {!planAllowed
+                      ? `Disponível a partir do plano ${minimumPlanLabel}`
+                      : isFutureOnlyFeature(feature.key)
                       ? "Em preparação"
                       : featureState.released
                       ? featureState.enabled
@@ -113,7 +176,8 @@ export default function ImprovementsPanel({ model }: ImprovementsPanelProps) {
 
                 <div className="featureActions">
                   {currentAdminRole === "desenvolvedor" ? (
-                    <button type="button"
+                    <button
+                      type="button"
                       onClick={() => setFeatureRelease(feature.key, !featureState.released)}
                     >
                       {featureState.released ? "Bloquear recurso" : "Liberar recurso"}
@@ -124,23 +188,25 @@ export default function ImprovementsPanel({ model }: ImprovementsPanelProps) {
                     </button>
                   )}
 
-                  <button type="button"
+                  <button
+                    type="button"
                     disabled={
-                      !featureState.released ||
+                      !canActivate ||
                       feature.key === "pix" ||
-                      feature.key === "auto_confirmation" ||
-                      isFutureOnlyFeature(feature.key)
+                      feature.key === "auto_confirmation"
                     }
                     onClick={() =>
                       updateFeatureFlag(feature.key, "enabled", !featureState.enabled)
                     }
                   >
-                    {featureState.enabled ? "Desativar na barbearia" : "Ativar na barbearia"}
+                    {featureState.enabled && planAllowed ? "Desativar na barbearia" : "Ativar na barbearia"}
                   </button>
                 </div>
 
                 {feature.key === "pix" && featureState.released && (
-                  <button type="button"
+                  <button
+                    type="button"
+                    disabled={!planAllowed}
                     onClick={() => {
                       setBusiness({ ...business, pixEnabled: !business.pixEnabled });
                       updateFeatureFlag("pix", "enabled", !featureFlags.pix?.enabled);
@@ -150,51 +216,51 @@ export default function ImprovementsPanel({ model }: ImprovementsPanelProps) {
                   </button>
                 )}
 
-                {feature.key === "auto_confirmation" &&
-                  featureState.released && (
-                    <button type="button"
-                      onClick={() => {
-                        setBusiness({
-                          ...business,
-                          automaticConfirmationEnabled: !business.automaticConfirmationEnabled,
-                        });
-                        updateFeatureFlag(
-                          "auto_confirmation",
-                          "enabled",
-                          !featureFlags.auto_confirmation?.enabled
-                        );
-                      }}
-                    >
-                      {autoConfirmationFeatureEnabled && business.automaticConfirmationEnabled
-                        ? "Confirmação ativa"
-                        : "Ativar confirmação"}
-                    </button>
-                  )}
+                {feature.key === "auto_confirmation" && featureState.released && (
+                  <button
+                    type="button"
+                    disabled={!planAllowed}
+                    onClick={() => {
+                      setBusiness({
+                        ...business,
+                        automaticConfirmationEnabled: !business.automaticConfirmationEnabled,
+                      });
+                      updateFeatureFlag(
+                        "auto_confirmation",
+                        "enabled",
+                        !featureFlags.auto_confirmation?.enabled
+                      );
+                    }}
+                  >
+                    {autoConfirmationFeatureEnabled && business.automaticConfirmationEnabled
+                      ? "Confirmação ativa"
+                      : "Ativar confirmação"}
+                  </button>
+                )}
 
-                  {featureState.released && (
-                    <button type="button"
-                      className="featureShortcut"
-                      disabled={shortcut.disabled}
-                      onClick={() => {
-                        if (!shortcut.disabled && shortcut.tab) {
-                          setAdminTab(shortcut.tab);
-                        }
-                      }}
-                    >
-                      {shortcut.label}
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                {featureState.released && (
+                  <button
+                    type="button"
+                    className="featureShortcut"
+                    disabled={!planAllowed || shortcut.disabled}
+                    onClick={() => {
+                      if (planAllowed && !shortcut.disabled && shortcut.tab) {
+                        setAdminTab(shortcut.tab);
+                      }
+                    }}
+                  >
+                    {planAllowed ? shortcut.label : `Exige plano ${minimumPlanLabel}`}
+                  </button>
+                )}
+              </article>
+            );
+          })}
+        </div>
 
-          <button type="button" className="green" onClick={saveFeatureFlagsToCloud}>
-            {cloudSaving === "features" ? "Salvando melhorias..." : "Salvar melhorias"}
-          </button>
-        </section>
-
-
+        <button type="button" className="green" onClick={saveFeatureFlagsToCloud}>
+          {cloudSaving === "features" ? "Salvando melhorias..." : "Salvar melhorias"}
+        </button>
+      </section>
     </>
   );
 }

@@ -37,12 +37,20 @@ import {
   getWhatsappStatus,
   joinWaitlist as joinWaitlistRequest,
   requestPublicReschedule,
+  sendWhatsappAppointmentTemplates,
   sendWhatsappMessage,
   updateAppointmentAction,
   updateWaitlistStatus as updateWaitlistStatusRequest,
 } from "./lib/appointmentsApi";
 import { blocksClientScheduling, planOptions } from "./lib/commercial";
-import { defaultFeatureFlags, normalizeFeatureKey, platformFeatures } from "./lib/features";
+import { normalizeBrazilWhatsapp } from "./lib/phone";
+import {
+  defaultFeatureFlags,
+  featureMinimumPlanLabel,
+  normalizeFeatureKey,
+  planMeetsFeaturePlan,
+  platformFeatures,
+} from "./lib/features";
 import {
   canAccessAdminTab as canAccessAdminTabByRole,
   canManageAccessAccounts as canManageAccessAccountsByRole,
@@ -52,6 +60,13 @@ import {
   normalizeAdminRole,
 } from "./lib/permissions";
 import { saveServices as saveServicesRequest, softDeleteService } from "./lib/servicesApi";
+import { applyClientBookingSeo, applyGlobalSeo } from "./lib/seo";
+import { hasAuthSession } from "./lib/apiCore";
+import {
+  allowedAccessEmailMessage,
+  isAllowedAccessEmailDomain,
+  normalizeAccessEmail,
+} from "./lib/emailAccess";
 import BarberDashboard from "./features/barber-dashboard/BarberDashboard";
 import ClientBooking from "./features/client-booking/ClientBooking";
 import type { WeekDay } from "./features/barber-dashboard/panels/AgendaPanel";
@@ -208,7 +223,7 @@ const initialServices = [
 ];
 
 const initialProfessionals = [
-  { name: firstAvailableProfessionalName, active: true, fixed: true },
+  { name: firstAvailableProfessionalName, active: true, fixed: true, photoUrl: "" },
 ];
 
 const weekDays: WeekDay[] = [
@@ -256,7 +271,9 @@ const clientHistory = {};
 
 const adminTabs = [
   { id: "dashboard", label: "Painel" },
+  { id: "agendaToday", label: "Agenda Hoje" },
   { id: "agenda", label: "Agenda" },
+  { id: "agendaPremium", label: "Agenda Premium" },
   { id: "customers", label: "Clientes" },
   { id: "services", label: "Serviços" },
   { id: "professionals", label: "Profissionais" },
@@ -695,6 +712,32 @@ function initialViewModeFromUrl() {
   return parts.includes("painel") ? "barberGate" : "client";
 }
 
+const adminTabStoragePrefix = "agendapro:last-admin-tab:";
+
+function adminTabStorageKey(slug = currentSlugFromUrl()) {
+  return `${adminTabStoragePrefix}${slug || "default"}`;
+}
+
+function readInitialAdminTab() {
+  if (typeof window === "undefined") return "dashboard";
+
+  try {
+    return window.localStorage.getItem(adminTabStorageKey()) || "dashboard";
+  } catch {
+    return "dashboard";
+  }
+}
+
+function saveInitialAdminTab(tabId, slug = currentSlugFromUrl()) {
+  if (typeof window === "undefined" || !tabId) return;
+
+  try {
+    window.localStorage.setItem(adminTabStorageKey(slug), tabId);
+  } catch {
+    // Cache local indisponivel; o painel continua funcionando sem persistir a aba.
+  }
+}
+
 function isUuid(value) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
     String(value || "")
@@ -980,7 +1023,7 @@ function mapScheduleFromCloud(workingRows, breakRows, dayOffRows, blockRows, pro
 
 function CoreAgendaProApp() {
   const [viewMode, setViewMode] = useState(() => initialViewModeFromUrl());
-  const [adminTab, setAdminTab] = useState("dashboard");
+  const [adminTab, setAdminTab] = useState(() => readInitialAdminTab());
   const [adminLoggedIn, setAdminLoggedIn] = useState(false);
   useEffect(()=>{if(typeof window!=="undefined"){window.__agendaProAdminTab=adminTab;window.__agendaProViewMode=viewMode;window.__agendaProAdminLoggedIn=adminLoggedIn;}},[adminTab,viewMode,adminLoggedIn]);
   const [adminEmail, setAdminEmail] = useState("");
@@ -1067,19 +1110,41 @@ function CoreAgendaProApp() {
   );
   const publicScheduleLink = `${appOrigin}/${routeSlug || "barbearia"}`;
   const adminPanelLink = `${appOrigin}/painel/${routeSlug || "barbearia"}`;
-  const uniqueLinkAvailable = featureFlags.unique_link?.released && featureFlags.unique_link?.enabled;
+  function featurePlanAllowed(featureKey) {
+    const normalizedFeatureKey = normalizeFeatureKey(featureKey);
+    const feature = platformFeatures.find((item) => item.key === normalizedFeatureKey);
+
+    return planMeetsFeaturePlan(business.plan, feature?.minPlan);
+  }
+
+  function featureIsAvailable(featureKey) {
+    const normalizedFeatureKey = normalizeFeatureKey(featureKey);
+
+    if (!normalizedFeatureKey) return false;
+
+    const featureState = featureFlags[normalizedFeatureKey];
+
+    return Boolean(
+      featureState?.released &&
+        featureState?.enabled &&
+        featurePlanAllowed(normalizedFeatureKey)
+    );
+  }
+
+  const uniqueLinkAvailable = featureIsAvailable("unique_link");
   const appointmentManagementLink = uniqueLinkAvailable && confirmedToken
     ? `${publicScheduleLink}?agendamento=${encodeURIComponent(confirmedToken)}`
     : "";
   const scheduleBlocked = blocksClientScheduling(business.monthlyStatus);
-  const pixFeatureEnabled = featureFlags.pix?.released && featureFlags.pix?.enabled;
-  const autoConfirmationFeatureEnabled =
-    featureFlags.auto_confirmation?.released && featureFlags.auto_confirmation?.enabled;
+  const pixFeatureEnabled = featureIsAvailable("pix");
+  const autoConfirmationFeatureEnabled = featureIsAvailable("auto_confirmation");
   const pixAvailable = business.pixEnabled && pixFeatureEnabled;
-  const waitlistAvailable = featureFlags.waitlist?.released && featureFlags.waitlist?.enabled;
+  const waitlistAvailable = featureIsAvailable("waitlist");
+  const visualAgendaAvailable = featureIsAvailable("visual_agenda");
   const appearanceMediaAvailable =
-    Boolean(business.proAppearanceMediaEnabled) ||
-    Boolean(featureFlags.appearance_media?.released && featureFlags.appearance_media?.enabled);
+    featurePlanAllowed("appearance_media") &&
+    (Boolean(business.proAppearanceMediaEnabled) || featureIsAvailable("appearance_media"));
+  const commissionsAvailable = featureIsAvailable("commissions");
   const normalizedAdminEmail = adminEmail.trim().toLowerCase();
   const normalizedOwnerEmail = (business.ownerEmail || initialBusiness.ownerEmail)
     .trim()
@@ -1110,6 +1175,16 @@ function CoreAgendaProApp() {
 
     if (typeof window !== "undefined") {
       window.__agendaProAdminTab = activeAdminTab;
+
+      const isPanelRoute = window.location.pathname
+        .split("/")
+        .filter(Boolean)
+        .includes("painel");
+      const activeSlug = loadedCloudSlug() || currentSlugFromUrl();
+
+      if (adminLoggedIn && isPanelRoute) {
+        saveInitialAdminTab(activeAdminTab, activeSlug);
+      }
     }
   }, [activeAdminTab, adminLoggedIn, adminTab]);
 
@@ -1126,12 +1201,16 @@ function CoreAgendaProApp() {
   }
 
   function isAdminEmailAllowed(email: string) {
-    const normalizedEmail = String(email || "").trim().toLowerCase();
+    const normalizedEmail = normalizeAccessEmail(email);
+
+    if (!isAllowedAccessEmailDomain(normalizedEmail)) {
+      return false;
+    }
 
     return (
-      normalizedEmail === business.ownerEmail?.trim().toLowerCase() ||
+      normalizedEmail === normalizeAccessEmail(business.ownerEmail) ||
       accessAccounts.some(
-        (account) => account.active && account.email.trim().toLowerCase() === normalizedEmail
+        (account) => account.active && normalizeAccessEmail(account.email) === normalizedEmail
       )
     );
   }
@@ -1144,16 +1223,25 @@ function CoreAgendaProApp() {
     setAdminLoginError("");
     setBarberGateError("");
     if (resetTab) {
-      setAdminTab("dashboard");
+      setAdminTab(readInitialAdminTab());
     }
     setViewMode("admin");
     window.scrollTo(0, 0);
   }
 
   async function handleAuthSession(session) {
-    const email = session?.user?.email || "";
+    const email = normalizeAccessEmail(session?.user?.email || "");
 
     if (!email) return;
+
+    if (!isAllowedAccessEmailDomain(email)) {
+      await logoutAuth();
+      setAdminContext(null);
+      setAdminLoggedIn(false);
+      setAdminLoginError(allowedAccessEmailMessage);
+      setViewMode("adminLogin");
+      return;
+    }
 
     const { data: contextData, error: contextError } = await getMyAdminContext();
     const context = Array.isArray(contextData) ? contextData[0] : contextData;
@@ -1170,7 +1258,7 @@ function CoreAgendaProApp() {
 
       if (isPanelRoute) {
         if (!adminLoggedIn) {
-          setAdminTab("dashboard");
+          setAdminTab(readInitialAdminTab());
         }
         await loadCloudData();
         setViewMode("admin");
@@ -1211,7 +1299,7 @@ function CoreAgendaProApp() {
     }
 
     setAdminLoggedIn(false);
-    setAdminLoginError("Este e-mail Google não está liberado para acessar este painel.");
+    setAdminLoginError("Este e-mail nao esta cadastrado para acessar este painel.");
     setViewMode("adminLogin");
   }
 
@@ -1366,6 +1454,49 @@ function CoreAgendaProApp() {
   }, []);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const isPanelRoute = window.location.pathname
+      .split("/")
+      .filter(Boolean)
+      .includes("painel");
+
+    if (!adminLoggedIn || viewMode !== "admin" || !isPanelRoute || !loadedCloudSlug()) {
+      return;
+    }
+
+    let refreshing = false;
+
+    async function refreshPanelAppointments() {
+      if (refreshing || document.hidden) return;
+      refreshing = true;
+
+      try {
+        await refreshCloudAppointments();
+      } catch (error) {
+        console.error("Não foi possível atualizar a agenda automaticamente:", error);
+      } finally {
+        refreshing = false;
+      }
+    }
+
+    const interval = window.setInterval(refreshPanelAppointments, 30000);
+    const handleFocus = () => refreshPanelAppointments();
+    const handleVisibility = () => {
+      if (!document.hidden) refreshPanelAppointments();
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [adminLoggedIn, viewMode, barbershopId, cloudSlug]);
+
+  useEffect(() => {
     const targetSlug = loadedCloudSlug();
 
     if (cleanWhatsapp.length < 8 || !targetSlug) {
@@ -1411,6 +1542,18 @@ function CoreAgendaProApp() {
     root.style.setProperty("--success", business.themeColorSecondary);
     root.style.setProperty("--shadow-glow", `0 0 32px ${hexToRgba(business.themeColor, 0.22)}`);
   }, [business.themeColor, business.themeColorSecondary]);
+
+  useEffect(() => {
+    if (viewMode === "client") {
+      applyClientBookingSeo(business, schedule);
+      return;
+    }
+
+    applyGlobalSeo();
+    if (typeof document !== "undefined") {
+      document.title = `AgendaPro — Painel ${repairText(business.name)}`;
+    }
+  }, [business, schedule, viewMode]);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -1497,7 +1640,7 @@ function CoreAgendaProApp() {
     [services, selectedServices]
   );
 
-  const promotionAvailable = featureFlags.promotions?.released && featureFlags.promotions?.enabled;
+  const promotionAvailable = featureIsAvailable("promotions");
   const activePromotions = promotionAvailable
     ? normalizePromotions(business.promotions, business).filter((promotion) => promotion.active)
     : [];
@@ -1586,7 +1729,7 @@ function CoreAgendaProApp() {
       if (!profiles[phone]) {
         profiles[phone] = {
           whatsapp: phone,
-          whatsappLink: phone.startsWith("55") ? phone : `55${phone}`,
+          whatsappLink: normalizeBrazilWhatsapp(phone),
           name: appointment.clientName || "Cliente",
           visits: 0,
           revenue: 0,
@@ -1623,7 +1766,7 @@ function CoreAgendaProApp() {
 
   const returningCustomers = customerProfiles.filter((customer) => customer.visits > 1);
   const topCustomer = customerProfiles[0];
-  const loyaltyFeatureEnabled = featureFlags.loyalty?.released && featureFlags.loyalty?.enabled;
+  const loyaltyFeatureEnabled = featureIsAvailable("loyalty");
 
   const setupItems = [
     {
@@ -1676,7 +1819,10 @@ function CoreAgendaProApp() {
   const featureStatusCards = platformFeatures.map((feature) => {
     const state = featureFlags[feature.key] || { enabled: false, released: false };
     const shortcut = featureShortcut(feature.key);
-    const statusLabel = state.released
+    const planAllowed = featurePlanAllowed(feature.key);
+    const statusLabel = !planAllowed
+      ? `Plano ${featureMinimumPlanLabel(feature.minPlan)}`
+      : state.released
       ? state.enabled
         ? "Ativo"
         : "Liberado"
@@ -1684,6 +1830,7 @@ function CoreAgendaProApp() {
 
     return {
       ...feature,
+      planAllowed,
       state,
       shortcut,
       statusLabel,
@@ -1691,7 +1838,7 @@ function CoreAgendaProApp() {
   });
 
   const activeFeatureCount = featureStatusCards.filter(
-    (feature) => feature.state.released && feature.state.enabled
+    (feature) => feature.planAllowed && feature.state.released && feature.state.enabled
   ).length;
 
   const nextTodaySlot = buildSlotsForDate(today).find((slot) => slot.available);
@@ -1714,7 +1861,14 @@ function CoreAgendaProApp() {
         return;
       }
 
-      const { businessResult, relatedResults } = await getBarbershopCloudBundle(slug);
+      const includeAdminData =
+        typeof window !== "undefined" &&
+        window.location.pathname.split("/").filter(Boolean).includes("painel") &&
+        (await hasAuthSession());
+
+      const { businessResult, relatedResults } = await getBarbershopCloudBundle(slug, {
+        includeAdminData,
+      });
       const businessData = businessResult.data;
       const businessError = businessResult.error;
 
@@ -1749,6 +1903,7 @@ function CoreAgendaProApp() {
         name: item.fixed ? firstAvailableProfessionalName : item.name,
         active: Boolean(item.active),
         fixed: Boolean(item.fixed),
+        photoUrl: item.photo_url || "",
         commissionPercent: Number(item.commission_percent || 0),
         commissionByService: item.commission_by_service || {},
       }));
@@ -1779,7 +1934,7 @@ function CoreAgendaProApp() {
         )
       );
 
-      if (appointmentsResult.data?.length) {
+      if (includeAdminData) {
         setAppointments(
           mapAppointmentsFromCloud(appointmentsResult.data || [], professionalsResult.data || [])
         );
@@ -2107,7 +2262,9 @@ function CoreAgendaProApp() {
     setCloudStatus("Verificando disponibilidade online...");
 
     try {
-      const latestAppointments = (await refreshCloudAppointments()) || appointments;
+      const latestAppointments = (await hasAuthSession())
+        ? (await refreshCloudAppointments()) || appointments
+        : appointments;
       const freshSlot = buildSlotsForDate(selectedDate, latestAppointments).find(
         (slot) => slot.time === selectedTime
       );
@@ -2164,7 +2321,11 @@ function CoreAgendaProApp() {
       setConfirmedId(cloudBooking.id);
       setConfirmedToken(cloudBooking.token);
       setProfessional(finalProfessional);
-      const notificationSent = await sendBarberConfirmation(savedAppointment, cloudBooking.id);
+      const notificationSent = await sendBarberConfirmation(
+        savedAppointment,
+        cloudBooking.id,
+        cloudBooking.token
+      );
       setConfirmationSent(notificationSent);
       setScreen("success");
       window.scrollTo(0, 0);
@@ -2273,13 +2434,39 @@ function CoreAgendaProApp() {
     }
   }
 
-  async function sendBarberConfirmation(appointmentData, appointmentId) {
+  async function sendBarberConfirmation(appointmentData, appointmentId, publicToken = "") {
     const message = buildBarberConfirmationMessage(appointmentData, appointmentId);
     setBarberConfirmationMessage(message);
 
     if (!autoConfirmationFeatureEnabled || !business.automaticConfirmationEnabled) {
       setCloudStatus("Confirmação pronta para envio manual ao WhatsApp da barbearia.");
       return false;
+    }
+
+    try {
+      const templateResult = await sendWhatsappAppointmentTemplates({
+        barbershopSlug: loadedCloudSlug() || routeSlug,
+        appointmentId,
+        publicToken,
+        target: "both",
+      });
+
+      const sent = templateResult?.sent || {};
+
+      if (sent.customer || sent.shop) {
+        setCloudStatus(
+          sent.customer && sent.shop
+            ? "WhatsApp automático enviado para cliente e barbearia."
+            : sent.customer
+            ? "WhatsApp automático enviado para o cliente."
+            : "WhatsApp automático enviado para a barbearia."
+        );
+        return true;
+      }
+
+      throw new Error("Templates do WhatsApp não foram enviados.");
+    } catch (templateError) {
+      console.error("Falha ao enviar templates oficiais do WhatsApp:", templateError);
     }
 
     try {
@@ -2526,7 +2713,7 @@ function CoreAgendaProApp() {
         next_billing_date_input: business.nextBillingDate || null,
         logo_text_input: business.logo || "B",
         logo_url_input: business.logoImage || null,
-        whatsapp_input: business.whatsapp,
+        whatsapp_input: normalizeBrazilWhatsapp(business.whatsapp),
         address_input: business.address || "",
         maps_url_input: normalizeMapsUrl(business.mapsUrl, business.address),
         theme_color_input: business.themeColor,
@@ -2598,6 +2785,9 @@ function CoreAgendaProApp() {
     return runCloudSave("access", "Acessos do painel salvos online", async () => {
       const activeAccounts = accessAccounts.filter((account) => account.active !== false);
       const invalidAccount = activeAccounts.find((account) => !String(account.email || "").includes("@"));
+      const invalidDomainAccount = activeAccounts.find(
+        (account) => !isAllowedAccessEmailDomain(account.email)
+      );
       const missingPassword = activeAccounts.find(
         (account) => !account.fixed && !isUuid(account.id) && !String(account.password || "").trim()
       );
@@ -2615,6 +2805,10 @@ function CoreAgendaProApp() {
 
       if (invalidAccount) {
         return { error: { message: "Informe um e-mail válido em todos os acessos ativos." } };
+      }
+
+            if (invalidDomainAccount) {
+        return { error: { message: allowedAccessEmailMessage } };
       }
 
       if (missingPassword) {
@@ -2747,6 +2941,7 @@ function CoreAgendaProApp() {
           name: item.fixed ? firstAvailableProfessionalName : item.name,
           active: Boolean(item.active),
           fixed: Boolean(item.fixed),
+          photo_url: item.photoUrl || "",
           commission_percent: Number(item.commissionPercent || 0),
           commission_by_service: item.commissionByService || {},
         })),
@@ -3039,6 +3234,28 @@ function CoreAgendaProApp() {
     }
   }
 
+  async function handleProfessionalPhotoUpload(index, event) {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    setCloudSaving(`asset-professional-${index}`);
+
+    try {
+      const publicUrl = await uploadBusinessAsset(file, "professionals");
+      updateProfessional(index, "photoUrl", publicUrl);
+      setCloudStatus("Foto do profissional enviada. Salve os profissionais para sincronizar online.");
+      showNotice("Foto enviada. Agora clique em Salvar profissionais.");
+    } catch (error) {
+      const message = repairText(error?.message || "Não foi possível enviar a foto do profissional.");
+      setCloudStatus(message);
+      showNotice(message);
+    } finally {
+      event.target.value = "";
+      setCloudSaving("");
+    }
+  }
+
   function saveAppearanceMediaToCloud() {
     return runCloudSave("appearance-media", "Fotos da tela do cliente salvas online", async () => {
       const targetSlug = loadedCloudSlug();
@@ -3221,8 +3438,16 @@ function CoreAgendaProApp() {
       return { label: "Configurar promoção", tab: "payments", disabled: false };
     }
 
+    if (normalizedFeatureKey === "visual_agenda") {
+      return { label: "Abrir agenda visual", tab: "agendaPremium", disabled: false };
+    }
+
+    if (normalizedFeatureKey === "commissions") {
+      return { label: "Configurar comissões", tab: "professionals", disabled: false };
+    }
+
     if (normalizedFeatureKey === "waitlist") {
-      return { label: "Ver lista de espera", tab: "agenda", disabled: false };
+      return { label: "Ver lista de espera", tab: "agendaPremium", disabled: false };
     }
 
     if (normalizedFeatureKey === "loyalty") {
@@ -3355,7 +3580,7 @@ function CoreAgendaProApp() {
 
   function addProfessional() {
     setProfessionals((current) =>
-      current.concat({ name: "Novo profissional", active: true, fixed: false })
+      current.concat({ name: "Novo profissional", active: true, fixed: false, photoUrl: "" })
     );
   }
 
@@ -3481,6 +3706,24 @@ function CoreAgendaProApp() {
     setAppointments((current) => current.filter((appointment) => appointment.id !== id));
   }
 
+  function confirmAppointment(id) {
+    syncAppointmentAction(id, { status: "confirmed" });
+    setAppointments((current) =>
+      current.map((appointment) =>
+        appointment.id === id ? { ...appointment, status: "confirmed" } : appointment
+      )
+    );
+  }
+
+  function completeAppointment(id) {
+    syncAppointmentAction(id, { status: "completed" });
+    setAppointments((current) =>
+      current.map((appointment) =>
+        appointment.id === id ? { ...appointment, status: "completed" } : appointment
+      )
+    );
+  }
+
   function confirmAppointmentPayment(id, paymentMode = "cash") {
     syncAppointmentAction(id, { paid: true, payment: paymentMode });
     setAppointments((current) =>
@@ -3529,8 +3772,8 @@ function CoreAgendaProApp() {
   }
 
   function phoneMatchesBusiness(typedPhone) {
-    const typed = String(typedPhone || "").replace(/\D/g, "");
-    const registered = String(business.whatsapp || "").replace(/\D/g, "");
+    const typed = normalizeBrazilWhatsapp(typedPhone);
+    const registered = normalizeBrazilWhatsapp(business.whatsapp);
 
     if (typed.length < 8 || registered.length < 8) return false;
 
@@ -3562,6 +3805,13 @@ function CoreAgendaProApp() {
   }
 
   async function loginWithGoogle() {
+    const typedEmail = normalizeAccessEmail(adminEmail);
+
+    if (typedEmail && !isAllowedAccessEmailDomain(typedEmail)) {
+      setAdminLoginError(allowedAccessEmailMessage);
+      return;
+    }
+
     setAdminLoginError("");
 
     try {
@@ -3580,10 +3830,15 @@ function CoreAgendaProApp() {
   }
 
   async function loginAdmin() {
-    const normalizedEmail = adminEmail.trim().toLowerCase();
+    const normalizedEmail = normalizeAccessEmail(adminEmail);
 
     if (!normalizedEmail || !adminPassword) {
       setAdminLoginError("Informe o e-mail e a senha cadastrados.");
+      return;
+    }
+
+    if (!isAllowedAccessEmailDomain(normalizedEmail)) {
+      setAdminLoginError(allowedAccessEmailMessage);
       return;
     }
 
@@ -3869,12 +4124,13 @@ function CoreAgendaProApp() {
           </button>
 
           <button type="button" className="googleButton" onClick={loginWithGoogle}>
-            Entrar com Google
+            <span className="googleMark" aria-hidden="true">G</span>
+            <span>Entrar com Gmail / Google</span>
           </button>
 
           <p className="adminNote">
-            Use o e-mail cadastrado pela plataforma. O dono pode alterar a própria senha
-            dentro da aba Conta.
+            Use apenas e-mail @gmail.com ou @agendapro.com cadastrado pela plataforma.
+            O dono pode alterar a própria senha dentro da aba Conta.
           </p>
         </section>
       </main>
@@ -3919,7 +4175,10 @@ function CoreAgendaProApp() {
     closeToday,
     cloudSaving,
     cloudStatus,
+    completeAppointment,
     completedSetupItems,
+    commissionsAvailable,
+    confirmAppointment,
     confirmAppointmentPayment,
     confirmationSent,
     copyText,
@@ -3943,6 +4202,7 @@ function CoreAgendaProApp() {
     handleBackgroundUpload,
     handleLogoUpload,
     handlePortfolioImageUpload,
+    handleProfessionalPhotoUpload,
     hasChosenService,
     history,
     isDeveloperRole,
@@ -4058,6 +4318,7 @@ function CoreAgendaProApp() {
     updateWaitlistStatus,
     updateWorkingDay,
     visibleAdminTabs,
+    visualAgendaAvailable,
     waitlist,
     waitlistAvailable,
     waitlistSent,

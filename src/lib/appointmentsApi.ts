@@ -1,7 +1,20 @@
-import { callRpcWithRestFallback, fetchJson, postJson } from "./apiCore";
+import { callAdminRpc, callRpcWithRestFallback, fetchJson, getSessionToken, postJson } from "./apiCore";
 
-export function getAdminAppointments(payload: Record<string, unknown>) {
-  return callRpcWithRestFallback("get_admin_appointments", payload);
+export async function getAdminAppointments(payload: Record<string, unknown>) {
+  try {
+    const token = await getSessionToken();
+    const response = (await postJson("/api/admin-appointments", payload, token)) as {
+      appointments?: unknown[];
+    };
+
+    return { data: response.appointments || [], error: null };
+  } catch (backendError) {
+    const result = await callAdminRpc("get_admin_appointments", payload);
+
+    if (!result.error) return result;
+
+    return { data: null, error: backendError || result.error };
+  }
 }
 
 export function bookAppointmentV2(payload: Record<string, unknown>) {
@@ -25,7 +38,7 @@ export function requestPublicReschedule(payload: Record<string, unknown>) {
 }
 
 export function updateAppointmentAction(payload: Record<string, unknown>) {
-  return callRpcWithRestFallback("update_appointment_action", payload);
+  return callAdminRpc("update_appointment_action", payload);
 }
 
 export function joinWaitlist(payload: Record<string, unknown>) {
@@ -33,7 +46,7 @@ export function joinWaitlist(payload: Record<string, unknown>) {
 }
 
 export function updateWaitlistStatus(payload: Record<string, unknown>) {
-  return callRpcWithRestFallback("update_waitlist_status", payload);
+  return callAdminRpc("update_waitlist_status", payload);
 }
 
 export function getWhatsappStatus() {
@@ -42,4 +55,8 @@ export function getWhatsappStatus() {
 
 export function sendWhatsappMessage(payload: Record<string, unknown>) {
   return postJson("/api/send-whatsapp", payload);
+}
+
+export function sendWhatsappAppointmentTemplates(payload: Record<string, unknown>) {
+  return postJson("/api/whatsapp/send-template", payload);
 }

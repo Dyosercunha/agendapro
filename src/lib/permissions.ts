@@ -2,7 +2,9 @@ import type { AdminRole } from "../types/app";
 
 export const adminTabIds = [
   "dashboard",
+  "agendaToday",
   "agenda",
+  "agendaPremium",
   "customers",
   "services",
   "professionals",
@@ -14,7 +16,7 @@ export const adminTabIds = [
 
 export type AdminTabId = (typeof adminTabIds)[number];
 
-const employeeTabs: AdminTabId[] = ["dashboard", "agenda", "customers"];
+const employeeTabs: AdminTabId[] = ["dashboard", "agendaToday", "agenda", "customers"];
 
 export const permissionRules: Record<AdminRole, AdminTabId[]> = {
   desenvolvedor: [...adminTabIds],

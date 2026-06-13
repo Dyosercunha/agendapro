@@ -75,6 +75,34 @@ export async function callRpc(functionName: string, payload: Record<string, unkn
   return supabase.rpc(functionName, payload);
 }
 
+export async function hasAuthSession() {
+  const { data, error } = await supabase.auth.getSession();
+
+  if (error) return false;
+
+  return Boolean(data?.session?.access_token);
+}
+
+export async function callAdminRpc(
+  functionName: string,
+  payload: Record<string, unknown> = {}
+) {
+  const { data, error } = await supabase.auth.getSession();
+
+  if (error) {
+    return apiResultError(apiErrorText(error), { code: "AUTH_SESSION_ERROR" });
+  }
+
+  if (!data?.session?.access_token) {
+    return apiResultError(
+      "Sessão do painel expirada. Entre novamente pelo login da barbearia para salvar na nuvem.",
+      { code: "AUTH_SESSION_REQUIRED" }
+    );
+  }
+
+  return callRpc(functionName, payload);
+}
+
 export async function callRpcWithRestFallback(
   functionName: string,
   payload: Record<string, unknown> = {},

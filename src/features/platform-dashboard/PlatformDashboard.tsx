@@ -3,13 +3,21 @@ import type { Session } from "@supabase/supabase-js";
 import {
   getAdminAuthHealth,
   getAuthSession,
+  getPlatformAuthAccesses,
   loginWithEmailPassword,
   loginWithGoogleRedirect,
   logoutAuth,
   onAuthStateChange,
   syncAdminAuthUser,
+  syncPlatformAuthUser,
+  updateCurrentPassword,
 } from "../../lib/authApi";
 import { getWhatsappStatus, sendWhatsappMessage } from "../../lib/appointmentsApi";
+import {
+  allowedAccessEmailMessage,
+  isAllowedAccessEmailDomain,
+  normalizeAccessEmail,
+} from "../../lib/emailAccess";
 import {
   archivePlatformBarbershop,
   callPlatformMaintenance as callPlatformMaintenanceRequest,
@@ -30,15 +38,19 @@ import {
   statusLabel as commercialStatusLabel,
   statusOptions,
 } from "../../lib/commercial";
-import { featureLabels } from "../../lib/features";
+import {
+  featureMinimumPlanLabel,
+  featureUpgradeLabel,
+  planMeetsFeaturePlan,
+  platformFeatures,
+} from "../../lib/features";
 import { permissionScenarioMatrix } from "../../lib/permissions";
 import type { FeatureFlag, FeatureKey, PlatformShop, PlanKey, SubscriptionStatus } from "../../types/app";
 import "../../styles.css";
 
 const creationStatusOptions = statusOptions.filter((item) => item.value !== "archived");
-const platformFeatureKeys = Object.keys(featureLabels) as FeatureKey[];
 
-type PlatformTab = "barbershops" | "diagnostics";
+type PlatformTab = "barbershops" | "diagnostics" | "access";
 
 type PlatformFilter = "all" | SubscriptionStatus | "pending" | string;
 
@@ -47,12 +59,23 @@ type PlatformStats = {
   archived?: number;
   blocked?: number;
   cancelled?: number;
+  churn_month?: number;
+  churn_risk?: number;
+  mrr?: number;
+  mrr_history?: MrrPoint[];
   monthly_revenue?: number;
+  new_barbershops_month?: number;
   next_billing?: string | null;
   overdue?: number;
   overdue_revenue?: number;
   total?: number;
   trial?: number;
+};
+
+type MrrPoint = {
+  label?: string;
+  month?: string;
+  value?: number;
 };
 
 type PlatformFeatureFlags = Record<string, FeatureFlag | undefined>;
@@ -79,6 +102,7 @@ type NewShopForm = {
   address: string;
   address_number: string;
   cep: string;
+  logo_url: string;
   monthly_status: SubscriptionStatus | "pending";
   name: string;
   next_billing_date: string;
@@ -90,6 +114,31 @@ type NewShopForm = {
   slug: string;
   theme_color: string;
   whatsapp: string;
+};
+
+type OnboardingService = {
+  duration: number | string;
+  name: string;
+  price: number | string;
+};
+
+type OnboardingProfessional = {
+  name: string;
+  photo_url: string;
+};
+
+type OnboardingHour = {
+  enabled: boolean;
+  end_time: string;
+  start_time: string;
+  week_day: number;
+};
+
+type OnboardingCreatedShop = {
+  barbershop_id?: string;
+  link_cliente?: string;
+  link_painel?: string;
+  slug: string;
 };
 
 type CepAddressResponse = {
@@ -136,6 +185,24 @@ type SystemHealth = {
 type PlatformLogin = {
   email: string;
   password: string;
+};
+
+type PlatformAccessRecord = {
+  active?: boolean;
+  created_at?: string;
+  email: string;
+};
+
+type PlatformAccessForm = {
+  active: boolean;
+  confirm: string;
+  email: string;
+  password: string;
+};
+
+type PlatformPasswordForm = {
+  confirm: string;
+  next: string;
 };
 
 type CloudAudit = {
@@ -303,6 +370,7 @@ function emptyForm(): NewShopForm {
     whatsapp: "",
     owner_email: "",
     owner_password: "",
+    logo_url: "",
     plan: "professional",
     monthly_status: "trial",
     next_billing_date: "",
@@ -313,6 +381,45 @@ function emptyForm(): NewShopForm {
     theme_color: "#22c55e",
     plan_price: planPriceFor("professional"),
   };
+}
+
+const onboardingSteps = [
+  "Dados",
+  "Serviços",
+  "Equipe",
+  "Horários",
+  "Pronto",
+];
+
+const weekDayLabels = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+
+function defaultOnboardingServices(): OnboardingService[] {
+  return [
+    { name: "Corte de cabelo", duration: 30, price: 35 },
+    { name: "Barba", duration: 20, price: 25 },
+  ];
+}
+
+function defaultOnboardingProfessionals(): OnboardingProfessional[] {
+  return [{ name: "", photo_url: "" }];
+}
+
+function defaultOnboardingHours(): OnboardingHour[] {
+  return weekDayLabels.map((_, weekDay) => ({
+    week_day: weekDay,
+    enabled: weekDay >= 2 && weekDay <= 6,
+    start_time: "10:00",
+    end_time: "20:00",
+  }));
+}
+
+function fileToDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("NÃ£o foi possÃ­vel carregar a imagem."));
+    reader.readAsDataURL(file);
+  });
 }
 
 function statusBadge(status: unknown, label?: unknown) {
@@ -381,6 +488,65 @@ function StatCard({ label, value, hint }: StatCardProps) {
   );
 }
 
+function MrrLineChart({ points = [] }: { points?: MrrPoint[] }) {
+  const safePoints = points.length
+    ? points
+    : Array.from({ length: 6 }, (_, index) => ({
+        label: `M-${5 - index}`,
+        value: 0,
+      }));
+  const values = safePoints.map((point) => Number(point.value || 0));
+  const max = Math.max(...values, 1);
+  const width = 560;
+  const height = 170;
+  const paddingX = 22;
+  const paddingY = 20;
+  const step = safePoints.length > 1 ? (width - paddingX * 2) / (safePoints.length - 1) : 0;
+  const coords = safePoints.map((point, index) => {
+    const value = Number(point.value || 0);
+    const x = paddingX + index * step;
+    const y = height - paddingY - (value / max) * (height - paddingY * 2);
+    return { ...point, value, x, y };
+  });
+  const path = coords
+    .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`)
+    .join(" ");
+
+  return (
+    <article className="platformMrrChart">
+      <div className="platformChartTitle">
+        <div>
+          <span>Evolução</span>
+          <h2>MRR dos últimos 6 meses</h2>
+        </div>
+        <strong>{money(values[values.length - 1] || 0)}</strong>
+      </div>
+
+      <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Evolução do MRR">
+        <defs>
+          <linearGradient id="platformMrrGradient" x1="0" x2="1" y1="0" y2="0">
+            <stop offset="0%" stopColor="#22c55e" stopOpacity="0.18" />
+            <stop offset="100%" stopColor="#4ade80" stopOpacity="0.9" />
+          </linearGradient>
+        </defs>
+        <path
+          d={`${path} L ${width - paddingX} ${height - paddingY} L ${paddingX} ${height - paddingY} Z`}
+          fill="rgba(34, 197, 94, 0.08)"
+        />
+        <path d={path} fill="none" stroke="url(#platformMrrGradient)" strokeLinecap="round" strokeWidth="5" />
+        {coords.map((point) => (
+          <g key={`${point.month || point.label}-${point.x}`}>
+            <circle cx={point.x} cy={point.y} fill="#22c55e" r="5" />
+            <text x={point.x} y={height - 4} textAnchor="middle">
+              {point.label || point.month}
+            </text>
+          </g>
+        ))}
+      </svg>
+    </article>
+  );
+}
+
 function checkedAtText() {
   return new Date().toLocaleString("pt-BR", {
     day: "2-digit",
@@ -412,6 +578,12 @@ export default function PlatformDashboard() {
   const [message, setMessage] = useState("");
   const [dashboard, setDashboard] = useState<PlatformDashboardData>({ stats: {}, barbershops: [] });
   const [newShop, setNewShop] = useState(emptyForm());
+  const [onboardingStep, setOnboardingStep] = useState(1);
+  const [onboardingCreated, setOnboardingCreated] = useState<OnboardingCreatedShop | null>(null);
+  const [onboardingServices, setOnboardingServices] = useState<OnboardingService[]>(defaultOnboardingServices);
+  const [onboardingProfessionals, setOnboardingProfessionals] =
+    useState<OnboardingProfessional[]>(defaultOnboardingProfessionals);
+  const [onboardingHours, setOnboardingHours] = useState<OnboardingHour[]>(defaultOnboardingHours);
   const [selectedShop, setSelectedShop] = useState<PlatformShopRecord | null>(null);
   const [saving, setSaving] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
@@ -421,6 +593,17 @@ export default function PlatformDashboard() {
   const [platformLogin, setPlatformLogin] = useState<PlatformLogin>({
     email: "appagenda.pro@gmail.com",
     password: "",
+  });
+  const [platformAccesses, setPlatformAccesses] = useState<PlatformAccessRecord[]>([]);
+  const [platformAccessForm, setPlatformAccessForm] = useState<PlatformAccessForm>({
+    active: true,
+    confirm: "",
+    email: "",
+    password: "",
+  });
+  const [platformPasswordForm, setPlatformPasswordForm] = useState<PlatformPasswordForm>({
+    confirm: "",
+    next: "",
   });
   const [cloudAudit, setCloudAudit] = useState<CloudAudit>({ barbershops: [] });
   const [systemHealth, setSystemHealth] = useState<SystemHealth>({
@@ -452,6 +635,13 @@ export default function PlatformDashboard() {
       .filter((shop) => filter === "all" || shop.status_label === filter || shop.monthly_status === filter)
       .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "pt-BR"));
   }, [shops, filter]);
+  const onboardingSlug = onboardingCreated?.slug || newShop.slug || makeSlug(newShop.name);
+  const platformOrigin =
+    typeof window !== "undefined" ? window.location.origin : "https://calendarproapp.vercel.app";
+  const onboardingClientLink =
+    onboardingCreated?.link_cliente || (onboardingSlug ? `${platformOrigin}/agendamento/${onboardingSlug}` : "");
+  const onboardingPanelLink =
+    onboardingCreated?.link_painel || (onboardingSlug ? `${platformOrigin}/painel/${onboardingSlug}` : "");
 
   useEffect(() => {
     let mounted = true;
@@ -502,15 +692,36 @@ export default function PlatformDashboard() {
 
   async function checkDeveloper(currentSession: Session | null = session) {
     try {
-    if (!currentSession?.user?.email) {
+      const sessionEmail = normalizeAccessEmail(currentSession?.user?.email || "");
+
+    if (!sessionEmail) {
       setIsDeveloper(false);
       setLoading(false);
-      setMessage("Faça login com o Google desenvolvedor para puxar e salvar os dados na nuvem.");
+      setMessage("Faca login com o e-mail desenvolvedor para puxar e salvar os dados na nuvem.");
+      return;
+    }
+
+    if (!isAllowedAccessEmailDomain(sessionEmail)) {
+      await logoutAuth();
+      setIsDeveloper(false);
+      setLoading(false);
+      setMessage(allowedAccessEmailMessage);
       return;
     }
 
     const { data, error } = await withTimeout(isPlatformAdmin(), "A verificação do desenvolvedor");
-    if (error || data !== true) {
+    let hasPlatformAccess = !error && data === true;
+
+    if (!hasPlatformAccess) {
+      try {
+        await withTimeout(getPlatformAuthAccesses(), "A validação segura do desenvolvedor");
+        hasPlatformAccess = true;
+      } catch (fallbackError) {
+        rememberError("Validação segura do desenvolvedor", fallbackError);
+      }
+    }
+
+    if (!hasPlatformAccess) {
       setIsDeveloper(false);
       setLoading(false);
       setMessage("Este e-mail não está liberado como desenvolvedor da plataforma.");
@@ -520,6 +731,7 @@ export default function PlatformDashboard() {
     setIsDeveloper(true);
     setMessage("");
     await loadDashboard();
+    await loadPlatformAccesses();
     await checkSystemHealth();
     } catch (error) {
       setIsDeveloper(false);
@@ -649,6 +861,136 @@ export default function PlatformDashboard() {
     }
   }
 
+  async function loadPlatformAccesses() {
+    try {
+      const result = (await getPlatformAuthAccesses()) as {
+        accesses?: PlatformAccessRecord[];
+        error?: unknown;
+        ok?: boolean;
+      };
+
+      if (result.error || result.ok === false) throw result.error || result;
+
+      setPlatformAccesses(result.accesses || []);
+    } catch (error) {
+      rememberError("Acessos da plataforma", error);
+    }
+  }
+
+  async function updatePlatformOwnPassword() {
+    const nextPassword = platformPasswordForm.next.trim();
+    const confirmation = platformPasswordForm.confirm.trim();
+
+    if (nextPassword.length < 6) {
+      setMessage("A nova senha precisa ter pelo menos 6 caracteres.");
+      return;
+    }
+
+    if (nextPassword !== confirmation) {
+      setMessage("A confirmação da senha não confere.");
+      return;
+    }
+
+    setSaving("platform-password");
+    setMessage("");
+
+    try {
+      const { error } = await updateCurrentPassword(nextPassword);
+      if (error) throw error;
+
+      setPlatformPasswordForm({ next: "", confirm: "" });
+      setMessage("Senha do desenvolvedor atualizada. No próximo acesso você já pode entrar com e-mail e senha.");
+    } catch (error) {
+      rememberError("Alterar senha do desenvolvedor", error);
+      setMessage("Não foi possível alterar sua senha: " + errorText(error));
+    } finally {
+      setSaving("");
+    }
+  }
+
+  async function savePlatformAccess(event?: React.FormEvent<HTMLFormElement>) {
+    event?.preventDefault();
+
+    const email = normalizeAccessEmail(platformAccessForm.email);
+    const password = platformAccessForm.password.trim();
+    const confirmation = platformAccessForm.confirm.trim();
+
+    if (!email.includes("@")) {
+      setMessage("Informe um e-mail válido para o novo acesso.");
+      return;
+    }
+
+    if (!isAllowedAccessEmailDomain(email)) {
+      setMessage(allowedAccessEmailMessage);
+      return;
+    }
+
+    if (password.length < 6) {
+      setMessage("Informe uma senha com pelo menos 6 caracteres para este acesso.");
+      return;
+    }
+
+    if (password !== confirmation) {
+      setMessage("A confirmação da senha deste acesso não confere.");
+      return;
+    }
+
+    setSaving("platform-access");
+    setMessage("");
+
+    try {
+      const result = (await syncPlatformAuthUser({
+        active: platformAccessForm.active,
+        email,
+        password,
+      })) as {
+        accesses?: PlatformAccessRecord[];
+        error?: unknown;
+        ok?: boolean;
+      };
+
+      if (result.error || result.ok === false) throw result.error || result;
+
+      setPlatformAccessForm({ active: true, confirm: "", email: "", password: "" });
+      setPlatformAccesses(result.accesses || []);
+      setMessage("Acesso desenvolvedor criado/atualizado. Este e-mail já pode entrar com senha.");
+    } catch (error) {
+      rememberError("Salvar acesso desenvolvedor", error);
+      setMessage("Não foi possível salvar o acesso desenvolvedor: " + errorText(error));
+    } finally {
+      setSaving("");
+    }
+  }
+
+  async function disablePlatformAccess(email: string) {
+    const clean = String(email || "").trim().toLowerCase();
+    if (!clean) return;
+
+    setSaving("disable-platform-" + clean);
+    setMessage("");
+
+    try {
+      const result = (await syncPlatformAuthUser({
+        active: false,
+        email: clean,
+      })) as {
+        accesses?: PlatformAccessRecord[];
+        error?: unknown;
+        ok?: boolean;
+      };
+
+      if (result.error || result.ok === false) throw result.error || result;
+
+      setPlatformAccesses(result.accesses || []);
+      setMessage("Acesso desenvolvedor desativado.");
+    } catch (error) {
+      rememberError("Desativar acesso desenvolvedor", error);
+      setMessage("Não foi possível desativar este acesso: " + errorText(error));
+    } finally {
+      setSaving("");
+    }
+  }
+
   async function callPlatformMaintenance(payload: Record<string, unknown>) {
     return callPlatformMaintenanceRequest(payload) as Promise<MaintenanceResult>;
   }
@@ -700,6 +1042,13 @@ export default function PlatformDashboard() {
   }
 
   async function login() {
+    const typedEmail = normalizeAccessEmail(platformLogin.email);
+
+    if (typedEmail && !isAllowedAccessEmailDomain(typedEmail)) {
+      setMessage(allowedAccessEmailMessage);
+      return;
+    }
+
     const { error } = await loginWithGoogleRedirect(`${window.location.origin}/plataforma?platform=1`);
     if (error) setMessage(errorText(error));
   }
@@ -709,7 +1058,14 @@ export default function PlatformDashboard() {
     setMessage("");
 
     try {
-      const { error } = await loginWithEmailPassword(platformLogin.email, platformLogin.password);
+      const email = normalizeAccessEmail(platformLogin.email);
+
+      if (!isAllowedAccessEmailDomain(email)) {
+        setMessage(allowedAccessEmailMessage);
+        return;
+      }
+
+      const { error } = await loginWithEmailPassword(email, platformLogin.password);
 
       if (error) throw error;
     } catch (error) {
@@ -747,6 +1103,259 @@ export default function PlatformDashboard() {
       setMessage("Endereço encontrado pelo CEP. Confira antes de cadastrar.");
     } catch (error) {
       rememberError("Buscar CEP da nova barbearia", error);
+      setMessage(errorText(error));
+    } finally {
+      setSaving("");
+    }
+  }
+
+  async function handleNewShopLogoUpload(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      updateNewShop("logo_url", dataUrl);
+      setMessage("Logo carregada. Salve a etapa para sincronizar na nuvem.");
+    } catch (error) {
+      rememberError("Logo da nova barbearia", error);
+      setMessage(errorText(error));
+    }
+  }
+
+  function updateOnboardingService<K extends keyof OnboardingService>(
+    index: number,
+    field: K,
+    value: OnboardingService[K]
+  ) {
+    setOnboardingServices((current) =>
+      current.map((service, serviceIndex) => (serviceIndex === index ? { ...service, [field]: value } : service))
+    );
+  }
+
+  function updateOnboardingProfessional<K extends keyof OnboardingProfessional>(
+    index: number,
+    field: K,
+    value: OnboardingProfessional[K]
+  ) {
+    setOnboardingProfessionals((current) =>
+      current.map((professional, professionalIndex) =>
+        professionalIndex === index ? { ...professional, [field]: value } : professional
+      )
+    );
+  }
+
+  function updateOnboardingHour<K extends keyof OnboardingHour>(
+    index: number,
+    field: K,
+    value: OnboardingHour[K]
+  ) {
+    setOnboardingHours((current) =>
+      current.map((hour, hourIndex) => (hourIndex === index ? { ...hour, [field]: value } : hour))
+    );
+  }
+
+  async function handleOnboardingProfessionalPhoto(index: number, file?: File) {
+    if (!file) return;
+
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      updateOnboardingProfessional(index, "photo_url", dataUrl);
+      setMessage("Foto do profissional carregada. Salve a etapa para sincronizar.");
+    } catch (error) {
+      rememberError("Foto do profissional", error);
+      setMessage(errorText(error));
+    }
+  }
+
+  function resetOnboardingWizard() {
+    setNewShop(emptyForm());
+    setOnboardingStep(1);
+    setOnboardingCreated(null);
+    setOnboardingServices(defaultOnboardingServices());
+    setOnboardingProfessionals(defaultOnboardingProfessionals());
+    setOnboardingHours(defaultOnboardingHours());
+    setSlugTouched(false);
+  }
+
+  async function copyText(value: string, label = "Link") {
+    if (!value) return;
+
+    await navigator.clipboard?.writeText(value);
+    setMessage(`${label} copiado.`);
+  }
+
+  async function ensureOnboardingShop() {
+    const ownerPassword = String(newShop.owner_password || "").trim();
+    const targetSlug = onboardingCreated?.slug || newShop.slug || makeSlug(newShop.name);
+
+    if (!newShop.name.trim()) throw new Error("Informe o nome da barbearia.");
+    if (!newShop.owner_email.trim()) throw new Error("Informe o e-mail do dono.");
+    if (!onboardingCreated && ownerPassword.length < 6) {
+      throw new Error("Informe uma senha inicial do dono com pelo menos 6 caracteres.");
+    }
+
+    const payload = {
+      action: onboardingCreated ? "update-basic" : "create",
+      onboarding_input: true,
+      skip_defaults: true,
+      target_slug: targetSlug,
+      name_input: newShop.name,
+      slug_input: targetSlug,
+      whatsapp_input: onlyDigits(newShop.whatsapp),
+      owner_email_input: newShop.owner_email,
+      plan_input: newShop.plan,
+      monthly_status_input: newShop.monthly_status,
+      next_billing_date_input: newShop.next_billing_date || null,
+      address_input: newShop.address,
+      pix_key_input: newShop.pix_key,
+      theme_color_input: newShop.theme_color || "#22c55e",
+      plan_price_input: Number(newShop.plan_price || 0),
+      logo_url_input: newShop.logo_url || null,
+    };
+
+    const result = (await callPlatformMaintenance(payload)) as {
+      shop?: CreateShopResult;
+    };
+
+    const shop = result.shop || onboardingCreated || {
+      slug: targetSlug,
+      link_cliente: `${platformOrigin}/agendamento/${targetSlug}`,
+      link_painel: `${platformOrigin}/painel/${targetSlug}`,
+    };
+
+    if (!onboardingCreated && ownerPassword) {
+      await syncOwnerAuthUser({
+        id: shop.barbershop_id,
+        slug: shop.slug,
+        email: newShop.owner_email,
+        password: ownerPassword,
+        role: "owner",
+      });
+    }
+
+    setOnboardingCreated({
+      barbershop_id: shop.barbershop_id,
+      link_cliente: shop.link_cliente || `${platformOrigin}/agendamento/${shop.slug}`,
+      link_painel: shop.link_painel || `${platformOrigin}/painel/${shop.slug}`,
+      slug: String(shop.slug || targetSlug),
+    });
+
+    return shop;
+  }
+
+  async function saveOnboardingBasic() {
+    setSaving("onboarding-basic");
+    setMessage("");
+
+    try {
+      await ensureOnboardingShop();
+      await loadDashboard();
+      setOnboardingStep(2);
+      setMessage("Dados bÃ¡sicos salvos. Agora cadastre os serviÃ§os.");
+    } catch (error) {
+      rememberError("Onboarding dados bÃ¡sicos", error);
+      setMessage(ownerLoginErrorText(error));
+    } finally {
+      setSaving("");
+    }
+  }
+
+  async function saveOnboardingServices() {
+    setSaving("onboarding-services");
+    setMessage("");
+
+    try {
+      const shop = await ensureOnboardingShop();
+      const services = onboardingServices
+        .map((service, index) => ({
+          active: true,
+          duration: Math.max(5, Number(service.duration || 0)),
+          name: String(service.name || "").trim(),
+          price: Math.max(0, Number(service.price || 0)),
+          sort_order: index + 1,
+        }))
+        .filter((service) => service.name);
+
+      if (!services.length) throw new Error("Cadastre pelo menos um serviÃ§o.");
+
+      await callPlatformMaintenance({
+        action: "save-services",
+        services_input: services,
+        target_slug: shop.slug,
+      });
+
+      await loadDashboard();
+      setOnboardingStep(3);
+      setMessage("ServiÃ§os salvos. Agora cadastre a equipe ou pule se for solo.");
+    } catch (error) {
+      rememberError("Onboarding serviÃ§os", error);
+      setMessage(errorText(error));
+    } finally {
+      setSaving("");
+    }
+  }
+
+  async function saveOnboardingProfessionals(skipSolo = false) {
+    setSaving("onboarding-professionals");
+    setMessage("");
+
+    try {
+      const shop = await ensureOnboardingShop();
+      const professionals = skipSolo
+        ? []
+        : onboardingProfessionals
+            .map((professional) => ({
+              active: true,
+              name: String(professional.name || "").trim(),
+              photo_url: professional.photo_url || null,
+            }))
+            .filter((professional) => professional.name);
+
+      await callPlatformMaintenance({
+        action: "save-professionals",
+        professionals_input: professionals,
+        solo_input: skipSolo || !professionals.length,
+        target_slug: shop.slug,
+      });
+
+      await loadDashboard();
+      setOnboardingStep(4);
+      setMessage(skipSolo ? "Equipe marcada como solo. Configure os horÃ¡rios." : "Equipe salva. Configure os horÃ¡rios.");
+    } catch (error) {
+      rememberError("Onboarding equipe", error);
+      setMessage(errorText(error));
+    } finally {
+      setSaving("");
+    }
+  }
+
+  async function saveOnboardingHours() {
+    setSaving("onboarding-hours");
+    setMessage("");
+
+    try {
+      const shop = await ensureOnboardingShop();
+      const hours = onboardingHours.map((hour) => ({
+        enabled: Boolean(hour.enabled),
+        end_time: hour.end_time,
+        start_time: hour.start_time,
+        week_day: hour.week_day,
+      }));
+
+      if (!hours.some((hour) => hour.enabled)) throw new Error("Ative pelo menos um dia de funcionamento.");
+
+      await callPlatformMaintenance({
+        action: "save-hours",
+        target_slug: shop.slug,
+        working_hours_input: hours,
+      });
+
+      await loadDashboard();
+      setOnboardingStep(5);
+      setMessage("Onboarding concluÃ­do. O link da barbearia estÃ¡ pronto para divulgar.");
+    } catch (error) {
+      rememberError("Onboarding horÃ¡rios", error);
       setMessage(errorText(error));
     } finally {
       setSaving("");
@@ -796,7 +1405,7 @@ export default function PlatformDashboard() {
     setSaving("create");
 
     try {
-      const { data, error } = (await createBarbershopFull({
+      const createPayload = {
         name_input: newShop.name,
         slug_input: newShop.slug || makeSlug(newShop.name),
         whatsapp_input: onlyDigits(newShop.whatsapp),
@@ -807,32 +1416,61 @@ export default function PlatformDashboard() {
         address_input: newShop.address,
         pix_key_input: newShop.pix_key,
         theme_color_input: newShop.theme_color || "#22c55e",
-      })) as { data?: CreateShopResult | null; error?: unknown };
+      };
 
-      if (error) throw error;
+      const { data, error } = (await createBarbershopFull(createPayload)) as {
+        data?: CreateShopResult | null;
+        error?: unknown;
+      };
 
-      const priceSync = await updatePlatformBarbershop({
-        target_slug: newShop.slug || makeSlug(newShop.name),
-        name_input: newShop.name,
-        whatsapp_input: onlyDigits(newShop.whatsapp),
-        owner_email_input: newShop.owner_email,
-        plan_input: newShop.plan,
-        monthly_status_input: newShop.monthly_status,
-        next_billing_date_input: newShop.next_billing_date || null,
-        address_input: newShop.address,
-        pix_key_input: newShop.pix_key,
-        theme_color_input: newShop.theme_color || "#22c55e",
-        plan_price_input: Number(newShop.plan_price || 0),
-      });
+      let createdData = data || null;
+      let createdByMaintenance = false;
 
-      if (priceSync.error) throw priceSync.error;
+      if (error) {
+        const createErrorText = errorText(error).toLowerCase();
+        const shouldUseMaintenance =
+          createErrorText.includes("acesso restrito") ||
+          createErrorText.includes("permission denied") ||
+          createErrorText.includes("permiss");
 
-      const createdSlug = data?.slug || newShop.slug || makeSlug(newShop.name);
-      const createdPanelLink = data?.link_painel || `/painel/${createdSlug}`;
+        if (!shouldUseMaintenance) throw error;
+
+        const maintenanceCreate = (await callPlatformMaintenance({
+          action: "create",
+          ...createPayload,
+          plan_price_input: Number(newShop.plan_price || 0),
+        })) as {
+          shop?: CreateShopResult;
+        };
+
+        createdData = maintenanceCreate.shop || null;
+        createdByMaintenance = true;
+      }
+
+      if (!createdByMaintenance) {
+        const priceSync = await updatePlatformBarbershop({
+          target_slug: newShop.slug || makeSlug(newShop.name),
+          name_input: newShop.name,
+          whatsapp_input: onlyDigits(newShop.whatsapp),
+          owner_email_input: newShop.owner_email,
+          plan_input: newShop.plan,
+          monthly_status_input: newShop.monthly_status,
+          next_billing_date_input: newShop.next_billing_date || null,
+          address_input: newShop.address,
+          pix_key_input: newShop.pix_key,
+          theme_color_input: newShop.theme_color || "#22c55e",
+          plan_price_input: Number(newShop.plan_price || 0),
+        });
+
+        if (priceSync.error) throw priceSync.error;
+      }
+
+      const createdSlug = createdData?.slug || newShop.slug || makeSlug(newShop.name);
+      const createdPanelLink = createdData?.link_painel || `/painel/${createdSlug}`;
 
       try {
         await syncOwnerAuthUser({
-          id: data?.barbershop_id,
+          id: createdData?.barbershop_id,
           slug: createdSlug,
           email: newShop.owner_email,
           password: ownerPassword,
@@ -849,7 +1487,7 @@ export default function PlatformDashboard() {
       }
 
       setMessage(
-        `Barbearia cadastrada. Login do dono criado. Cliente: ${data?.link_cliente || ""} Painel: ${createdPanelLink} Abrindo o painel da barbearia...`
+        `Barbearia cadastrada. Login do dono criado. Cliente: ${createdData?.link_cliente || ""} Painel: ${createdPanelLink} Abrindo o painel da barbearia...`
       );
       setNewShop(emptyForm());
       setSlugTouched(false);
@@ -998,11 +1636,16 @@ export default function PlatformDashboard() {
     setMessage("");
 
     try {
-      const features = Object.keys(featureLabels).map((key) => ({
-        feature_key: key,
-        released: Boolean(selectedShop.features?.[key]?.released),
-        enabled: Boolean(selectedShop.features?.[key]?.enabled),
-      }));
+      const features = platformFeatures.map((feature) => {
+        const released = Boolean(selectedShop.features?.[feature.key]?.released);
+        const planAllows = planMeetsFeaturePlan(String(selectedShop.plan || ""), feature.minPlan);
+
+        return {
+          feature_key: feature.key,
+          released: planAllows && released,
+          enabled: planAllows && released && Boolean(selectedShop.features?.[feature.key]?.enabled),
+        };
+      });
 
       const { error } = await savePlatformFeatureFlags({
         target_slug: selectedShop.slug,
@@ -1067,21 +1710,33 @@ export default function PlatformDashboard() {
     });
   }
 
-  function updateFeature(key: FeatureKey | string, field: keyof FeatureFlag, value: boolean) {
+  function updateFeature(key: FeatureKey, field: keyof FeatureFlag, value: boolean) {
     setSelectedShop((current) => {
       if (!current) return current;
+      const feature = platformFeatures.find((item) => item.key === key);
+      if (!planMeetsFeaturePlan(String(current.plan || ""), feature?.minPlan)) {
+        return current;
+      }
 
       const previousFeature = current.features?.[key];
+      const nextFeature: FeatureFlag = {
+        enabled: Boolean(previousFeature?.enabled),
+        released: Boolean(previousFeature?.released),
+      };
+
+      if (field === "released") {
+        nextFeature.released = value;
+        nextFeature.enabled = value ? nextFeature.enabled : false;
+      } else {
+        nextFeature.enabled = value;
+        nextFeature.released = value ? true : nextFeature.released;
+      }
 
       return {
         ...current,
         features: {
           ...(current.features || {}),
-          [key]: {
-            enabled: Boolean(previousFeature?.enabled),
-            released: Boolean(previousFeature?.released),
-            [field]: value,
-          },
+          [key]: nextFeature,
         },
       };
     });
@@ -1131,7 +1786,8 @@ export default function PlatformDashboard() {
               {saving === "platform-login" ? "Entrando..." : "Entrar com e-mail e senha"}
             </button>
             <button type="button" className="platformSecondary platformLoginButton" onClick={login}>
-              Entrar com Google
+              <span className="googleMark" aria-hidden="true">G</span>
+              <span>Entrar com Gmail / Google</span>
             </button>
           </div>
         </section>
@@ -1167,6 +1823,41 @@ export default function PlatformDashboard() {
 
       {message ? <section className="platformCard platformNoticeCard">{message}</section> : null}
 
+      <section className="platformCard platformHealthOverview">
+        <div className="platformTitle">
+          <div>
+            <span>Saúde da plataforma</span>
+            <h2>Receita, crescimento e risco</h2>
+          </div>
+          <small>Calculado pela nuvem quando o SQL 27 estiver aplicado.</small>
+        </div>
+
+        <div className="platformHealthOverviewGrid">
+          <StatCard
+            label="MRR"
+            value={money(dashboard.stats?.mrr ?? dashboard.stats?.monthly_revenue ?? 0)}
+            hint="assinaturas ativas"
+          />
+          <StatCard
+            label="Novas barbearias no mês"
+            value={dashboard.stats?.new_barbershops_month ?? 0}
+            hint="cadastros do mês atual"
+          />
+          <StatCard
+            label="Churn do mês"
+            value={dashboard.stats?.churn_month ?? dashboard.stats?.cancelled ?? 0}
+            hint="cancelamentos no mês"
+          />
+          <StatCard
+            label="Em risco de churn"
+            value={dashboard.stats?.churn_risk ?? 0}
+            hint="ativas sem agenda há 30 dias"
+          />
+        </div>
+
+        <MrrLineChart points={dashboard.stats?.mrr_history || []} />
+      </section>
+
       <section className="platformStats platformStatsPro">
         <StatCard label="Faturamento mensal previsto" value={money(dashboard.stats?.monthly_revenue || 0)} hint="Ativos + teste" />
         <StatCard label="Em atraso" value={money(dashboard.stats?.overdue_revenue || 0)} hint={`${dashboard.stats?.overdue || 0} barbearia(s)`} />
@@ -1190,6 +1881,16 @@ export default function PlatformDashboard() {
           onClick={() => setPlatformTab("diagnostics")}
         >
           Diagnóstico
+        </button>
+        <button
+          type="button"
+          className={platformTab === "access" ? "active" : ""}
+          onClick={() => {
+            setPlatformTab("access");
+            loadPlatformAccesses();
+          }}
+        >
+          Acessos
         </button>
       </section>
 
@@ -1316,6 +2017,178 @@ export default function PlatformDashboard() {
       </section>
       )}
 
+      {platformTab === "access" && (
+        <section className="platformAccessGrid">
+          <article className="platformCard platformAccessCard">
+            <div className="platformTitle">
+              <div>
+                <span>Acesso atual</span>
+                <h2>Minha senha</h2>
+              </div>
+            </div>
+
+            <p className="platformMuted">
+              Defina uma senha para o e-mail logado. Depois disso, voce pode entrar no Painel Plataforma por
+              e-mail e senha, sem depender do login Google.
+            </p>
+
+            <label>E-mail logado</label>
+            <input value={session?.user?.email || ""} readOnly />
+
+            <label>Nova senha</label>
+            <input
+              type="password"
+              autoComplete="new-password"
+              value={platformPasswordForm.next}
+              onChange={(event) =>
+                setPlatformPasswordForm({ ...platformPasswordForm, next: event.target.value })
+              }
+              placeholder="minimo 6 caracteres"
+            />
+
+            <label>Confirmar nova senha</label>
+            <input
+              type="password"
+              autoComplete="new-password"
+              value={platformPasswordForm.confirm}
+              onChange={(event) =>
+                setPlatformPasswordForm({ ...platformPasswordForm, confirm: event.target.value })
+              }
+              placeholder="repita a nova senha"
+            />
+
+            <button
+              type="button"
+              className="platformPrimary"
+              disabled={saving === "platform-password"}
+              onClick={updatePlatformOwnPassword}
+            >
+              {saving === "platform-password" ? "Salvando senha..." : "Alterar minha senha"}
+            </button>
+          </article>
+
+          <article className="platformCard platformAccessCard">
+            <div className="platformTitle">
+              <div>
+                <span>Desenvolvedores</span>
+                <h2>Novo acesso ao painel</h2>
+              </div>
+            </div>
+
+            <p className="platformMuted">
+              Cadastre outro e-mail desenvolvedor. Ele tera acesso ao Painel Plataforma e aos paineis das
+              barbearias cadastradas.
+            </p>
+
+            <form className="platformForm" onSubmit={savePlatformAccess}>
+              <label>E-mail do novo acesso</label>
+              <input
+                type="email"
+                value={platformAccessForm.email}
+                onChange={(event) =>
+                  setPlatformAccessForm({ ...platformAccessForm, email: event.target.value })
+                }
+                placeholder="novo@email.com"
+                required
+              />
+
+              <label>Senha inicial</label>
+              <input
+                type="password"
+                autoComplete="new-password"
+                value={platformAccessForm.password}
+                onChange={(event) =>
+                  setPlatformAccessForm({ ...platformAccessForm, password: event.target.value })
+                }
+                placeholder="minimo 6 caracteres"
+                minLength={6}
+                required
+              />
+
+              <label>Confirmar senha</label>
+              <input
+                type="password"
+                autoComplete="new-password"
+                value={platformAccessForm.confirm}
+                onChange={(event) =>
+                  setPlatformAccessForm({ ...platformAccessForm, confirm: event.target.value })
+                }
+                placeholder="repita a senha"
+                minLength={6}
+                required
+              />
+
+              <label className="platformCheckLine">
+                <input
+                  type="checkbox"
+                  checked={platformAccessForm.active}
+                  onChange={(event) =>
+                    setPlatformAccessForm({ ...platformAccessForm, active: event.target.checked })
+                  }
+                />
+                Acesso ativo
+              </label>
+
+              <button
+                type="submit"
+                className="platformPrimary"
+                disabled={saving === "platform-access"}
+              >
+                {saving === "platform-access" ? "Salvando acesso..." : "Salvar acesso desenvolvedor"}
+              </button>
+            </form>
+          </article>
+
+          <article className="platformCard platformAccessCard platformAccessListCard">
+            <div className="platformTitle">
+              <div>
+                <span>Autonomia</span>
+                <h2>Acessos cadastrados</h2>
+              </div>
+              <button type="button" className="platformSecondary" onClick={loadPlatformAccesses}>
+                Atualizar lista
+              </button>
+            </div>
+
+            <div className="platformAccessList">
+              {platformAccesses.length ? (
+                platformAccesses.map((access) => {
+                  const email = String(access.email || "").toLowerCase();
+                  const protectedAccess =
+                    email === "dyoser2@gmail.com" || email === "appagenda.pro@gmail.com";
+
+                  return (
+                    <div className="platformAccessItem" key={email}>
+                      <div>
+                        <strong>{email}</strong>
+                        <span>{access.active === false ? "Inativo" : "Ativo"}</span>
+                        {access.created_at ? (
+                          <small>Criado em {new Date(access.created_at).toLocaleDateString("pt-BR")}</small>
+                        ) : null}
+                      </div>
+                      <button
+                        type="button"
+                        className="platformDangerGhost"
+                        disabled={
+                          protectedAccess ||
+                          saving === "disable-platform-" + email ||
+                          access.active === false
+                        }
+                        onClick={() => disablePlatformAccess(email)}
+                      >
+                        {saving === "disable-platform-" + email ? "Desativando..." : "Desativar"}
+                      </button>
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="platformMuted">Clique em atualizar lista para puxar os acessos da nuvem.</p>
+              )}
+            </div>
+          </article>
+        </section>
+      )}
+
       {platformTab === "barbershops" && (
       <>
 
@@ -1330,8 +2203,174 @@ export default function PlatformDashboard() {
       </section>
 
       <section className="platformGrid">
-        <div className="platformCard platformNewShopCard">
+        <div className="platformCard platformNewShopCard platformOnboardingCard">
           <div className="platformTitle"><div><span>Cadastro</span><h2>Nova barbearia</h2></div></div>
+          <div className="platformWizardSteps" aria-label="Etapas do cadastro">
+            {onboardingSteps.map((step, index) => {
+              const stepNumber = index + 1;
+              return (
+                <button
+                  type="button"
+                  className={[
+                    "platformWizardStep",
+                    onboardingStep === stepNumber ? "active" : "",
+                    onboardingStep > stepNumber ? "done" : "",
+                  ].join(" ")}
+                  key={step}
+                  onClick={() => {
+                    if (stepNumber === 1 || onboardingCreated || stepNumber <= onboardingStep) {
+                      setOnboardingStep(stepNumber);
+                    }
+                  }}
+                >
+                  <span>{stepNumber}</span>
+                  {step}
+                </button>
+              );
+            })}
+          </div>
+          <div className="platformWizardProgress"><span style={{ width: `${Math.max(20, onboardingStep * 20)}%` }} /></div>
+
+          {onboardingStep === 1 && (
+            <section className="platformWizardPanel platformForm">
+              <div className="platformWizardIntro">
+                <span>Etapa 1</span>
+                <h3>Dados bÃ¡sicos</h3>
+                <p>Crie a barbearia, o acesso do dono e a identidade inicial sem perder o progresso.</p>
+              </div>
+
+              <label>Nome da barbearia</label>
+              <input value={newShop.name} onChange={(event) => updateNewShop("name", event.target.value)} placeholder="Master Barbearia" />
+              <label>Slug do link</label>
+              <input value={newShop.slug} onChange={(event) => { setSlugTouched(true); updateNewShop("slug", event.target.value); }} placeholder="master-barbearia" />
+              <div className="platformTwoCols">
+                <span><label>WhatsApp</label><input value={newShop.whatsapp} onChange={(event) => updateNewShop("whatsapp", event.target.value)} placeholder="51999999999" /></span>
+                <span><label>Cor principal</label><input value={newShop.theme_color} onChange={(event) => updateNewShop("theme_color", event.target.value)} type="color" /></span>
+              </div>
+              <label>E-mail do dono</label>
+              <input value={newShop.owner_email} onChange={(event) => updateNewShop("owner_email", event.target.value)} type="email" placeholder="dono@gmail.com" />
+              <label>Senha inicial do dono</label>
+              <input value={newShop.owner_password || ""} onChange={(event) => updateNewShop("owner_password", event.target.value)} type="password" autoComplete="new-password" minLength={6} placeholder="mÃ­nimo 6 caracteres" />
+              <div className="platformTwoCols">
+                <span><label>Plano</label><select value={newShop.plan} onChange={(event) => updateNewShop("plan", event.target.value)}>{planOptions.map((plan) => <option key={plan.id} value={plan.id}>{plan.name}</option>)}</select></span>
+                <span><label>Status</label><select value={newShop.monthly_status} onChange={(event) => updateNewShop("monthly_status", event.target.value as SubscriptionStatus)}>{creationStatusOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></span>
+              </div>
+              <div className="platformTwoCols">
+                <span><label>Vencimento</label><input value={newShop.next_billing_date} onChange={(event) => updateNewShop("next_billing_date", event.target.value)} type="date" /></span>
+                <span><label>Valor mensal</label><input value={newShop.plan_price || ""} onChange={(event) => updateNewShop("plan_price", event.target.value)} type="number" min="0" step="1" placeholder="89" /></span>
+              </div>
+              <div className="platformTwoCols">
+                <span><label>CEP</label><input value={newShop.cep || ""} onChange={(event) => updateNewShop("cep", event.target.value)} placeholder="00000000" inputMode="numeric" /></span>
+                <span><label>NÃºmero</label><input value={newShop.address_number || ""} onChange={(event) => updateNewShop("address_number", event.target.value)} placeholder="123" /></span>
+              </div>
+              <button type="button" className="platformSecondary platformCepButton" disabled={saving === "cep-create"} onClick={fillNewShopAddressByCep}>{saving === "cep-create" ? "Buscando CEP..." : "Puxar endereÃ§o pelo CEP"}</button>
+              <label>EndereÃ§o completo</label>
+              <input value={newShop.address} onChange={(event) => updateNewShop("address", event.target.value)} placeholder="Rua, nÃºmero - bairro - cidade" />
+              <label>Logo ou foto da marca</label>
+              <input type="file" accept="image/*" onChange={handleNewShopLogoUpload} />
+              {newShop.logo_url ? (
+                <div className="platformWizardLogoPreview">
+                  <img src={newShop.logo_url} alt="Logo da nova barbearia" />
+                  <div><strong>{newShop.name || "Nova barbearia"}</strong><span>PrÃ©via da marca</span></div>
+                </div>
+              ) : null}
+              <label>Chave PIX</label>
+              <input value={newShop.pix_key} onChange={(event) => updateNewShop("pix_key", event.target.value)} placeholder="CPF, CNPJ, e-mail ou telefone" />
+              <button type="button" className="platformPrimary" disabled={saving === "onboarding-basic"} onClick={saveOnboardingBasic}>
+                {saving === "onboarding-basic" ? "Salvando..." : "Salvar e continuar"}
+              </button>
+            </section>
+          )}
+
+          {onboardingStep === 2 && (
+            <section className="platformWizardPanel platformForm">
+              <div className="platformWizardIntro"><span>Etapa 2</span><h3>ServiÃ§os</h3><p>Adicione nome, duraÃ§Ã£o e preÃ§o. Estes serviÃ§os aparecem na tela do cliente.</p></div>
+              <div className="platformWizardList">
+                {onboardingServices.map((service, index) => (
+                  <article className="platformWizardServiceCard" key={index}>
+                    <div className="platformWizardItemTop">
+                      <strong>ServiÃ§o {index + 1}</strong>
+                      <button type="button" className="platformDangerGhost" disabled={onboardingServices.length === 1} onClick={() => setOnboardingServices((current) => current.filter((_, itemIndex) => itemIndex !== index))}>Excluir</button>
+                    </div>
+                    <label>Nome</label>
+                    <input value={service.name} onChange={(event) => updateOnboardingService(index, "name", event.target.value)} placeholder="Corte de cabelo" />
+                    <div className="platformTwoCols">
+                      <span><label>DuraÃ§Ã£o (min)</label><input value={service.duration} onChange={(event) => updateOnboardingService(index, "duration", event.target.value)} type="number" min="5" step="5" /></span>
+                      <span><label>PreÃ§o</label><input value={service.price} onChange={(event) => updateOnboardingService(index, "price", event.target.value)} type="number" min="0" step="1" /></span>
+                    </div>
+                  </article>
+                ))}
+              </div>
+              <div className="platformWizardActions">
+                <button type="button" className="platformSecondary" onClick={() => setOnboardingServices((current) => current.concat({ name: "", duration: 30, price: 0 }))}>+ Adicionar serviÃ§o</button>
+                <button type="button" className="platformPrimary" disabled={saving === "onboarding-services"} onClick={saveOnboardingServices}>{saving === "onboarding-services" ? "Salvando..." : "Salvar serviÃ§os"}</button>
+              </div>
+            </section>
+          )}
+
+          {onboardingStep === 3 && (
+            <section className="platformWizardPanel platformForm">
+              <div className="platformWizardIntro"><span>Etapa 3</span><h3>Equipe</h3><p>Adicione barbeiros com foto opcional. Se for uma barbearia solo, pode pular.</p></div>
+              <div className="platformWizardList">
+                {onboardingProfessionals.map((professional, index) => (
+                  <article className="platformWizardTeamCard" key={index}>
+                    <div className="platformWizardItemTop">
+                      <strong>Profissional {index + 1}</strong>
+                      <button type="button" className="platformDangerGhost" disabled={onboardingProfessionals.length === 1} onClick={() => setOnboardingProfessionals((current) => current.filter((_, itemIndex) => itemIndex !== index))}>Excluir</button>
+                    </div>
+                    <label>Nome</label>
+                    <input value={professional.name} onChange={(event) => updateOnboardingProfessional(index, "name", event.target.value)} placeholder="Cristian" />
+                    <label>Foto opcional</label>
+                    <input type="file" accept="image/*" onChange={(event) => handleOnboardingProfessionalPhoto(index, event.target.files?.[0])} />
+                    {professional.photo_url ? <div className="platformWizardAvatarPreview"><img src={professional.photo_url} alt={professional.name || "Profissional"} /><span>{professional.name || "Profissional"}</span></div> : null}
+                  </article>
+                ))}
+              </div>
+              <div className="platformWizardActions">
+                <button type="button" className="platformSecondary" onClick={() => setOnboardingProfessionals((current) => current.concat({ name: "", photo_url: "" }))}>+ Adicionar barbeiro</button>
+                <button type="button" className="platformSecondary" disabled={saving === "onboarding-professionals"} onClick={() => saveOnboardingProfessionals(true)}>Pular, Ã© solo</button>
+                <button type="button" className="platformPrimary" disabled={saving === "onboarding-professionals"} onClick={() => saveOnboardingProfessionals(false)}>{saving === "onboarding-professionals" ? "Salvando..." : "Salvar equipe"}</button>
+              </div>
+            </section>
+          )}
+
+          {onboardingStep === 4 && (
+            <section className="platformWizardPanel platformForm">
+              <div className="platformWizardIntro"><span>Etapa 4</span><h3>HorÃ¡rios</h3><p>Defina a grade semanal. Os horÃ¡rios serÃ£o usados pela agenda real da barbearia.</p></div>
+              <div className="platformWizardHoursGrid">
+                {onboardingHours.map((hour, index) => (
+                  <article className={hour.enabled ? "platformWizardDay active" : "platformWizardDay"} key={hour.week_day}>
+                    <button type="button" onClick={() => updateOnboardingHour(index, "enabled", !hour.enabled)}>{hour.enabled ? "Ativo" : "Fechado"}</button>
+                    <strong>{weekDayLabels[hour.week_day]}</strong>
+                    <div className="platformTwoCols">
+                      <span><label>Abertura</label><input value={hour.start_time} onChange={(event) => updateOnboardingHour(index, "start_time", event.target.value)} type="time" disabled={!hour.enabled} /></span>
+                      <span><label>Fechamento</label><input value={hour.end_time} onChange={(event) => updateOnboardingHour(index, "end_time", event.target.value)} type="time" disabled={!hour.enabled} /></span>
+                    </div>
+                  </article>
+                ))}
+              </div>
+              <div className="platformWizardActions">
+                <button type="button" className="platformSecondary" onClick={() => setOnboardingStep(3)}>Voltar</button>
+                <button type="button" className="platformPrimary" disabled={saving === "onboarding-hours"} onClick={saveOnboardingHours}>{saving === "onboarding-hours" ? "Salvando..." : "Salvar horÃ¡rios"}</button>
+              </div>
+            </section>
+          )}
+
+          {onboardingStep === 5 && (
+            <section className="platformWizardPanel platformWizardDone">
+              <div className="platformWizardIntro"><span>Etapa 5</span><h3>Pronto!</h3><p>A barbearia jÃ¡ tem link de agendamento e painel. Agora Ã© sÃ³ divulgar e ajustar detalhes se quiser.</p></div>
+              <div className="platformWizardDoneLinks">
+                <article><span>Link de agendamento</span><strong>{onboardingClientLink || "Salve as etapas para gerar o link"}</strong><button type="button" className="platformSecondary" disabled={!onboardingClientLink} onClick={() => copyText(onboardingClientLink, "Link de agendamento")}>Copiar link</button></article>
+                <article><span>Painel da barbearia</span><strong>{onboardingPanelLink || "Salve as etapas para gerar o painel"}</strong><a className="platformSecondary" href={onboardingPanelLink || "#"} target="_blank" rel="noreferrer">Abrir painel</a></article>
+              </div>
+              <div className="platformWizardActions">
+                <a className="platformPrimary" href={`https://wa.me/?text=${encodeURIComponent(`Agende seu horÃ¡rio online: ${onboardingClientLink}`)}`} target="_blank" rel="noreferrer">Compartilhar no WhatsApp</a>
+                <a className="platformSecondary" href={onboardingClientLink || "#"} target="_blank" rel="noreferrer">Abrir agenda</a>
+                <button type="button" className="platformSecondary" onClick={resetOnboardingWizard}>Cadastrar outra</button>
+              </div>
+            </section>
+          )}
+          {false && (
           <form className="platformForm" onSubmit={createShop}>
             <label>Nome da barbearia</label>
             <input value={newShop.name} onChange={(event) => updateNewShop("name", event.target.value)} placeholder="Barbearia do João" required />
@@ -1364,6 +2403,7 @@ export default function PlatformDashboard() {
             <input value={newShop.theme_color} onChange={(event) => updateNewShop("theme_color", event.target.value)} type="color" />
             <button type="submit" className="platformPrimary" disabled={saving === "create"}>{saving === "create" ? "Cadastrando..." : "Cadastrar barbearia"}</button>
           </form>
+          )}
         </div>
 
         <div className="platformCard">
@@ -1493,11 +2533,66 @@ export default function PlatformDashboard() {
               <button type="submit" className="platformPrimary" disabled={saving === "shop"}>{saving === "shop" ? "Salvando..." : "Salvar dados da barbearia"}</button>
             </form>
             <div className="platformFeatures">
-              <h3>Funções liberadas por plano</h3><p className="platformMuted">Ative aqui e o recurso aparece automaticamente no lugar certo do painel da barbearia.</p>
-              {platformFeatureKeys.map((key) => {
-                const item = selectedShop.features?.[key] || { enabled: false, released: false };
-                return <label className="platformFeature" key={key}><span><strong>{featureLabels[key]}</strong><small>{key}</small></span><span className="featureChecks"><em>Liberado</em><input type="checkbox" checked={Boolean(item.released)} onChange={(event) => updateFeature(key, "released", event.target.checked)} /><em>Ativo</em><input type="checkbox" checked={Boolean(item.enabled)} onChange={(event) => updateFeature(key, "enabled", event.target.checked)} /></span></label>;
-              })}
+              <div className="platformFeatureCatalogHeader">
+                <div>
+                  <span>Controle comercial</span>
+                  <h3>Funções liberadas por plano</h3>
+                  <p className="platformMuted">
+                    Libere, bloqueie, ative ou desative recursos para esta barbearia. Ao salvar,
+                    a mudança sincroniza com a aba Melhorias e com o painel do cliente.
+                  </p>
+                </div>
+              </div>
+              <div className="platformFeatureGrid">
+                {platformFeatures.map((feature) => {
+                  const item = selectedShop.features?.[feature.key] || { enabled: false, released: false };
+                  const planAllows = planMeetsFeaturePlan(String(selectedShop.plan || ""), feature.minPlan);
+                  const upgradeLabel = featureUpgradeLabel(String(selectedShop.plan || ""), feature.minPlan);
+                  const released = planAllows && Boolean(item.released);
+                  const enabled = planAllows && released && Boolean(item.enabled);
+                  const statusText = !planAllows ? upgradeLabel : enabled ? "Ativo" : released ? "Liberado" : "Bloqueado";
+
+                  return (
+                    <article
+                      className={[
+                        "platformFeatureCard",
+                        released ? "released" : "",
+                        enabled ? "enabled" : "",
+                        planAllows ? "" : "upgradeLocked",
+                      ].join(" ")}
+                      key={feature.key}
+                    >
+                      <div className="platformFeatureTop">
+                        <span className="platformFeaturePlan">Plano {featureMinimumPlanLabel(feature.minPlan)}</span>
+                        <span className={enabled ? "platformFeatureStatus active" : released ? "platformFeatureStatus released" : "platformFeatureStatus"}>
+                          {statusText}
+                        </span>
+                      </div>
+                      <h4>{feature.title}</h4>
+                      <p>{feature.description}</p>
+                      <small className="platformFeatureKey">{feature.key}</small>
+                      <div className="platformFeatureActions">
+                        <button
+                          type="button"
+                          className={released ? "platformSwitchButton active" : "platformSwitchButton"}
+                          disabled={!planAllows}
+                          onClick={() => updateFeature(feature.key, "released", !released)}
+                        >
+                          {!planAllows ? "Upgrade" : released ? "Bloquear" : "Liberar"}
+                        </button>
+                        <button
+                          type="button"
+                          className={enabled ? "platformSwitchButton active green" : "platformSwitchButton"}
+                          disabled={!planAllows}
+                          onClick={() => updateFeature(feature.key, "enabled", !enabled)}
+                        >
+                          {!planAllows ? "IndisponÃ­vel" : enabled ? "Desativar" : "Ativar"}
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
               <button type="button" className="platformPrimary" disabled={saving === "features"} onClick={saveFeatures}>{saving === "features" ? "Salvando..." : "Salvar funções"}</button>
             </div>
           </>

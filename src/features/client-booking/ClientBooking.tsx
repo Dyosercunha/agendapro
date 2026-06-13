@@ -8,6 +8,7 @@ import type {
   Promotion,
   Service,
 } from "../../types/app";
+import { whatsappUrl } from "../../lib/phone";
 
 type ActiveService = Service & {
   originalIndex: number;
@@ -48,7 +49,7 @@ type ScheduleSlot = {
   time: string;
 };
 
-type ClientProfessional = Pick<Professional, "name">;
+type ClientProfessional = Pick<Professional, "name" | "photoUrl">;
 
 type ClientSchedule = {
   slotInterval: number;
@@ -341,7 +342,7 @@ export default function ClientBooking({ model }: ClientBookingProps) {
               <p>Não encontramos um agendamento ativo para este link.</p>
               <a
                 className="black linkButton"
-                href={`https://wa.me/${business.whatsapp}`}
+                href={whatsappUrl(business.whatsapp)}
                 target="_blank"
                 rel="noreferrer"
               >
@@ -382,11 +383,12 @@ export default function ClientBooking({ model }: ClientBookingProps) {
 
               <a
                 className="outline linkButton"
-                href={`https://wa.me/${business.whatsapp}?text=${encodeURIComponent(
+                href={whatsappUrl(
+                  business.whatsapp,
                   `Olá! Preciso falar sobre meu agendamento de ${formatDateForMessage(
                     publicAppointment.date
                   )} às ${publicAppointment.time}.`
-                )}`}
+                )}
                 target="_blank"
                 rel="noreferrer"
               >
@@ -504,9 +506,7 @@ export default function ClientBooking({ model }: ClientBookingProps) {
               </p>
               <a
                 className="black linkButton"
-                href={`https://wa.me/${business.whatsapp}?text=${encodeURIComponent(
-                  barberConfirmationMessage
-                )}`}
+                href={whatsappUrl(business.whatsapp, barberConfirmationMessage)}
                 target="_blank"
                 rel="noreferrer"
               >
@@ -523,9 +523,10 @@ export default function ClientBooking({ model }: ClientBookingProps) {
           )}
           <a
             className={confirmationSent ? "black linkButton" : "outline linkButton"}
-            href={`https://wa.me/${business.whatsapp}?text=${encodeURIComponent(
+            href={whatsappUrl(
+              business.whatsapp,
               `Olá! Preciso falar sobre meu agendamento para ${formatDateForMessage(selectedDate)} às ${selectedTime}`
-            )}`}
+            )}
             target="_blank"
             rel="noreferrer"
           >
@@ -543,12 +544,6 @@ export default function ClientBooking({ model }: ClientBookingProps) {
     return withNotice(
       <main className="app checkoutApp">
         <section className="checkoutHeader">
-          <div className="stepper">
-            <span>1 Serviços</span>
-            <span>2 Horário</span>
-            <span className="activeStep">3 Pagamento</span>
-          </div>
-
           <p className="muted">Etapa final</p>
           <h1>Confirmar agendamento</h1>
           <p className="heroText">Revise os dados, escolha o pagamento e confirme seu horário.</p>
@@ -694,7 +689,7 @@ export default function ClientBooking({ model }: ClientBookingProps) {
 
           <p className="helpText">
             Precisa de ajuda?{" "}
-            <a href={`https://wa.me/${business.whatsapp}`} target="_blank" rel="noreferrer">
+            <a href={whatsappUrl(business.whatsapp)} target="_blank" rel="noreferrer">
               Falar com a barbearia
             </a>
           </p>
@@ -729,7 +724,7 @@ export default function ClientBooking({ model }: ClientBookingProps) {
 
           <a
             className="black linkButton"
-            href={`https://wa.me/${business.whatsapp}`}
+            href={whatsappUrl(business.whatsapp)}
             target="_blank"
             rel="noreferrer"
           >
@@ -780,24 +775,13 @@ export default function ClientBooking({ model }: ClientBookingProps) {
             <small>{ratingText}</small>
           </div>
 
-          {cleanAddress && (
-            <a className="clientHeroAddress" href={mapsHref || undefined} target="_blank" rel="noreferrer">
-              {cleanAddress}
-            </a>
-          )}
-
-          <div className="clientMiniSiteActions">
-            {mapsHref && (
-              <a href={mapsHref} target="_blank" rel="noreferrer">
-                Abrir rota
-              </a>
-            )}
-            {instagramAvailable && (
+          {instagramAvailable && (
+            <div className="clientMiniSiteActions">
               <a className="instagramAction" href={instagramHref} target="_blank" rel="noreferrer">
                 Instagram
               </a>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </section>
 
@@ -818,21 +802,6 @@ export default function ClientBooking({ model }: ClientBookingProps) {
           <span>{activeServices.length} serviços</span>
           <span>{clientProfessionals.length} profissionais</span>
           <span>{recommendedTime || "Agenda aberta"}</span>
-        </div>
-      </section>
-
-      <section className="clientTrustStrip" aria-label="Informações da barbearia">
-        <div>
-          <strong>Agenda oficial</strong>
-          <span>Link exclusivo da barbearia</span>
-        </div>
-        <div>
-          <strong>Rota fácil</strong>
-          <span>{mapsHref ? "Endereço clicável no Maps" : "Endereço no atendimento"}</span>
-        </div>
-        <div>
-          <strong>WhatsApp fixo</strong>
-          <span>Resumo antes de finalizar</span>
         </div>
       </section>
 
@@ -865,14 +834,6 @@ export default function ClientBooking({ model }: ClientBookingProps) {
           ))}
         </section>
       )}
-
-      <section className="stepper">
-        <span className={!hasChosenService ? "activeStep" : ""}>1 Serviços</span>
-        <span className={hasChosenService && selectedTime === "" ? "activeStep" : ""}>
-          2 Horário
-        </span>
-        <span>3 Pagamento</span>
-      </section>
 
       {promotionAvailable && activePromotions.length > 0 && (
         <section className="promoBanner promoListBanner clientPromoShowcase">
@@ -1019,7 +980,9 @@ export default function ClientBooking({ model }: ClientBookingProps) {
                   setSelectedTime("");
                 }}
               >
-                <span className="professionalAvatar">{professionalInitials(item.name)}</span>
+                <span className={item.photoUrl ? "professionalAvatar professionalAvatarPhoto" : "professionalAvatar"}>
+                  {item.photoUrl ? <img src={item.photoUrl} alt={item.name} /> : professionalInitials(item.name)}
+                </span>
                 <span>
                   <strong>{item.name}</strong>
                   <small>{professional === item.name ? "Selecionado" : "Disponível"}</small>
@@ -1196,11 +1159,16 @@ export default function ClientBooking({ model }: ClientBookingProps) {
 
       <a
         className="clientFloatingWhatsapp"
-        href={`https://wa.me/${business.whatsapp}`}
+        href={whatsappUrl(business.whatsapp)}
         target="_blank"
         rel="noreferrer"
+        aria-label="Falar no WhatsApp"
+        title="Falar no WhatsApp"
       >
-        Falar no WhatsApp
+        <svg aria-hidden="true" viewBox="0 0 32 32" focusable="false">
+          <path d="M16.01 3.2c-7.04 0-12.76 5.62-12.76 12.55 0 2.27.62 4.48 1.8 6.42L3.2 28.8l6.87-1.76a12.9 12.9 0 0 0 5.94 1.45c7.04 0 12.76-5.62 12.76-12.55S23.05 3.2 16.01 3.2Zm0 22.95c-1.88 0-3.72-.5-5.32-1.45l-.38-.23-4.08 1.04 1.1-3.9-.26-.4a10.1 10.1 0 0 1-1.55-5.46c0-5.64 4.7-10.22 10.49-10.22S26.5 10.1 26.5 15.74 21.8 26.15 16 26.15Zm5.74-7.67c-.31-.15-1.84-.9-2.12-1-.29-.1-.5-.15-.71.15-.2.3-.82 1-.99 1.2-.18.2-.37.23-.68.08-.31-.15-1.31-.47-2.5-1.51-.93-.8-1.55-1.8-1.73-2.1-.18-.3-.02-.46.13-.61.14-.13.31-.35.47-.52.16-.18.21-.3.31-.5.1-.2.05-.38-.03-.53-.08-.15-.7-1.67-.96-2.29-.25-.6-.51-.52-.7-.53h-.6c-.2 0-.53.08-.81.38-.28.3-1.06 1.02-1.06 2.49s1.1 2.9 1.25 3.1c.15.2 2.16 3.25 5.23 4.55.73.31 1.3.5 1.75.64.74.23 1.41.2 1.94.12.59-.09 1.84-.74 2.1-1.45.26-.71.26-1.32.18-1.45-.08-.13-.28-.2-.6-.35Z" />
+        </svg>
+        <span>Falar no WhatsApp</span>
       </a>
     </main>
   );

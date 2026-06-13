@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import type { AdminTabId } from "../../lib/permissions";
 import type { Appointment, FeatureDefinition, FeatureFlag } from "../../types/app";
 import AgendaPanel from "./panels/AgendaPanel";
+import AgendaTodayPanel from "./panels/AgendaTodayPanel";
 import AccountPanel from "./panels/AccountPanel";
 import AppearancePanel from "./panels/AppearancePanel";
 import CustomersPanel from "./panels/CustomersPanel";
@@ -11,6 +12,7 @@ import ProfessionalsPanel from "./panels/ProfessionalsPanel";
 import ServicesPanel from "./panels/ServicesPanel";
 import type { AccountPanelModel } from "./panels/AccountPanel";
 import type { AgendaPanelModel } from "./panels/AgendaPanel";
+import type { AgendaTodayPanelModel } from "./panels/AgendaTodayPanel";
 import type { AppearancePanelModel } from "./panels/AppearancePanel";
 import type { CustomersPanelModel } from "./panels/CustomersPanel";
 import type { FeatureShortcut, ImprovementsPanelModel } from "./panels/ImprovementsPanel";
@@ -40,6 +42,7 @@ type OnboardingStep = {
 };
 
 type FeatureStatusCard = FeatureDefinition & {
+  planAllowed?: boolean;
   shortcut: FeatureShortcut;
   state: FeatureFlag;
   statusLabel: string;
@@ -54,6 +57,7 @@ type WhatsAppIntegrationStatus = {
 type BarberDashboardModel =
   AccountPanelModel &
   AgendaPanelModel &
+  AgendaTodayPanelModel &
   AppearancePanelModel &
   CustomersPanelModel &
   ImprovementsPanelModel &
@@ -68,6 +72,7 @@ type BarberDashboardModel =
   clientName?: string;
   closeToday: () => void;
   cloudStatus: string;
+  commissionsAvailable: boolean;
   completedSetupItems: number;
   dataSavedAt: string;
   featureStatusCards: FeatureStatusCard[];
@@ -92,6 +97,13 @@ type BarberDashboardProps = {
   model: BarberDashboardModel;
 };
 
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
+};
+
+const pwaBannerDismissKey = "agendapro:pwa-install-dismissed";
+
 export default function BarberDashboard({ model }: BarberDashboardProps) {
   const {
     accessAccounts,
@@ -111,6 +123,7 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
     clientName,
     closeToday,
     cloudStatus,
+    commissionsAvailable,
     completedSetupItems,
     copyText,
     customerProfiles,
@@ -143,6 +156,53 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
     whatsappIntegrationStatus,
     withNotice,
   } = model;
+
+  const [installPromptEvent, setInstallPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+
+    if (window.localStorage.getItem(pwaBannerDismissKey) === "1") {
+      return undefined;
+    }
+
+    const onBeforeInstallPrompt = (event: Event) => {
+      event.preventDefault();
+      setInstallPromptEvent(event as BeforeInstallPromptEvent);
+      setShowInstallBanner(true);
+    };
+
+    window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+    };
+  }, []);
+
+  async function installPwaNow() {
+    if (!installPromptEvent) return;
+
+    await installPromptEvent.prompt();
+    const choice = await installPromptEvent.userChoice;
+
+    if (choice.outcome === "accepted") {
+      setShowInstallBanner(false);
+      setInstallPromptEvent(null);
+      return;
+    }
+
+    dismissInstallBanner();
+  }
+
+  function dismissInstallBanner() {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(pwaBannerDismissKey, "1");
+    }
+
+    setShowInstallBanner(false);
+    setInstallPromptEvent(null);
+  }
   const visibleSetupItems = setupItems.filter((item) => canUseAdminTab(item.tab));
   const firstPendingSetup = visibleSetupItems.find((item) => !item.done);
   const commercialReady = setupProgress >= 100 && !firstPendingSetup;
@@ -203,7 +263,9 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
     return Number(serviceCommission ?? professionalConfig.commissionPercent ?? 0);
   };
   const getCommissionValue = (appointment: Appointment) =>
-    (Number(appointment.total || 0) * getCommissionPercent(appointment)) / 100;
+    commissionsAvailable
+      ? (Number(appointment.total || 0) * getCommissionPercent(appointment)) / 100
+      : 0;
   const todayCommissionTotal = todayAppointments.reduce(
     (sum, appointment) => sum + getCommissionValue(appointment),
     0
@@ -341,6 +403,9 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 4);
   const topService = serviceRanking[0];
+  const topServiceName = topService?.[0] || "Sem dados";
+  const topServiceNameClass =
+    topServiceName.length > 18 ? "serviceHeroName serviceHeroNameLong" : "serviceHeroName";
   const planLabels: Record<string, string> = {
     starter: "Inicial",
     professional: "Profissional",
@@ -465,6 +530,18 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
     URL.revokeObjectURL(url);
   }
 
+  function downloadText(fileName: string, content: string) {
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
   function exportAppointmentsCsv() {
     downloadCsv(
       `agendapro-agendamentos-${business.slug || "barbearia"}-${exportDate}.csv`,
@@ -499,6 +576,21 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
     );
   }
 
+  function dailyCashRows() {
+    return [
+      ["Faturamento do dia", money(todayRevenue), `${todayAppointments.length} agendamento(s)`],
+      ["Recebido", money(todayPaidRevenue), `${todayPaidAppointments.length} pago(s)`],
+      ["Dinheiro", money(todayCashRevenue), ""],
+      ["PIX", money(todayPixRevenue), ""],
+      ["Cartão", money(todayCardRevenue), ""],
+      ["Pendente", money(todayPendingRevenue), `${todayPendingPaymentAppointments.length} pendente(s)`],
+      ["Descontos", money(todayDiscounts), ""],
+      ["Comissões previstas", money(todayCommissionTotal), ""],
+      ["Comissões pagas", money(todayPaidCommissionTotal), ""],
+      ["Lucro estimado", money(estimatedDailyProfit), ""],
+    ];
+  }
+
   function exportDailyCashCsv() {
     downloadCsv(
       `agendapro-caixa-${business.slug || "barbearia"}-${exportDate}.csv`,
@@ -516,6 +608,56 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
         ["Lucro estimado", money(estimatedDailyProfit), ""],
       ]
     );
+  }
+
+  function exportDailyCashTxt() {
+    const rows = dailyCashRows()
+      .map(([label, value, detail]) => `${label}: ${value}${detail ? ` - ${detail}` : ""}`)
+      .join("\n");
+    downloadText(
+      `agendapro-fechamento-${business.slug || "barbearia"}-${exportDate}.txt`,
+      `AgendaPro - Fechamento do dia\n${business.name}\n${formatDate(exportDate)}\n\n${rows}\n`
+    );
+  }
+
+  function exportDailyCashPdf() {
+    const rows = dailyCashRows()
+      .map(
+        ([label, value, detail]) =>
+          `<tr><td>${label}</td><td>${value}</td><td>${detail || ""}</td></tr>`
+      )
+      .join("");
+    const reportWindow = window.open("", "_blank", "noopener,noreferrer");
+    if (!reportWindow) {
+      alert("Não foi possível abrir a impressão. Permita pop-ups para gerar PDF.");
+      return;
+    }
+    reportWindow.document.write(`<!doctype html>
+      <html lang="pt-BR">
+        <head>
+          <meta charset="utf-8" />
+          <title>Fechamento do dia - AgendaPro</title>
+          <style>
+            body { font-family: Arial, sans-serif; color: #111827; margin: 32px; }
+            h1 { margin: 0 0 6px; }
+            p { color: #4b5563; margin: 0 0 24px; }
+            table { border-collapse: collapse; width: 100%; }
+            th, td { border-bottom: 1px solid #e5e7eb; padding: 12px; text-align: left; }
+            th { background: #f3f4f6; }
+          </style>
+        </head>
+        <body>
+          <h1>Fechamento do dia</h1>
+          <p>${business.name} - ${formatDate(exportDate)}</p>
+          <table>
+            <thead><tr><th>Resumo</th><th>Valor</th><th>Detalhe</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </body>
+      </html>`);
+    reportWindow.document.close();
+    reportWindow.focus();
+    reportWindow.print();
   }
 
     if (!adminLoggedIn) {
@@ -558,6 +700,23 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
           </div>
         </section>
 
+        {showInstallBanner && installPromptEvent && (
+          <section className="pwaInstallBanner" role="status" aria-live="polite">
+            <div>
+              <strong>Instale o AgendaPro no celular</strong>
+              <p>Acesse o painel com um toque e mantenha a agenda pronta mesmo offline.</p>
+            </div>
+            <div className="pwaInstallActions">
+              <button type="button" className="green" onClick={installPwaNow}>
+                Instalar
+              </button>
+              <button type="button" className="outline" onClick={dismissInstallBanner}>
+                Agora não
+              </button>
+            </div>
+          </section>
+        )}
+
         <section className="adminTabs">
           {visibleAdminTabs.map((tab) => (
             <button type="button"
@@ -575,7 +734,6 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
             <section className="dashboardHeroCards">
               <div className="dashboardHeroCard primary">
                 <div className="metricTop">
-                  <span className="metricIcon">AG</span>
                   <span className="metricStatus ready">Hoje</span>
                 </div>
                 <span>Agendamentos de hoje</span>
@@ -590,7 +748,6 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
 
               <div className="dashboardHeroCard revenue">
                 <div className="metricTop">
-                  <span className="metricIcon">R$</span>
                   <span className="metricStatus success">Caixa</span>
                 </div>
                 <span>Faturamento do dia</span>
@@ -607,7 +764,6 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
 
               <div className="dashboardHeroCard">
                 <div className="metricTop">
-                  <span className="metricIcon">CL</span>
                   <span className="metricStatus neutral">Atendimento</span>
                 </div>
                 <span>Clientes atendidos</span>
@@ -617,7 +773,6 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
 
               <div className="dashboardHeroCard next">
                 <div className="metricTop">
-                  <span className="metricIcon">PR</span>
                   <span className="metricStatus ready">Próximo</span>
                 </div>
                 <span>Próximo horário</span>
@@ -627,17 +782,21 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
 
               <div className="dashboardHeroCard service">
                 <div className="metricTop">
-                  <span className="metricIcon">SV</span>
                   <span className="metricStatus warning">Mais vendido</span>
                 </div>
-                <span>Serviço mais vendido</span>
-                <strong>{topService?.[0] || "Sem dados"}</strong>
-                <small>{topService ? `${topService[1]} pedido(s)` : "Aparece após agendamentos"}</small>
+                <div className="serviceHeroBody">
+                  <div className="serviceHeroTitle">
+                    <span className="serviceHeroLabel">Serviço mais vendido</span>
+                    <strong className={topServiceNameClass}>{topServiceName}</strong>
+                  </div>
+                  <small className="serviceHeroCount">
+                    {topService ? `${topService[1]} pedido(s)` : "Aparece após agendamentos"}
+                  </small>
+                </div>
               </div>
 
               <div className="dashboardHeroCard occupancy">
                 <div className="metricTop">
-                  <span className="metricIcon">%</span>
                   <span className="metricStatus neutral">Ocupação</span>
                 </div>
                 <span>Taxa de ocupação</span>
@@ -650,7 +809,6 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
 
               <div className="dashboardHeroCard">
                 <div className="metricTop">
-                  <span className="metricIcon">NM</span>
                   <span className="metricStatus ready">Mês</span>
                 </div>
                 <span>Clientes novos no mês</span>
@@ -660,7 +818,6 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
 
               <div className="dashboardHeroCard plan">
                 <div className="metricTop">
-                  <span className="metricIcon">PL</span>
                   <span className={`metricStatus ${business.monthlyStatus === "active" ? "success" : "warning"}`}>
                     {statusLabel}
                   </span>
@@ -672,7 +829,6 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
 
               <div className="dashboardHeroCard billing">
                 <div className="metricTop">
-                  <span className="metricIcon">VC</span>
                   <span className="metricStatus neutral">Mensalidade</span>
                 </div>
                 <span>Vencimento do plano</span>
@@ -836,7 +992,7 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
                 </div>
               </div>
 
-              <div className="commissionReport">
+              <div className={commissionsAvailable ? "commissionReport" : "commissionReport lockedCommission"}>
                 <div className="commissionReportHeader">
                   <div>
                     <span>Comissões por profissional</span>
@@ -845,11 +1001,15 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
                   <small>Valor pago / valor pendente</small>
                 </div>
 
-                {professionalCommissionReport.length === 0 && (
+                {!commissionsAvailable && (
+                  <p className="hint">Comissões por profissional são um recurso do plano Premium.</p>
+                )}
+
+                {commissionsAvailable && professionalCommissionReport.length === 0 && (
                   <p className="hint">Cadastre profissionais e percentuais para calcular comissões.</p>
                 )}
 
-                {professionalCommissionReport.map((item) => (
+                {commissionsAvailable && professionalCommissionReport.map((item) => (
                   <div className="commissionReportRow" key={item.name}>
                     <div>
                       <strong>{item.name}</strong>
@@ -877,7 +1037,7 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
                   <button type="button" onClick={() => setAdminTab("agenda")}>
                     Conferir agenda
                   </button>
-                  <button type="button" onClick={exportDailyCashCsv}>
+                  <button type="button" onClick={exportDailyCashPdf}>
                     Exportar relatório
                   </button>
                   <button type="button" onClick={closeToday}>Fechar dia</button>
@@ -885,51 +1045,28 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
               </div>
             </section>
 
-            <section className="card serviceRankingCard">
-              <div className="sectionTitle">
-                <h2>Serviços mais pedidos</h2>
-                <span>{serviceRanking.length ? "Histórico de agendamentos" : "Sem dados ainda"}</span>
-              </div>
-
-              {serviceRanking.length ? (
-                <div className="serviceRankingList">
-                  {serviceRanking.map(([service, count], index) => (
-                    <div className="serviceRankingItem" key={service}>
-                      <span>{index + 1}</span>
-                      <strong>{service}</strong>
-                      <small>{count} pedido(s)</small>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="hint">
-                  Os serviços mais pedidos aparecem depois dos primeiros agendamentos confirmados.
-                </p>
-              )}
-            </section>
-
             <section className="card exportCard">
               <div className="sectionTitle">
-                <h2>Exportação CSV</h2>
-                <span>Planilhas e backup</span>
+                <h2>Exportar fechamento</h2>
+                <span>Excel, TXT ou PDF</span>
               </div>
 
               <p className="hint">
-                Baixe os dados principais para conferir em planilhas ou guardar um backup rápido da operação.
+                Baixe o resumo do caixa do dia no formato mais prático para conferir, enviar ou arquivar.
               </p>
 
               <div className="exportGrid">
-                <button type="button" onClick={exportAppointmentsCsv}>
-                  Agendamentos
-                  <small>{appointments.length} registro(s)</small>
-                </button>
-                <button type="button" onClick={exportCustomersCsv}>
-                  Clientes
-                  <small>{customerProfiles.length} registro(s)</small>
-                </button>
                 <button type="button" onClick={exportDailyCashCsv}>
-                  Caixa do dia
-                  <small>{money(todayRevenue)} previsto</small>
+                  Excel
+                  <small>Abre em planilha</small>
+                </button>
+                <button type="button" onClick={exportDailyCashTxt}>
+                  TXT
+                  <small>Resumo simples</small>
+                </button>
+                <button type="button" onClick={exportDailyCashPdf}>
+                  PDF
+                  <small>Pronto para imprimir</small>
                 </button>
               </div>
             </section>
@@ -1078,11 +1215,17 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
                     className={[
                       "resourceItem",
                       feature.state.released ? "resourceReleased" : "resourceLocked",
-                      feature.state.enabled ? "resourceEnabled" : "",
+                      feature.state.enabled && feature.planAllowed !== false ? "resourceEnabled" : "",
+                      feature.planAllowed === false ? "planBlockedResource" : "",
                     ].join(" ")}
                     key={feature.key}
                     onClick={() => {
-                      if (feature.state.released && !feature.shortcut.disabled && feature.shortcut.tab) {
+                      if (
+                        feature.planAllowed !== false &&
+                        feature.state.released &&
+                        !feature.shortcut.disabled &&
+                        feature.shortcut.tab
+                      ) {
                         setAdminTab(feature.shortcut.tab);
                       } else {
                         setAdminTab("improvements");
@@ -1092,7 +1235,9 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
                     <span>{feature.statusLabel}</span>
                     <strong>{feature.title}</strong>
                     <small>
-                      {feature.state.released && !feature.shortcut.disabled
+                      {feature.planAllowed === false
+                        ? "Ver plano em Melhorias"
+                        : feature.state.released && !feature.shortcut.disabled
                         ? feature.shortcut.label
                         : "Gerenciar em Melhorias"}
                     </small>
@@ -1189,6 +1334,8 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
         )}
 
         <CustomersPanel model={model} />
+
+        <AgendaTodayPanel model={model} />
 
         <AgendaPanel model={model} />
 

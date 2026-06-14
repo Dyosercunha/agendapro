@@ -2485,13 +2485,12 @@ function CoreAgendaProApp() {
       setScreen("success");
       window.scrollTo(0, 0);
     } catch (error) {
-      const detail = cloudErrorText(error);
       const friendlyMessage = friendlyCloudErrorText(
         error,
         "Não foi possível confirmar este horário. Tente novamente em instantes."
       );
       console.error(error);
-      setCloudStatus(`Não foi possível confirmar o agendamento: ${detail}`);
+      setCloudStatus(friendlyMessage);
       showNotice(friendlyMessage);
     } finally {
       setCloudSaving("");
@@ -3201,7 +3200,7 @@ function CoreAgendaProApp() {
     } catch (error) {
       console.error(error);
       setCloudStatus(
-        `A ação foi salva neste aparelho, mas não foi sincronizada online: ${cloudErrorText(error)}`
+        friendlyCloudErrorText(error, "Não foi possível sincronizar esta alteração agora.")
       );
     }
   }
@@ -3255,7 +3254,7 @@ function CoreAgendaProApp() {
     } catch (error) {
       console.error(error);
       setCloudStatus(
-        `A lista de espera foi salva neste aparelho, mas não foi sincronizada online: ${cloudErrorText(error)}`
+        friendlyCloudErrorText(error, "Não foi possível sincronizar a lista de espera agora.")
       );
     } finally {
       setCloudSaving("");
@@ -3286,7 +3285,7 @@ function CoreAgendaProApp() {
     } catch (error) {
       console.error(error);
       setCloudStatus(
-        `A lista de espera foi atualizada neste aparelho, mas não foi sincronizada online: ${cloudErrorText(error)}`
+        friendlyCloudErrorText(error, "Não foi possível sincronizar a lista de espera agora.")
       );
     } finally {
       setCloudSaving("");

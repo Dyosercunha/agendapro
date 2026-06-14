@@ -417,7 +417,7 @@ function fileToDataUrl(file: File) {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result || ""));
-    reader.onerror = () => reject(new Error("NÃ£o foi possÃ­vel carregar a imagem."));
+    reader.onerror = () => reject(new Error("Não foi possível carregar a imagem."));
     reader.readAsDataURL(file);
   });
 }
@@ -1252,9 +1252,9 @@ export default function PlatformDashboard() {
       await ensureOnboardingShop();
       await loadDashboard();
       setOnboardingStep(2);
-      setMessage("Dados bÃ¡sicos salvos. Agora cadastre os serviÃ§os.");
+      setMessage("Dados básicos salvos. Agora cadastre os serviços.");
     } catch (error) {
-      rememberError("Onboarding dados bÃ¡sicos", error);
+      rememberError("Onboarding dados básicos", error);
       setMessage(ownerLoginErrorText(error));
     } finally {
       setSaving("");
@@ -1277,7 +1277,7 @@ export default function PlatformDashboard() {
         }))
         .filter((service) => service.name);
 
-      if (!services.length) throw new Error("Cadastre pelo menos um serviÃ§o.");
+      if (!services.length) throw new Error("Cadastre pelo menos um serviço.");
 
       await callPlatformMaintenance({
         action: "save-services",
@@ -1287,9 +1287,9 @@ export default function PlatformDashboard() {
 
       await loadDashboard();
       setOnboardingStep(3);
-      setMessage("ServiÃ§os salvos. Agora cadastre a equipe ou pule se for solo.");
+      setMessage("Serviços salvos. Agora cadastre a equipe ou pule se for solo.");
     } catch (error) {
-      rememberError("Onboarding serviÃ§os", error);
+      rememberError("Onboarding serviços", error);
       setMessage(errorText(error));
     } finally {
       setSaving("");
@@ -1321,7 +1321,7 @@ export default function PlatformDashboard() {
 
       await loadDashboard();
       setOnboardingStep(4);
-      setMessage(skipSolo ? "Equipe marcada como solo. Configure os horÃ¡rios." : "Equipe salva. Configure os horÃ¡rios.");
+      setMessage(skipSolo ? "Equipe marcada como solo. Configure os horários." : "Equipe salva. Configure os horários.");
     } catch (error) {
       rememberError("Onboarding equipe", error);
       setMessage(errorText(error));
@@ -1353,9 +1353,9 @@ export default function PlatformDashboard() {
 
       await loadDashboard();
       setOnboardingStep(5);
-      setMessage("Onboarding concluÃ­do. O link da barbearia estÃ¡ pronto para divulgar.");
+      setMessage("Onboarding concluído. O link da barbearia está pronto para divulgar.");
     } catch (error) {
-      rememberError("Onboarding horÃ¡rios", error);
+      rememberError("Onboarding horários", error);
       setMessage(errorText(error));
     } finally {
       setSaving("");
@@ -2235,7 +2235,7 @@ export default function PlatformDashboard() {
             <section className="platformWizardPanel platformForm">
               <div className="platformWizardIntro">
                 <span>Etapa 1</span>
-                <h3>Dados bÃ¡sicos</h3>
+                <h3>Dados básicos</h3>
                 <p>Crie a barbearia, o acesso do dono e a identidade inicial sem perder o progresso.</p>
               </div>
 
@@ -2250,7 +2250,7 @@ export default function PlatformDashboard() {
               <label>E-mail do dono</label>
               <input value={newShop.owner_email} onChange={(event) => updateNewShop("owner_email", event.target.value)} type="email" placeholder="dono@gmail.com" />
               <label>Senha inicial do dono</label>
-              <input value={newShop.owner_password || ""} onChange={(event) => updateNewShop("owner_password", event.target.value)} type="password" autoComplete="new-password" minLength={6} placeholder="mÃ­nimo 6 caracteres" />
+              <input value={newShop.owner_password || ""} onChange={(event) => updateNewShop("owner_password", event.target.value)} type="password" autoComplete="new-password" minLength={6} placeholder="mínimo 6 caracteres" />
               <div className="platformTwoCols">
                 <span><label>Plano</label><select value={newShop.plan} onChange={(event) => updateNewShop("plan", event.target.value)}>{planOptions.map((plan) => <option key={plan.id} value={plan.id}>{plan.name}</option>)}</select></span>
                 <span><label>Status</label><select value={newShop.monthly_status} onChange={(event) => updateNewShop("monthly_status", event.target.value as SubscriptionStatus)}>{creationStatusOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></span>
@@ -2261,17 +2261,17 @@ export default function PlatformDashboard() {
               </div>
               <div className="platformTwoCols">
                 <span><label>CEP</label><input value={newShop.cep || ""} onChange={(event) => updateNewShop("cep", event.target.value)} placeholder="00000000" inputMode="numeric" /></span>
-                <span><label>NÃºmero</label><input value={newShop.address_number || ""} onChange={(event) => updateNewShop("address_number", event.target.value)} placeholder="123" /></span>
+                <span><label>Número</label><input value={newShop.address_number || ""} onChange={(event) => updateNewShop("address_number", event.target.value)} placeholder="123" /></span>
               </div>
-              <button type="button" className="platformSecondary platformCepButton" disabled={saving === "cep-create"} onClick={fillNewShopAddressByCep}>{saving === "cep-create" ? "Buscando CEP..." : "Puxar endereÃ§o pelo CEP"}</button>
-              <label>EndereÃ§o completo</label>
-              <input value={newShop.address} onChange={(event) => updateNewShop("address", event.target.value)} placeholder="Rua, nÃºmero - bairro - cidade" />
+              <button type="button" className="platformSecondary platformCepButton" disabled={saving === "cep-create"} onClick={fillNewShopAddressByCep}>{saving === "cep-create" ? "Buscando CEP..." : "Puxar endereço pelo CEP"}</button>
+              <label>Endereço completo</label>
+              <input value={newShop.address} onChange={(event) => updateNewShop("address", event.target.value)} placeholder="Rua, número - bairro - cidade" />
               <label>Logo ou foto da marca</label>
               <input type="file" accept="image/*" onChange={handleNewShopLogoUpload} />
               {newShop.logo_url ? (
                 <div className="platformWizardLogoPreview">
                   <img src={newShop.logo_url} alt="Logo da nova barbearia" />
-                  <div><strong>{newShop.name || "Nova barbearia"}</strong><span>PrÃ©via da marca</span></div>
+                  <div><strong>{newShop.name || "Nova barbearia"}</strong><span>Prévia da marca</span></div>
                 </div>
               ) : null}
               <label>Chave PIX</label>
@@ -2284,26 +2284,26 @@ export default function PlatformDashboard() {
 
           {onboardingStep === 2 && (
             <section className="platformWizardPanel platformForm">
-              <div className="platformWizardIntro"><span>Etapa 2</span><h3>ServiÃ§os</h3><p>Adicione nome, duraÃ§Ã£o e preÃ§o. Estes serviÃ§os aparecem na tela do cliente.</p></div>
+              <div className="platformWizardIntro"><span>Etapa 2</span><h3>Serviços</h3><p>Adicione nome, duração e preço. Estes serviços aparecem na tela do cliente.</p></div>
               <div className="platformWizardList">
                 {onboardingServices.map((service, index) => (
                   <article className="platformWizardServiceCard" key={index}>
                     <div className="platformWizardItemTop">
-                      <strong>ServiÃ§o {index + 1}</strong>
+                      <strong>Serviço {index + 1}</strong>
                       <button type="button" className="platformDangerGhost" disabled={onboardingServices.length === 1} onClick={() => setOnboardingServices((current) => current.filter((_, itemIndex) => itemIndex !== index))}>Excluir</button>
                     </div>
                     <label>Nome</label>
                     <input value={service.name} onChange={(event) => updateOnboardingService(index, "name", event.target.value)} placeholder="Corte de cabelo" />
                     <div className="platformTwoCols">
-                      <span><label>DuraÃ§Ã£o (min)</label><input value={service.duration} onChange={(event) => updateOnboardingService(index, "duration", event.target.value)} type="number" min="5" step="5" /></span>
-                      <span><label>PreÃ§o</label><input value={service.price} onChange={(event) => updateOnboardingService(index, "price", event.target.value)} type="number" min="0" step="1" /></span>
+                      <span><label>Duração (min)</label><input value={service.duration} onChange={(event) => updateOnboardingService(index, "duration", event.target.value)} type="number" min="5" step="5" /></span>
+                      <span><label>Preço</label><input value={service.price} onChange={(event) => updateOnboardingService(index, "price", event.target.value)} type="number" min="0" step="1" /></span>
                     </div>
                   </article>
                 ))}
               </div>
               <div className="platformWizardActions">
-                <button type="button" className="platformSecondary" onClick={() => setOnboardingServices((current) => current.concat({ name: "", duration: 30, price: 0 }))}>+ Adicionar serviÃ§o</button>
-                <button type="button" className="platformPrimary" disabled={saving === "onboarding-services"} onClick={saveOnboardingServices}>{saving === "onboarding-services" ? "Salvando..." : "Salvar serviÃ§os"}</button>
+                <button type="button" className="platformSecondary" onClick={() => setOnboardingServices((current) => current.concat({ name: "", duration: 30, price: 0 }))}>+ Adicionar serviço</button>
+                <button type="button" className="platformPrimary" disabled={saving === "onboarding-services"} onClick={saveOnboardingServices}>{saving === "onboarding-services" ? "Salvando..." : "Salvar serviços"}</button>
               </div>
             </section>
           )}
@@ -2328,7 +2328,7 @@ export default function PlatformDashboard() {
               </div>
               <div className="platformWizardActions">
                 <button type="button" className="platformSecondary" onClick={() => setOnboardingProfessionals((current) => current.concat({ name: "", photo_url: "" }))}>+ Adicionar barbeiro</button>
-                <button type="button" className="platformSecondary" disabled={saving === "onboarding-professionals"} onClick={() => saveOnboardingProfessionals(true)}>Pular, Ã© solo</button>
+                <button type="button" className="platformSecondary" disabled={saving === "onboarding-professionals"} onClick={() => saveOnboardingProfessionals(true)}>Pular, é solo</button>
                 <button type="button" className="platformPrimary" disabled={saving === "onboarding-professionals"} onClick={() => saveOnboardingProfessionals(false)}>{saving === "onboarding-professionals" ? "Salvando..." : "Salvar equipe"}</button>
               </div>
             </section>
@@ -2336,7 +2336,7 @@ export default function PlatformDashboard() {
 
           {onboardingStep === 4 && (
             <section className="platformWizardPanel platformForm">
-              <div className="platformWizardIntro"><span>Etapa 4</span><h3>HorÃ¡rios</h3><p>Defina a grade semanal. Os horÃ¡rios serÃ£o usados pela agenda real da barbearia.</p></div>
+              <div className="platformWizardIntro"><span>Etapa 4</span><h3>Horários</h3><p>Defina a grade semanal. Os horários serão usados pela agenda real da barbearia.</p></div>
               <div className="platformWizardHoursGrid">
                 {onboardingHours.map((hour, index) => (
                   <article className={hour.enabled ? "platformWizardDay active" : "platformWizardDay"} key={hour.week_day}>
@@ -2351,20 +2351,20 @@ export default function PlatformDashboard() {
               </div>
               <div className="platformWizardActions">
                 <button type="button" className="platformSecondary" onClick={() => setOnboardingStep(3)}>Voltar</button>
-                <button type="button" className="platformPrimary" disabled={saving === "onboarding-hours"} onClick={saveOnboardingHours}>{saving === "onboarding-hours" ? "Salvando..." : "Salvar horÃ¡rios"}</button>
+                <button type="button" className="platformPrimary" disabled={saving === "onboarding-hours"} onClick={saveOnboardingHours}>{saving === "onboarding-hours" ? "Salvando..." : "Salvar horários"}</button>
               </div>
             </section>
           )}
 
           {onboardingStep === 5 && (
             <section className="platformWizardPanel platformWizardDone">
-              <div className="platformWizardIntro"><span>Etapa 5</span><h3>Pronto!</h3><p>A barbearia jÃ¡ tem link de agendamento e painel. Agora Ã© sÃ³ divulgar e ajustar detalhes se quiser.</p></div>
+              <div className="platformWizardIntro"><span>Etapa 5</span><h3>Pronto!</h3><p>A barbearia já tem link de agendamento e painel. Agora é só divulgar e ajustar detalhes se quiser.</p></div>
               <div className="platformWizardDoneLinks">
                 <article><span>Link de agendamento</span><strong>{onboardingClientLink || "Salve as etapas para gerar o link"}</strong><button type="button" className="platformSecondary" disabled={!onboardingClientLink} onClick={() => copyText(onboardingClientLink, "Link de agendamento")}>Copiar link</button></article>
                 <article><span>Painel da barbearia</span><strong>{onboardingPanelLink || "Salve as etapas para gerar o painel"}</strong><a className="platformSecondary" href={onboardingPanelLink || "#"} target="_blank" rel="noreferrer">Abrir painel</a></article>
               </div>
               <div className="platformWizardActions">
-                <a className="platformPrimary" href={`https://wa.me/?text=${encodeURIComponent(`Agende seu horÃ¡rio online: ${onboardingClientLink}`)}`} target="_blank" rel="noreferrer">Compartilhar no WhatsApp</a>
+                <a className="platformPrimary" href={`https://wa.me/?text=${encodeURIComponent(`Agende seu horário online: ${onboardingClientLink}`)}`} target="_blank" rel="noreferrer">Compartilhar no WhatsApp</a>
                 <a className="platformSecondary" href={onboardingClientLink || "#"} target="_blank" rel="noreferrer">Abrir agenda</a>
                 <button type="button" className="platformSecondary" onClick={resetOnboardingWizard}>Cadastrar outra</button>
               </div>
@@ -2586,7 +2586,7 @@ export default function PlatformDashboard() {
                           disabled={!planAllows}
                           onClick={() => updateFeature(feature.key, "enabled", !enabled)}
                         >
-                          {!planAllows ? "IndisponÃ­vel" : enabled ? "Desativar" : "Ativar"}
+                          {!planAllows ? "Indisponível" : enabled ? "Desativar" : "Ativar"}
                         </button>
                       </div>
                     </article>

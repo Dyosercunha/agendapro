@@ -335,6 +335,8 @@ export default function AgendaTodayPanel({ model }: AgendaTodayPanelProps) {
           {visibleAppointments.map((appointment) => {
             const status = getStatus(appointment);
             const selected = selectedAppointment?.id === appointment.id;
+            const clientName = appointment.clientName || "Cliente sem nome";
+            const longClientName = clientName.length > 18;
 
             return (
               <article
@@ -353,7 +355,12 @@ export default function AgendaTodayPanel({ model }: AgendaTodayPanelProps) {
 
                 <div className="agendaTodayInfo">
                   <div className="agendaTodayCardHeader">
-                    <strong>{appointment.clientName || "Cliente sem nome"}</strong>
+                    <strong
+                      className={longClientName ? "agendaTodayClientName isLong" : "agendaTodayClientName"}
+                      title={clientName}
+                    >
+                      {clientName}
+                    </strong>
                     <span className={`appointmentStatusPill status-${status}`}>
                       {statusLabels[status]}
                     </span>
@@ -380,7 +387,16 @@ export default function AgendaTodayPanel({ model }: AgendaTodayPanelProps) {
 
           {selectedAppointment ? (
             <>
-              <h3>{selectedAppointment.clientName || "Cliente sem nome"}</h3>
+              <h3
+                className={
+                  String(selectedAppointment.clientName || "").length > 18
+                    ? "agendaTodayDetailsName isLong"
+                    : "agendaTodayDetailsName"
+                }
+                title={selectedAppointment.clientName || "Cliente sem nome"}
+              >
+                {selectedAppointment.clientName || "Cliente sem nome"}
+              </h3>
               <p>{selectedAppointment.services || "Serviço não informado"}</p>
               <div className="agendaTodayDetailGrid">
                 <div>

@@ -10545,8 +10545,8 @@ button:disabled {
   align-items: center;
   cursor: pointer;
   display: grid;
-  gap: 14px;
-  grid-template-columns: 92px minmax(0, 1fr) minmax(220px, 0.54fr);
+  gap: 16px;
+  grid-template-columns: minmax(116px, 0.24fr) minmax(0, 1fr) minmax(220px, 0.54fr);
   min-height: 132px;
   padding: 16px;
   transition: border-color 0.18s ease, transform 0.18s ease, background 0.18s ease;
@@ -10585,15 +10585,19 @@ button:disabled {
   display: grid;
   gap: 6px;
   min-height: 90px;
-  padding: 14px;
+  min-width: 0;
+  overflow: hidden;
+  padding: 12px 10px;
   place-items: center;
   text-align: center;
 }
 
 .agendaTodayTime strong {
   color: var(--text);
-  font-size: clamp(27px, 2.7vw, 38px);
+  font-size: clamp(28px, 2.2vw, 36px);
   line-height: 1;
+  max-width: 100%;
+  white-space: nowrap;
 }
 
 .agendaTodayTime span,
@@ -10857,7 +10861,11 @@ button:disabled {
   }
 
   .agendaTodayAppointment {
-    grid-template-columns: 80px minmax(0, 1fr);
+    grid-template-columns: minmax(106px, 0.22fr) minmax(0, 1fr);
+  }
+
+  .agendaTodayTime strong {
+    font-size: clamp(28px, 4vw, 34px);
   }
 
   .agendaTodayActions.compact {

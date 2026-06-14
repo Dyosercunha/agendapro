@@ -2573,7 +2573,7 @@ function CoreAgendaProApp() {
         ready: false,
         provider: data?.provider || "meta",
         providerLabel,
-        message: "Falta chave segura do Supabase no Vercel",
+        message: "Integração automática pendente",
         missing,
       };
     }
@@ -2584,8 +2584,8 @@ function CoreAgendaProApp() {
       provider: data?.provider || "meta",
       providerLabel,
       message: missing.length
-        ? `Falta configurar ${missing.join(" e ")}`
-        : "Provedor de WhatsApp ainda não configurado",
+        ? "Integração automática pendente"
+        : "WhatsApp automático ainda não configurado",
       missing,
     };
   }

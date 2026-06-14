@@ -499,10 +499,10 @@ export default function ClientBooking({ model }: ClientBookingProps) {
           )}
           {!confirmationSent && barberConfirmationMessage && (
             <div className="manualConfirmationBox">
-              <strong>Envio manual disponível</strong>
+              <strong>Confirmação pronta para WhatsApp</strong>
               <p>
-                Até o WhatsApp automático ser ativado, toque no botão abaixo para enviar
-                o resumo completo direto para a barbearia.
+                A barbearia já recebeu o agendamento no painel. Use este botão se quiser
+                enviar o resumo completo também pelo WhatsApp.
               </p>
               <a
                 className="black linkButton"

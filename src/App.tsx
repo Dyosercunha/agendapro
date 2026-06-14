@@ -3378,7 +3378,7 @@ function CoreAgendaProApp() {
     try {
       const publicUrl = await uploadBusinessAsset(file, "logos");
       setBusiness((current) => ({ ...current, logoImage: publicUrl }));
-      setCloudStatus("Logo enviada para o Supabase Storage. Salve a aparência para fixar no cadastro.");
+      setCloudStatus("Logo enviada para a nuvem. Salve a aparência para fixar no cadastro.");
       showNotice("Logo enviada. Agora clique em Salvar aparência.");
     } catch (error) {
       const message = repairText(error?.message || "Não foi possível enviar a logo.");
@@ -3402,7 +3402,7 @@ function CoreAgendaProApp() {
     try {
       const publicUrl = await uploadBusinessAsset(file, folder);
       setBusiness((current) => ({ ...current, [field]: publicUrl }));
-      setCloudStatus("Plano de fundo enviado para o Supabase Storage. Salve os fundos para fixar no cadastro.");
+      setCloudStatus("Plano de fundo enviado para a nuvem. Salve os fundos para fixar no cadastro.");
       showNotice("Imagem enviada. Agora clique em Salvar planos de fundo.");
     } catch (error) {
       const message = repairText(error?.message || "Não foi possível enviar o plano de fundo.");
@@ -3431,7 +3431,7 @@ function CoreAgendaProApp() {
     try {
       const publicUrl = await uploadBusinessAsset(file, folder);
       setBusiness((current) => ({ ...current, [field]: publicUrl }));
-      setCloudStatus("Foto enviada para o Supabase Storage. Salve as fotos para aparecerem no cliente.");
+      setCloudStatus("Foto enviada para a nuvem. Salve as fotos para aparecerem no cliente.");
       showNotice("Foto enviada. Agora clique em Salvar fotos do carrossel.");
     } catch (error) {
       const message = repairText(error?.message || "Não foi possível enviar a foto.");

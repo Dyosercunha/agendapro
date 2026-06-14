@@ -208,7 +208,7 @@ export default function LandingPage() {
           <span>
             {metrics.source === "supabase"
               ? "Dados sincronizados em tempo real"
-              : "Ative o Supabase para métricas ao vivo"}
+              : "Métricas ao vivo em configuração"}
           </span>
         </article>
       </section>

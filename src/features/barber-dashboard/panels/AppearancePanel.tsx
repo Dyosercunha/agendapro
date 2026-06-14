@@ -296,7 +296,7 @@ export default function AppearancePanel({ model }: AppearancePanelProps) {
                 <label>Subir logo em imagem</label>
                 <input type="file" accept="image/*" onChange={handleLogoUpload} />
                 {cloudSaving === "asset-logo" && (
-                  <p className="hint">Enviando logo para o Supabase Storage...</p>
+                  <p className="hint">Enviando logo para a nuvem...</p>
                 )}
               </div>
               {business.logoImage && (
@@ -408,7 +408,7 @@ export default function AppearancePanel({ model }: AppearancePanelProps) {
                   onChange={(event) => handleBackgroundUpload("clientBackgroundUrl", event)}
                 />
                 {cloudSaving === "asset-client-background" && (
-                  <p className="hint">Enviando fundo do cliente para o Supabase Storage...</p>
+                  <p className="hint">Enviando fundo do cliente para a nuvem...</p>
                 )}
                 <label>Opacidade da capa</label>
                 <input
@@ -449,7 +449,7 @@ export default function AppearancePanel({ model }: AppearancePanelProps) {
                   onChange={(event) => handleBackgroundUpload("adminBackgroundUrl", event)}
                 />
                 {cloudSaving === "asset-admin-background" && (
-                  <p className="hint">Enviando fundo do painel para o Supabase Storage...</p>
+                  <p className="hint">Enviando fundo do painel para a nuvem...</p>
                 )}
                 <label>Opacidade do fundo</label>
                 <input

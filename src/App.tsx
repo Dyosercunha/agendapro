@@ -149,7 +149,7 @@ const initialBusiness: BusinessState = {
   name: "AgendaPro",
   logo: "A",
   logoImage: "",
-  slug: "agenda-pro",
+  slug: "demo-barbearia",
   ownerEmail: primaryPlatformDeveloperEmail,
   plan: "professional",
   monthlyStatus: "active",
@@ -499,6 +499,23 @@ function makeSlug(value) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 48);
+}
+
+const reservedBarbershopSlugs = new Set([
+  "agenda-pro",
+  "agendapro",
+  "api",
+  "assets",
+  "barbearia",
+  "painel",
+  "painel-plataforma",
+  "plataforma",
+  "agendamento",
+]);
+
+function isReservedBarbershopSlug(value) {
+  const slug = makeSlug(value || "");
+  return !slug || reservedBarbershopSlugs.has(slug);
 }
 
 function money(value) {
@@ -1441,7 +1458,7 @@ function CoreAgendaProApp() {
     setViewMode("client");
 
     if (typeof window !== "undefined") {
-      window.history.pushState({}, "", slug ? `/${slug}` : "/");
+      window.history.pushState({}, "", slug ? `/agendamento/${slug}` : "/");
       window.scrollTo(0, 0);
     }
   }
@@ -2855,7 +2872,18 @@ function CoreAgendaProApp() {
       const { targetSlug, result: missingBarbershop } = requireLoadedBarbershop();
       if (missingBarbershop) return missingBarbershop;
 
-      const nextSlug = business.slug || makeSlug(business.name);
+      const nextSlug = makeSlug(business.slug || business.name);
+      const slugBelongsToLoadedShop = nextSlug && nextSlug === targetSlug;
+
+      if (!slugBelongsToLoadedShop && isReservedBarbershopSlug(nextSlug)) {
+        return {
+          error: {
+            message:
+              "Este identificador é reservado para o AgendaPro. Use outro link, como master-barbearia.",
+          },
+        };
+      }
+
       const result = await saveBusinessSettings({
         target_slug: targetSlug,
         name_input: business.name,
@@ -2910,7 +2938,7 @@ function CoreAgendaProApp() {
           const panelIndex = parts.indexOf("painel");
           const scheduleIndex = parts.indexOf("agendamento");
           if (panelIndex !== -1) window.history.replaceState(null, "", `/painel/${nextSlug}`);
-          if (scheduleIndex !== -1) window.history.replaceState(null, "", `/${nextSlug}`);
+          if (scheduleIndex !== -1) window.history.replaceState(null, "", `/agendamento/${nextSlug}`);
         }
       }
 

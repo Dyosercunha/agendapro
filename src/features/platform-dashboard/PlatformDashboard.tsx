@@ -261,6 +261,23 @@ function makeSlug(value = "") {
   return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48);
 }
 
+const reservedBarbershopSlugs = new Set([
+  "agenda-pro",
+  "agendapro",
+  "api",
+  "assets",
+  "barbearia",
+  "painel",
+  "painel-plataforma",
+  "plataforma",
+  "agendamento",
+]);
+
+function isReservedBarbershopSlug(value = "") {
+  const slug = makeSlug(value);
+  return !slug || reservedBarbershopSlugs.has(slug);
+}
+
 function onlyDigits(value: unknown = "") {
   return String(value).replace(/\D/g, "");
 }
@@ -1190,6 +1207,9 @@ export default function PlatformDashboard() {
     const targetSlug = onboardingCreated?.slug || newShop.slug || makeSlug(newShop.name);
 
     if (!newShop.name.trim()) throw new Error("Informe o nome da barbearia.");
+    if (isReservedBarbershopSlug(targetSlug)) {
+      throw new Error("Este link é reservado para o AgendaPro. Use outro, como master-barbearia.");
+    }
     if (!newShop.owner_email.trim()) throw new Error("Informe o e-mail do dono.");
     if (!onboardingCreated && ownerPassword.length < 6) {
       throw new Error("Informe uma senha inicial do dono com pelo menos 6 caracteres.");

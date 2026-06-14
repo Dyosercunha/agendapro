@@ -36,6 +36,24 @@ function makeSlug(value = "") {
     .replace(/^-+|-+$/g, "");
 }
 
+const reservedBarbershopSlugs = new Set([
+  "agenda-pro",
+  "agendapro",
+  "api",
+  "assets",
+  "barbearia",
+  "painel",
+  "painel-plataforma",
+  "plataforma",
+  "agendamento",
+]);
+
+function assertAllowedBarbershopSlug(slug) {
+  if (!slug || reservedBarbershopSlugs.has(slug)) {
+    throw new Error("Este slug e reservado para o AgendaPro. Use outro identificador.");
+  }
+}
+
 function planPrice(plan = "professional", explicitPrice) {
   const parsed = Number(explicitPrice);
   if (Number.isFinite(parsed) && parsed >= 0) return parsed;
@@ -230,6 +248,7 @@ async function createBarbershop(adminClient, payload) {
 
   if (!name) throw new Error("Informe o nome da barbearia.");
   if (!slug) throw new Error("Informe um slug valido para a barbearia.");
+  assertAllowedBarbershopSlug(slug);
   if (!ownerEmail || !ownerEmail.includes("@")) throw new Error("Informe o e-mail do dono.");
   if (!isAllowedAccessEmailDomain(ownerEmail)) {
     throw new Error("Use um e-mail @gmail.com ou @agendapro.com cadastrado pela plataforma.");

@@ -25,6 +25,10 @@ export function bookAppointmentLegacy(payload: Record<string, unknown>) {
   return callRpcWithRestFallback("book_appointment", payload);
 }
 
+export function checkPublicSlotAvailability(payload: Record<string, unknown>) {
+  return callRpcWithRestFallback("check_public_slot_availability", payload);
+}
+
 export function getPublicAppointment(payload: Record<string, unknown>) {
   return callRpcWithRestFallback("get_public_appointment", payload);
 }

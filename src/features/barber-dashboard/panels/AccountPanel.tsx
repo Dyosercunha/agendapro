@@ -163,7 +163,7 @@ export default function AccountPanel({ model }: AccountPanelProps) {
                 value={business.slug || ""}
                 disabled={!isDeveloperRole}
                 onChange={(event) => updateBusinessSlug(event.target.value)}
-                placeholder="agenda-pro"
+                placeholder="master-barbearia"
               />
               <small>Esse texto monta os links da agenda e do painel.</small>
             </div>

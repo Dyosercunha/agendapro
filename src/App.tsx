@@ -32,6 +32,7 @@ import {
   bookAppointmentLegacy,
   bookAppointmentV2,
   cancelPublicAppointment,
+  checkPublicSlotAvailability,
   getAdminAppointments,
   getPublicAppointment,
   getWhatsappStatus,
@@ -432,6 +433,39 @@ function cloudErrorText(error) {
   } catch {
     return "Erro desconhecido.";
   }
+}
+
+function friendlyCloudErrorText(error, fallback = "Não foi possível concluir esta ação agora. Tente novamente.") {
+  const detail = cloudErrorText(error).toLowerCase();
+
+  if (
+    detail.includes("permission denied") ||
+    detail.includes("get_admin_appointments") ||
+    detail.includes("rpc") ||
+    detail.includes("pgrst") ||
+    detail.includes("schema cache")
+  ) {
+    return fallback;
+  }
+
+  if (
+    detail.includes("dono ativo") ||
+    detail.includes("owner") ||
+    detail.includes("at least one")
+  ) {
+    return "A barbearia precisa manter pelo menos um Dono ativo.";
+  }
+
+  if (
+    detail.includes("duplicate") ||
+    detail.includes("ocupado") ||
+    detail.includes("indispon") ||
+    detail.includes("conflict")
+  ) {
+    return "Esse horário acabou de ser reservado. Escolha outro horário.";
+  }
+
+  return repairText(cloudErrorText(error));
 }
 
 function dateParts(dateText) {
@@ -837,6 +871,44 @@ function mapAccessAccountsFromCloud(rows, ownerEmail) {
     };
   });
 
+  function ensureOwnerAccount(accounts) {
+    const fallbackOwnerEmail = String(ownerEmail || "").trim().toLowerCase();
+    const nextAccounts = [...accounts];
+
+    if (!fallbackOwnerEmail || isPlatformDeveloperEmail(fallbackOwnerEmail)) {
+      return nextAccounts;
+    }
+
+    const ownerIndex = nextAccounts.findIndex(
+      (account) => String(account.email || "").trim().toLowerCase() === fallbackOwnerEmail
+    );
+
+    if (ownerIndex === -1) {
+      nextAccounts.push({
+        id: "owner-local",
+        email: fallbackOwnerEmail,
+        role: "Dono",
+        active: true,
+        fixed: false,
+        password: "",
+        passwordConfirm: "",
+      });
+      return nextAccounts;
+    }
+
+    const ownerAccount = nextAccounts[ownerIndex];
+
+    if (normalizeRole(ownerAccount.role) !== "dono" || ownerAccount.active === false) {
+      nextAccounts[ownerIndex] = {
+        ...ownerAccount,
+        role: "Dono",
+        active: true,
+      };
+    }
+
+    return nextAccounts;
+  }
+
   if (cloudAccounts.length) {
     const accountsWithDevelopers = [...cloudAccounts];
 
@@ -861,25 +933,60 @@ function mapAccessAccountsFromCloud(rows, ownerEmail) {
         }
       });
 
-    return accountsWithDevelopers;
+    return ensureOwnerAccount(accountsWithDevelopers);
   }
 
-  const fallbackOwnerEmail = String(ownerEmail || "").trim().toLowerCase();
   const fallbackAccounts = [...initialAccessAccounts];
 
-  if (fallbackOwnerEmail && !isPlatformDeveloperEmail(fallbackOwnerEmail)) {
-    fallbackAccounts.push({
+  return ensureOwnerAccount(fallbackAccounts);
+}
+
+function isActiveOwnerAccessAccount(account) {
+  return (
+    account &&
+    account.active !== false &&
+    normalizeRole(account.role) === "dono" &&
+    !isPlatformDeveloperEmail(account.email)
+  );
+}
+
+function countActiveOwnerAccessAccounts(accounts) {
+  return (accounts || []).filter(isActiveOwnerAccessAccount).length;
+}
+
+function ensureRequiredPanelAccessAccounts(accounts, ownerEmail) {
+  const nextAccounts = [...(accounts || [])];
+  const normalizedOwnerEmail = String(ownerEmail || "").trim().toLowerCase();
+
+  if (!normalizedOwnerEmail || isPlatformDeveloperEmail(normalizedOwnerEmail)) {
+    return nextAccounts;
+  }
+
+  const ownerIndex = nextAccounts.findIndex(
+    (account) => String(account.email || "").trim().toLowerCase() === normalizedOwnerEmail
+  );
+
+  if (ownerIndex === -1) {
+    nextAccounts.push({
       id: "owner-local",
-      email: fallbackOwnerEmail,
+      email: normalizedOwnerEmail,
       role: "Dono",
       active: true,
       fixed: false,
       password: "",
       passwordConfirm: "",
     });
+    return nextAccounts;
   }
 
-  return fallbackAccounts;
+  nextAccounts[ownerIndex] = {
+    ...nextAccounts[ownerIndex],
+    email: normalizedOwnerEmail,
+    role: "Dono",
+    active: true,
+  };
+
+  return nextAccounts;
 }
 
 function mapFeatureFlagsFromCloud(rows) {
@@ -1106,9 +1213,9 @@ function CoreAgendaProApp() {
   const currentPlan = planOptions.find((plan) => plan.id === business.plan) || planOptions[0];
   const appOrigin = typeof window !== "undefined" ? window.location.origin : "https://agenda.app";
   const routeSlug = makeSlug(
-    loadedCloudSlug() || business.slug || cloudSlug || currentSlugFromUrl() || initialBusiness.slug
+    loadedCloudSlug() || business.slug || cloudSlug || currentSlugFromUrl()
   );
-  const publicScheduleLink = `${appOrigin}/${routeSlug || "barbearia"}`;
+  const publicScheduleLink = `${appOrigin}/agendamento/${routeSlug || "barbearia"}`;
   const adminPanelLink = `${appOrigin}/painel/${routeSlug || "barbearia"}`;
   function featurePlanAllowed(featureKey) {
     const normalizedFeatureKey = normalizeFeatureKey(featureKey);
@@ -2055,9 +2162,17 @@ function CoreAgendaProApp() {
   }
 
   function showNotice(message, title = "AgendaPro") {
+    const rawMessage = repairText(String(message || ""));
+    const cleanMessage =
+      rawMessage.includes("Para evitar horário duplicado") && rawMessage.includes("Detalhe:")
+        ? "Não foi possível confirmar este horário. Tente novamente em instantes."
+        : rawMessage.includes("permission denied") || rawMessage.includes("get_admin_appointments")
+        ? "Não foi possível concluir esta ação agora. Tente novamente."
+        : rawMessage;
+
     setNotice({
       title,
-      message: repairText(String(message || "")),
+      message: cleanMessage,
     });
   }
 
@@ -2262,10 +2377,7 @@ function CoreAgendaProApp() {
     setCloudStatus("Verificando disponibilidade online...");
 
     try {
-      const latestAppointments = (await hasAuthSession())
-        ? (await refreshCloudAppointments()) || appointments
-        : appointments;
-      const freshSlot = buildSlotsForDate(selectedDate, latestAppointments).find(
+      const freshSlot = buildSlotsForDate(selectedDate, appointments).find(
         (slot) => slot.time === selectedTime
       );
 
@@ -2279,6 +2391,32 @@ function CoreAgendaProApp() {
 
       const finalProfessional =
         professional === firstAvailableProfessionalName ? freshSlot.professional : professional;
+
+      const availabilityResult = await checkPublicSlotAvailability({
+        target_slug: loadedCloudSlug(),
+        target_date: selectedDate,
+        target_time: selectedTime,
+        target_professional: finalProfessional,
+      });
+
+      if (!availabilityResult.error && availabilityResult.data) {
+        const availability = Array.isArray(availabilityResult.data)
+          ? availabilityResult.data[0]
+          : availabilityResult.data;
+
+        if (availability?.available === false) {
+          showNotice("Esse horário acabou de ser reservado. Escolha outro horário.");
+          setScreen("home");
+          setSelectedTime("");
+          setCloudStatus("Horário indisponível. Escolha outra opção.");
+          return;
+        }
+      }
+
+      if (availabilityResult.error) {
+        console.warn("Validação pública de horário indisponível:", availabilityResult.error);
+        setCloudStatus("Validando disponibilidade na reserva protegida...");
+      }
 
       const id = makeId("ag");
       const finalPayment = payment === "pix" && pixAvailable ? "pix" : "local";
@@ -2331,11 +2469,13 @@ function CoreAgendaProApp() {
       window.scrollTo(0, 0);
     } catch (error) {
       const detail = cloudErrorText(error);
+      const friendlyMessage = friendlyCloudErrorText(
+        error,
+        "Não foi possível confirmar este horário. Tente novamente em instantes."
+      );
       console.error(error);
       setCloudStatus(`Não foi possível confirmar o agendamento: ${detail}`);
-      showNotice(
-        `Não foi possível confirmar este horário.\n\nPara evitar horário duplicado, tente novamente em instantes.\n\nDetalhe: ${detail}`
-      );
+      showNotice(friendlyMessage);
     } finally {
       setCloudSaving("");
     }
@@ -2676,10 +2816,12 @@ function CoreAgendaProApp() {
       if (error) {
         console.error(error);
         const detail = cloudErrorText(error);
-        setCloudStatus(`Salvo neste aparelho, mas não foi sincronizado online: ${detail}`);
-        showNotice(
-          `Salvei neste aparelho, mas ainda não sincronizou online.\n\nDetalhe: ${detail}`
+        const friendlyMessage = friendlyCloudErrorText(
+          error,
+          "Não foi possível salvar online. Revise os dados e tente novamente."
         );
+        setCloudStatus(`Salvo neste aparelho, mas não foi sincronizado online: ${detail}`);
+        showNotice(friendlyMessage);
         return false;
       }
 
@@ -2689,8 +2831,12 @@ function CoreAgendaProApp() {
     } catch (error) {
       console.error(error);
       const detail = cloudErrorText(error);
+      const friendlyMessage = friendlyCloudErrorText(
+        error,
+        "Não foi possível salvar online. Revise os dados e tente novamente."
+      );
       setCloudStatus(`Não foi possível salvar online: ${detail}`);
-      showNotice(`Não foi possível salvar online.\n\nDetalhe: ${detail}`);
+      showNotice(friendlyMessage);
       return false;
     } finally {
       setCloudSaving("");
@@ -2783,7 +2929,9 @@ function CoreAgendaProApp() {
 
   function saveAccessAccountsToCloud() {
     return runCloudSave("access", "Acessos do painel salvos online", async () => {
-      const activeAccounts = accessAccounts.filter((account) => account.active !== false);
+      const protectedAccounts = ensureRequiredPanelAccessAccounts(accessAccounts, business.ownerEmail);
+      const activeAccounts = protectedAccounts.filter((account) => account.active !== false);
+      const hasActiveOwner = countActiveOwnerAccessAccounts(protectedAccounts) > 0;
       const invalidAccount = activeAccounts.find((account) => !String(account.email || "").includes("@"));
       const invalidDomainAccount = activeAccounts.find(
         (account) => !isAllowedAccessEmailDomain(account.email)
@@ -2807,8 +2955,12 @@ function CoreAgendaProApp() {
         return { error: { message: "Informe um e-mail válido em todos os acessos ativos." } };
       }
 
-            if (invalidDomainAccount) {
+      if (invalidDomainAccount) {
         return { error: { message: allowedAccessEmailMessage } };
+      }
+
+      if (!hasActiveOwner) {
+        return { error: { message: "A barbearia precisa manter pelo menos um Dono ativo." } };
       }
 
       if (missingPassword) {
@@ -2851,7 +3003,7 @@ function CoreAgendaProApp() {
 
       const result = await saveBarbershopAccesses({
         target_slug: targetSlug,
-        accesses_input: accessAccounts.map((account) => ({
+        accesses_input: protectedAccounts.map((account) => ({
           id: account.id || null,
           email: account.email.trim().toLowerCase(),
           role: cloudRoleFromLabel(account.role),
@@ -2861,7 +3013,11 @@ function CoreAgendaProApp() {
 
       if (!result.error) {
         setAccessAccounts((current) =>
-          current.map((account) => ({ ...account, password: "", passwordConfirm: "" }))
+          ensureRequiredPanelAccessAccounts(current, business.ownerEmail).map((account) => ({
+            ...account,
+            password: "",
+            passwordConfirm: "",
+          }))
         );
         setPasswordEditorOpen({});
         await loadCloudData();
@@ -3352,7 +3508,7 @@ function CoreAgendaProApp() {
       current.map((account, itemIndex) => {
         if (itemIndex !== index) return account;
 
-        return {
+        const nextAccount = {
           ...account,
           [field]:
             field === "active"
@@ -3361,6 +3517,17 @@ function CoreAgendaProApp() {
               ? String(value).trim().toLowerCase()
               : value,
         };
+
+        if (
+          isActiveOwnerAccessAccount(account) &&
+          !isActiveOwnerAccessAccount(nextAccount) &&
+          countActiveOwnerAccessAccounts(current) <= 1
+        ) {
+          showNotice("A barbearia precisa manter pelo menos um Dono ativo.");
+          return account;
+        }
+
+        return nextAccount;
       })
     );
   }
@@ -3369,6 +3536,11 @@ function CoreAgendaProApp() {
     const account = accessAccounts[index];
 
     if (!account || account.fixed) return;
+
+    if (isActiveOwnerAccessAccount(account) && countActiveOwnerAccessAccounts(accessAccounts) <= 1) {
+      showNotice("A barbearia precisa manter pelo menos um Dono ativo.");
+      return;
+    }
 
     setAccessAccounts((current) => current.filter((_, itemIndex) => itemIndex !== index));
   }
@@ -4003,7 +4175,7 @@ function CoreAgendaProApp() {
           <h1>{cloudLoadState === "missing-slug" ? "Link da barbearia incompleto" : "Barbearia não encontrada"}</h1>
           <p className="hint">
             {cloudLoadState === "missing-slug"
-              ? "Abra pelo link completo da barbearia, por exemplo /painel/master ou /master."
+              ? "Abra pelo link oficial da barbearia: /agendamento/master para clientes ou /painel/master para o painel."
               : `Não encontrei a barbearia "${slug}" ativa na nuvem. Confira o slug no Painel Plataforma ou restaure a barbearia se ela foi arquivada.`}
           </p>
           <a className="greenLink full" href="/plataforma?platform=1">

@@ -457,12 +457,30 @@ function friendlyCloudErrorText(error, fallback = "Não foi possível concluir e
   }
 
   if (
+    detail.includes("barbearia nao encontrada") ||
+    detail.includes("barbearia não encontrada") ||
+    detail.includes("barbershop not found")
+  ) {
+    return "Não encontrei esta barbearia ativa na nuvem. Abra pelo link oficial do painel ou confira o cadastro no Painel Plataforma.";
+  }
+
+  if (
     detail.includes("duplicate") ||
     detail.includes("ocupado") ||
     detail.includes("indispon") ||
     detail.includes("conflict")
   ) {
     return "Esse horário acabou de ser reservado. Escolha outro horário.";
+  }
+
+  if (
+    detail.includes("{") ||
+    detail.includes("código:") ||
+    detail.includes("code:") ||
+    detail.includes("sql") ||
+    detail.includes("function public.")
+  ) {
+    return fallback;
   }
 
   return repairText(cloudErrorText(error));

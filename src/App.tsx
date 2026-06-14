@@ -2691,10 +2691,13 @@ function CoreAgendaProApp() {
     }
 
     if (error) {
-      const detail = cloudErrorText(error);
+      const friendlyMessage = friendlyCloudErrorText(
+        error,
+        "Não foi possível confirmar este horário. Tente novamente em instantes."
+      );
       console.error("Erro ao salvar online:", error);
-      setCloudStatus(`O horário não foi reservado: ${detail}`);
-      showNotice(`Não foi possível confirmar este horário.\n\n${detail}`);
+      setCloudStatus(friendlyMessage);
+      showNotice(friendlyMessage);
       return { id: "", token: "" };
     }
 
@@ -2769,7 +2772,10 @@ function CoreAgendaProApp() {
       console.error(error);
       setPublicAppointment(null);
       showNotice(
-        `Não foi possível carregar este agendamento. Confira o link ou fale com a barbearia.\n\nDetalhe: ${cloudErrorText(error)}`
+        friendlyCloudErrorText(
+          error,
+          "Não foi possível carregar este agendamento. Confira o link ou fale com a barbearia."
+        )
       );
     } finally {
       setPublicActionSaving("");
@@ -2799,7 +2805,10 @@ function CoreAgendaProApp() {
     } catch (error) {
       console.error(error);
       showNotice(
-        `Não foi possível atualizar o agendamento online.\n\nDetalhe: ${cloudErrorText(error)}`
+        friendlyCloudErrorText(
+          error,
+          "Não foi possível atualizar o agendamento online. Tente novamente."
+        )
       );
     } finally {
       setPublicActionSaving("");
@@ -2815,12 +2824,11 @@ function CoreAgendaProApp() {
 
       if (error) {
         console.error(error);
-        const detail = cloudErrorText(error);
         const friendlyMessage = friendlyCloudErrorText(
           error,
           "Não foi possível salvar online. Revise os dados e tente novamente."
         );
-        setCloudStatus(`Salvo neste aparelho, mas não foi sincronizado online: ${detail}`);
+        setCloudStatus(friendlyMessage);
         showNotice(friendlyMessage);
         return false;
       }
@@ -2830,12 +2838,11 @@ function CoreAgendaProApp() {
       return true;
     } catch (error) {
       console.error(error);
-      const detail = cloudErrorText(error);
       const friendlyMessage = friendlyCloudErrorText(
         error,
         "Não foi possível salvar online. Revise os dados e tente novamente."
       );
-      setCloudStatus(`Não foi possível salvar online: ${detail}`);
+      setCloudStatus(friendlyMessage);
       showNotice(friendlyMessage);
       return false;
     } finally {
@@ -3715,11 +3722,12 @@ function CoreAgendaProApp() {
       showNotice("Serviço excluído com segurança.");
     } catch (error) {
       console.error(error);
-      const detail = cloudErrorText(error);
-      setCloudStatus(`Serviço excluído neste aparelho, mas ainda não sincronizou online: ${detail}`);
-      showNotice(
-        `Serviço ocultado neste aparelho. Tente salvar serviços para sincronizar online.\n\nDetalhe: ${detail}`
+      const friendlyMessage = friendlyCloudErrorText(
+        error,
+        "Não foi possível sincronizar a exclusão do serviço agora. Tente salvar serviços novamente."
       );
+      setCloudStatus(friendlyMessage);
+      showNotice(friendlyMessage);
     } finally {
       setCloudSaving("");
     }

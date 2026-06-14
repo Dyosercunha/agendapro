@@ -11,8 +11,32 @@ import { applyGlobalSeo, applyLandingSeo, applyPlatformSeo } from "./lib/seo";
 
 const container = document.getElementById("root");
 const path = window.location.pathname.toLowerCase().replace(/\/$/, "") || "/";
-const isRootRoute = path === "/" || path === "/agenda-pro";
-const isPlatformRoute = window.location.search.includes("platform=1") || path.includes("/plataforma") || path.includes("/painel-plataforma");
+const routeParts = path.split("/").filter(Boolean);
+const routeHead = routeParts[0] || "";
+const reservedRoutes = new Set([
+  "agendamento",
+  "agenda-pro",
+  "api",
+  "assets",
+  "barbearia",
+  "manifest.json",
+  "painel",
+  "painel-plataforma",
+  "plataforma",
+  "sw.js",
+]);
+const isLegacyBareSlugRoute = routeParts.length === 1 && routeHead && !reservedRoutes.has(routeHead);
+
+if (isLegacyBareSlugRoute) {
+  window.location.replace(`/agendamento/${routeHead}${window.location.search}${window.location.hash}`);
+}
+
+const isRootRoute = !isLegacyBareSlugRoute && (path === "/" || path === "/agenda-pro");
+const isPlatformRoute =
+  !isLegacyBareSlugRoute &&
+  (window.location.search.includes("platform=1") ||
+    path.includes("/plataforma") ||
+    path.includes("/painel-plataforma"));
 
 if (isPlatformRoute) {
   applyPlatformSeo();
@@ -38,7 +62,7 @@ if ("serviceWorker" in navigator) {
   });
 }
 
-if (container) {
+if (container && !isLegacyBareSlugRoute) {
   const app = isPlatformRoute
     ? React.createElement(PlatformDashboard)
     : isRootRoute

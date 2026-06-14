@@ -9,20 +9,7 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["agenda-pro-logo.png", "favicon.png", "apple-touch-icon.png"],
-      manifest: {
-        name: "AgendaPro",
-        short_name: "AgendaPro",
-        description: "Agendamento para barbearias",
-        start_url: "/",
-        display: "standalone",
-        background_color: "#070a0d",
-        theme_color: "#22c55e",
-        icons: [
-          { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
-          { src: "/icon-512.png", sizes: "512x512", type: "image/png" },
-          { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
-        ],
-      },
+      manifest: false,
       workbox: {
         cleanupOutdatedCaches: true,
         clientsClaim: true,
@@ -30,26 +17,59 @@ export default defineConfig({
         globPatterns: ["**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp,json}"],
         runtimeCaching: [
           {
+            urlPattern: ({ request, url }) =>
+              request.mode === "navigate" && url.pathname.startsWith("/painel/"),
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "calendarpro-panel-pages",
+              networkTimeoutSeconds: 3,
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+              expiration: {
+                maxEntries: 30,
+                maxAgeSeconds: 60 * 60 * 24 * 7,
+              },
+            },
+          },
+          {
             urlPattern: ({ request }) => request.mode === "navigate",
             handler: "NetworkFirst",
             options: {
-              cacheName: "agendapro-pages",
+              cacheName: "calendarpro-pages",
               networkTimeoutSeconds: 6,
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
             },
           },
           {
             urlPattern: ({ url }) => url.pathname.startsWith("/api/"),
             handler: "NetworkFirst",
             options: {
-              cacheName: "agendapro-api",
+              cacheName: "calendarpro-api",
               networkTimeoutSeconds: 4,
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+              expiration: {
+                maxEntries: 80,
+                maxAgeSeconds: 60 * 60 * 24,
+              },
             },
           },
           {
             urlPattern: ({ request }) => request.destination === "image",
             handler: "StaleWhileRevalidate",
             options: {
-              cacheName: "agendapro-images",
+              cacheName: "calendarpro-images",
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+              expiration: {
+                maxEntries: 120,
+                maxAgeSeconds: 60 * 60 * 24 * 30,
+              },
             },
           },
         ],

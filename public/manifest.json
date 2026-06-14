@@ -1,11 +1,11 @@
 {
-  "name": "AgendaPro",
-  "short_name": "AgendaPro",
+  "name": "CalendarPro",
+  "short_name": "CalendarPro",
   "description": "Agendamento para barbearias",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#070a0d",
-  "theme_color": "#22c55e",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
   "icons": [
     {
       "src": "/icon-192.png",

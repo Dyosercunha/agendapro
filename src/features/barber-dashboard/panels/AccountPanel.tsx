@@ -98,6 +98,17 @@ export default function AccountPanel({ model }: AccountPanelProps) {
   const monthlyStatus: SubscriptionStatus = business.monthlyStatus || "active";
   const monthlyStatusText = monthlyStatusLabels[monthlyStatus] || monthlyStatusLabels.active;
   const activeAccessCount = accessAccounts.filter((account) => account.active).length;
+  const activeOwnerAccessCount = accessAccounts.filter(
+    (account) => account.active !== false && normalizeRole(account.role) === "dono"
+  ).length;
+
+  function isOnlyActiveOwnerAccess(account: AccessAccount) {
+    return (
+      account.active !== false &&
+      normalizeRole(account.role) === "dono" &&
+      activeOwnerAccessCount <= 1
+    );
+  }
 
   function handlePlanSelection(planId: PlanKey | string) {
     if (canManageBilling) {
@@ -264,6 +275,7 @@ export default function AccountPanel({ model }: AccountPanelProps) {
               const editorKey = accessEditorKey(account, index);
               const needsInitialPassword = !account.fixed && !isUuid(account.id);
               const isPasswordOpen = Boolean(passwordEditorOpen[editorKey]) || needsInitialPassword;
+              const protectsLastOwner = isOnlyActiveOwnerAccess(account);
               const passwordLabel = needsInitialPassword
                 ? "Senha inicial deste acesso"
                 : "Nova senha deste acesso";
@@ -342,7 +354,7 @@ export default function AccountPanel({ model }: AccountPanelProps) {
                       <label>Função</label>
                       <select
                         value={account.role}
-                        disabled={account.fixed}
+                        disabled={account.fixed || protectsLastOwner}
                         onChange={(event) => updateAccessAccount(index, "role", event.target.value)}
                       >
                         <option value="Dono">Dono</option>
@@ -357,7 +369,7 @@ export default function AccountPanel({ model }: AccountPanelProps) {
                       <button
                         type="button"
                         className={account.active ? "selected" : ""}
-                        disabled={account.fixed}
+                        disabled={account.fixed || protectsLastOwner}
                         onClick={() => updateAccessAccount(index, "active", !account.active)}
                       >
                         {account.active ? "Ativo" : "Inativo"}
@@ -369,7 +381,13 @@ export default function AccountPanel({ model }: AccountPanelProps) {
                     <p className="hint">Acesso principal protegido para esta barbearia.</p>
                   )}
 
-                  {!account.fixed && (
+                  {protectsLastOwner && (
+                    <p className="hint">
+                      Este é o último Dono ativo. Cadastre outro Dono antes de alterar ou remover este acesso.
+                    </p>
+                  )}
+
+                  {!account.fixed && !protectsLastOwner && (
                     <button type="button" className="dangerButton" onClick={() => removeAccessAccount(index)}>
                       Remover acesso
                     </button>

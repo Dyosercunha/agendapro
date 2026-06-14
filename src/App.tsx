@@ -3020,7 +3020,7 @@ function CoreAgendaProApp() {
         return {
           error: {
             message:
-              "Informe a senha inicial do novo acesso antes de salvar. A senha cria o login no Supabase Auth.",
+              "Informe a senha inicial do novo acesso antes de salvar. Essa senha cria o login da pessoa no painel.",
           },
         };
       }

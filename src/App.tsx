@@ -2000,7 +2000,7 @@ function CoreAgendaProApp() {
         setBarbershopId("");
         setCloudSlug(slug);
         setCloudLoadState("not-found");
-        setCloudStatus("Usando fallback local de emergência. A barbearia ainda não foi encontrada na nuvem.");
+        setCloudStatus("Barbearia não encontrada na nuvem.");
         return;
       }
 
@@ -2068,7 +2068,7 @@ function CoreAgendaProApp() {
     } catch (error) {
       console.error(error);
       setCloudLoadState("error");
-      setCloudStatus("Usando fallback local de emergência. Não foi possível conectar à nuvem.");
+      setCloudStatus("Não foi possível conectar à nuvem.");
     }
   }
 
@@ -4200,17 +4200,26 @@ function CoreAgendaProApp() {
     );
   }
 
-  if (cloudLoadState === "missing-slug" || cloudLoadState === "not-found") {
+  if (cloudLoadState === "missing-slug" || cloudLoadState === "not-found" || cloudLoadState === "error") {
     const slug = currentSlugFromUrl();
+    const hasConnectionError = cloudLoadState === "error";
 
     return withNotice(
       <main className="app">
         <section className="card loginCard">
           <div className="loginBadge">AgendaPro</div>
-          <h1>{cloudLoadState === "missing-slug" ? "Link da barbearia incompleto" : "Barbearia não encontrada"}</h1>
+          <h1>
+            {cloudLoadState === "missing-slug"
+              ? "Link da barbearia incompleto"
+              : hasConnectionError
+              ? "Nuvem temporariamente indisponível"
+              : "Barbearia não encontrada"}
+          </h1>
           <p className="hint">
             {cloudLoadState === "missing-slug"
               ? "Abra pelo link oficial da barbearia: /agendamento/master para clientes ou /painel/master para o painel."
+              : hasConnectionError
+              ? "Não foi possível carregar os dados online agora. Atualize a página em instantes."
               : `Não encontrei a barbearia "${slug}" ativa na nuvem. Confira o slug no Painel Plataforma ou restaure a barbearia se ela foi arquivada.`}
           </p>
           <a className="greenLink full" href="/plataforma?platform=1">

@@ -159,6 +159,9 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
 
   const [installPromptEvent, setInstallPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
+  const [adminMenuOpen, setAdminMenuOpen] = useState(false);
+
+  const currentAdminTab = visibleAdminTabs.find((tab) => tab.id === activeAdminTab);
 
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
@@ -717,16 +720,42 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
           </section>
         )}
 
-        <section className="adminTabs">
-          {visibleAdminTabs.map((tab) => (
-            <button type="button"
-              key={tab.id}
-              className={activeAdminTab === tab.id ? "activeAdminTab" : ""}
-              onClick={() => setAdminTab(tab.id)}
-            >
-              {tab.label}
-            </button>
-          ))}
+        <section className={adminMenuOpen ? "adminTabs isOpen" : "adminTabs"}>
+          <button
+            type="button"
+            className="adminTabsToggle"
+            aria-expanded={adminMenuOpen}
+            onClick={() => setAdminMenuOpen((isOpen) => !isOpen)}
+          >
+            <span className="hamburgerIcon" aria-hidden="true">
+              <i />
+              <i />
+              <i />
+            </span>
+            <span>
+              <small>Menu do painel</small>
+              <strong>{currentAdminTab?.label || "Painel"}</strong>
+            </span>
+          </button>
+
+          {adminMenuOpen && (
+            <div className="adminTabsMenu" role="menu" aria-label="Secoes do painel da barbearia">
+              {visibleAdminTabs.map((tab) => (
+                <button
+                  type="button"
+                  key={tab.id}
+                  className={activeAdminTab === tab.id ? "activeAdminTab" : ""}
+                  onClick={() => {
+                    setAdminTab(tab.id);
+                    setAdminMenuOpen(false);
+                  }}
+                  role="menuitem"
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          )}
         </section>
 
         {activeAdminTab === "dashboard" && (

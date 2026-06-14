@@ -234,6 +234,11 @@ body {
   width: min(100%, var(--admin-max-width));
 }
 
+.adminApp .hero {
+  align-items: center;
+  min-height: 0;
+}
+
 .appHeader,
 .hero {
   background: linear-gradient(180deg, var(--elevated), var(--surface));
@@ -4420,6 +4425,8 @@ button:disabled {
   grid-template-columns: minmax(0, 1fr) auto;
   margin-top: 10px;
   padding: 14px;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .shareGuideBox span {
@@ -4435,6 +4442,7 @@ button:disabled {
   display: block;
   font-size: 15px;
   line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
 .shareGuideBox p {
@@ -4443,6 +4451,8 @@ button:disabled {
   line-height: 1.45;
   margin: 8px 0 0;
   white-space: pre-line;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .shareGuideBox button {
@@ -4453,6 +4463,8 @@ button:disabled {
   font-weight: 950;
   min-height: 44px;
   padding: 11px 14px;
+  max-width: 100%;
+  white-space: normal;
 }
 
 .operationChecklist {
@@ -7626,32 +7638,36 @@ button:disabled {
   }
 
   .adminApp .hero {
-    align-items: stretch;
+    align-items: center;
     border-radius: 24px;
-    flex-direction: column;
-    padding: 14px;
+    flex-direction: row;
+    gap: 10px;
+    padding: 12px;
   }
 
   .adminApp .brand {
-    align-items: flex-start;
-    width: 100%;
+    align-items: center;
+    flex: 1 1 auto;
+    gap: 10px;
+    width: auto;
   }
 
   .adminApp .logo {
-    width: 48px;
-    height: 48px;
-    border-radius: 16px;
-    font-size: 22px;
+    width: 46px;
+    height: 46px;
+    border-radius: 15px;
+    font-size: 21px;
   }
 
   .adminApp h1 {
-    font-size: 22px;
+    font-size: 21px;
     overflow-wrap: anywhere;
   }
 
   .adminHeaderActions {
     display: grid;
     grid-template-columns: 1fr 1fr;
+    flex: 1 1 100%;
     width: 100%;
   }
 
@@ -7792,6 +7808,16 @@ button:disabled {
   .setupList,
   .resourceGrid {
     grid-template-columns: 1fr;
+  }
+
+  .shareGuideBox {
+    align-items: stretch;
+    padding: 13px;
+  }
+
+  .shareGuideBox button {
+    justify-self: stretch;
+    width: 100%;
   }
 
   .commandGrid button {
@@ -8024,6 +8050,17 @@ button:disabled {
   .hero {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .adminApp .hero {
+    align-items: center;
+    flex-direction: row;
+  }
+
+  .adminApp .brand {
+    align-items: center;
+    flex: 1 1 auto;
+    width: auto;
   }
 
   .dashboardHeroCards {

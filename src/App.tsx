@@ -2837,7 +2837,6 @@ function CoreAgendaProApp() {
 
       showNotice(isCancel ? "Agendamento cancelado." : "Pedido de remarcação enviado.");
       await loadPublicAppointment(token);
-      await refreshCloudAppointments().catch(() => null);
     } catch (error) {
       console.error(error);
       showNotice(

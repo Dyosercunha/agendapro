@@ -1,4 +1,11 @@
 {
+  "redirects": [
+    {
+      "source": "/:slug((?!.*\\.)(?!agendamento$|agenda-pro$|api$|assets$|barbearia$|painel$|painel-plataforma$|plataforma$)[^/]+)",
+      "destination": "/agendamento/:slug",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/og/:slug",

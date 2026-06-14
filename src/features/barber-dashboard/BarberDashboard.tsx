@@ -1136,37 +1136,61 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
               </div>
 
               <div className="commandGrid">
-                <button type="button" onClick={() => setAdminTab("agenda")}>Ver agenda</button>
-                <button type="button" onClick={() => setAdminTab("customers")}>Ver clientes</button>
+                <button type="button" className="commandPrimary" onClick={() => setAdminTab("agendaToday")}>
+                  <strong>Agenda Hoje</strong>
+                  <small>Atendimentos e ações rápidas</small>
+                </button>
+                <button type="button" className="commandPrimary" onClick={() => setAdminTab("agenda")}>
+                  <strong>Agenda real</strong>
+                  <small>Funcionamento e bloqueios</small>
+                </button>
+                <button type="button" onClick={() => setAdminTab("customers")}>
+                  <strong>Clientes</strong>
+                  <small>Histórico e contatos</small>
+                </button>
                 {canManageBusinessSettings && (
                   <>
-                <button type="button" onClick={blockNextAvailableTime}>Bloquear próximo horário</button>
-                <button type="button" onClick={closeToday}>Fechar hoje</button>
-                <button type="button" onClick={openToday}>Liberar hoje</button>
+                <button type="button" className="commandWarning" onClick={blockNextAvailableTime}>
+                  <strong>Bloquear próximo</strong>
+                  <small>Reserva rápida de horário</small>
+                </button>
+                <button type="button" className="commandWarning" onClick={closeToday}>
+                  <strong>Fechar hoje</strong>
+                  <small>Bloqueia novos encaixes</small>
+                </button>
+                <button type="button" onClick={openToday}>
+                  <strong>Liberar hoje</strong>
+                  <small>Reabre a agenda do dia</small>
+                </button>
                   </>
                 )}
                 {canUseAdminTab("services") && (
                   <>
                 <button type="button"
+                  className="commandSuccess"
                   onClick={() => {
                     addService();
                     setAdminTab("services");
                   }}
                 >
-                  Novo serviço
+                  <strong>Novo serviço</strong>
+                  <small>Preço, tempo e status</small>
                 </button>
                     <button type="button"
+                      className="commandSuccess"
                       onClick={() => {
                         addProfessional();
                         setAdminTab("professionals");
                       }}
                     >
-                  Novo profissional
+                  <strong>Novo profissional</strong>
+                  <small>Equipe e agenda</small>
                 </button>
                   </>
                 )}
                 {canUseAdminTab("payments") && (
                   <button type="button"
+                    className="commandPrimary"
                     disabled={!featureFlags.pix?.released}
                     onClick={() => {
                       setBusiness((current) => ({ ...current, pixEnabled: !current.pixEnabled }));
@@ -1174,13 +1198,16 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
                       setAdminTab("payments");
                     }}
                   >
-                    {pixAvailable ? "Desativar PIX" : "Ativar PIX"}
+                    <strong>{pixAvailable ? "Desativar PIX" : "Ativar PIX"}</strong>
+                    <small>Pagamento antecipado</small>
                   </button>
                 )}
                 <button type="button"
+                  className="commandPrimary"
                   onClick={() => goToClientView()}
                 >
-                  Ver tela do cliente
+                  <strong>Tela do cliente</strong>
+                  <small>Ver como o público enxerga</small>
                 </button>
               </div>
             </section>

@@ -4034,27 +4034,42 @@ button:disabled {
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 18px;
-  min-height: 64px;
-  padding: 12px;
+  min-height: 72px;
+  padding: 13px 14px;
   font-size: 13px;
   font-weight: 900;
   text-align: left;
 }
 
-.commandGrid button:nth-child(1),
-.commandGrid button:nth-child(8) {
+.commandGrid button strong,
+.commandGrid button small {
+  display: block;
+}
+
+.commandGrid button strong {
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.15;
+}
+
+.commandGrid button small {
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.25;
+  margin-top: 5px;
+}
+
+.commandGrid .commandPrimary {
   background: var(--primary-soft);
   border-color: rgba(34, 197, 94, 0.35);
 }
 
-.commandGrid button:nth-child(2),
-.commandGrid button:nth-child(3) {
+.commandGrid .commandWarning {
   background: rgba(245, 158, 11, 0.12);
   border-color: rgba(245, 158, 11, 0.26);
 }
 
-.commandGrid button:nth-child(5),
-.commandGrid button:nth-child(6) {
+.commandGrid .commandSuccess {
   background: rgba(74, 222, 128, 0.1);
   border-color: rgba(74, 222, 128, 0.22);
 }

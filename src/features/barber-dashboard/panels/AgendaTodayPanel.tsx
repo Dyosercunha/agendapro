@@ -334,8 +334,27 @@ export default function AgendaTodayPanel({ model }: AgendaTodayPanelProps) {
         <div className="agendaTodayTimeline">
           {visibleAppointments.length === 0 && (
             <div className="agendaTodayEmpty">
-              <strong>Nenhum horário para este filtro</strong>
-              <span>Altere o dia, profissional ou status para acompanhar a agenda.</span>
+              <div className="agendaTodayEmptyHeader">
+                <small>Agenda sem movimento neste filtro</small>
+                <strong>Nenhum horário encontrado</strong>
+                <span>
+                  Cadastre um atendimento manual, compartilhe o link de agendamento ou veja os próximos
+                  horários já marcados.
+                </span>
+              </div>
+
+              <div className="agendaTodayEmptyActions">
+                <button type="button" onClick={goToClientView}>
+                  Novo agendamento
+                </button>
+                <button type="button" onClick={() => copyText(publicScheduleLink)}>
+                  Copiar link
+                </button>
+                <a href={scheduleWhatsappShareLink} target="_blank" rel="noreferrer">
+                  Enviar no WhatsApp
+                </a>
+              </div>
+
               {upcomingAppointments.length > 0 && (
                 <div className="agendaTodayNextList">
                   <small>Próximos horários</small>

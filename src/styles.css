@@ -10915,22 +10915,63 @@ button:disabled {
 
 .agendaTodayEmpty {
   display: grid;
-  gap: 10px;
+  align-content: center;
+  gap: 18px;
   min-height: 260px;
   padding: 22px;
-  place-items: center;
+  place-items: stretch;
   text-align: center;
 }
 
-.agendaTodayEmpty strong {
+.agendaTodayEmptyHeader {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+}
+
+.agendaTodayEmptyHeader small {
+  color: var(--primary);
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.agendaTodayEmptyHeader strong {
   color: var(--text);
   font-size: clamp(25px, 2.7vw, 42px);
   line-height: 1.04;
 }
 
-.agendaTodayEmpty span {
+.agendaTodayEmptyHeader span {
   color: var(--text-secondary);
   max-width: 48ch;
+}
+
+.agendaTodayEmptyActions {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0 auto;
+  width: min(100%, 720px);
+}
+
+.agendaTodayEmptyActions button,
+.agendaTodayEmptyActions a {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  color: var(--text);
+  display: inline-flex;
+  font-weight: 900;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 16px;
+  text-decoration: none;
+}
+
+.agendaTodayEmptyActions button:first-child {
+  background: linear-gradient(135deg, var(--primary), var(--primary-2));
+  color: #06240f;
 }
 
 .agendaTodayNextList {
@@ -11005,6 +11046,7 @@ button:disabled {
   .agendaTodayDateStepper,
   .agendaTodayFilters,
   .agendaTodayAppointment,
+  .agendaTodayEmptyActions,
   .agendaTodayActions,
   .agendaTodayActions.compact,
   .agendaTodayDetailGrid {

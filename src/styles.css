@@ -10514,6 +10514,58 @@ button:disabled {
   font-weight: 850;
 }
 
+.agendaTodayQuickBar {
+  align-items: center;
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.14), transparent 38%),
+    rgba(7, 10, 13, 0.62);
+  border: 1px solid rgba(34, 197, 94, 0.18);
+  border-radius: 26px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) repeat(3, minmax(150px, 0.22fr));
+  padding: 15px;
+}
+
+.agendaTodayQuickBar span,
+.agendaTodayQuickBar small {
+  color: var(--text-muted);
+  display: block;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.agendaTodayQuickBar strong {
+  color: var(--text);
+  display: block;
+  font-size: clamp(20px, 2vw, 28px);
+  line-height: 1.05;
+  margin: 4px 0 6px;
+}
+
+.agendaTodayQuickBar button,
+.agendaTodayQuickBar a {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  color: var(--text);
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 950;
+  justify-content: center;
+  min-height: 50px;
+  padding: 12px 14px;
+  text-align: center;
+  text-decoration: none;
+}
+
+.agendaTodayQuickBar button:first-of-type {
+  background: linear-gradient(135deg, var(--primary), var(--success));
+  color: #052e16;
+  box-shadow: 0 14px 30px rgba(34, 197, 94, 0.18);
+}
+
 .agendaTodayToolbar {
   background:
     radial-gradient(circle at top right, rgba(255, 255, 255, 0.045), transparent 36%),
@@ -10898,7 +10950,8 @@ button:disabled {
 
 @media (max-width: 1180px) {
   .agendaTodayWorkspace,
-  .agendaTodayToolbar {
+  .agendaTodayToolbar,
+  .agendaTodayQuickBar {
     grid-template-columns: 1fr;
   }
 
@@ -10932,10 +10985,21 @@ button:disabled {
   }
 
   .agendaTodayToolbar,
+  .agendaTodayQuickBar,
   .agendaTodayAppointment,
   .agendaTodayDetails,
   .agendaTodayMetrics article {
     border-radius: 22px;
+  }
+
+  .agendaTodayQuickBar {
+    padding: 13px;
+  }
+
+  .agendaTodayQuickBar button,
+  .agendaTodayQuickBar a {
+    min-height: 48px;
+    width: 100%;
   }
 
   .agendaTodayDateStepper,

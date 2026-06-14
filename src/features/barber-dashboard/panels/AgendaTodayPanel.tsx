@@ -24,8 +24,11 @@ export type AgendaTodayPanelModel = {
   completeAppointment: (id: string) => void;
   confirmAppointment: (id: string) => void;
   confirmAppointmentPayment: (id: string, paymentMode?: string) => void;
+  copyText: (text: string) => void;
   formatDate: (date?: string) => string;
+  goToClientView: () => void;
   money: (value?: number) => string;
+  publicScheduleLink: string;
   realProfessionals: () => string[];
   rescheduleAppointment: (id: string) => void;
 };
@@ -107,8 +110,11 @@ export default function AgendaTodayPanel({ model }: AgendaTodayPanelProps) {
     completeAppointment,
     confirmAppointment,
     confirmAppointmentPayment,
+    copyText,
     formatDate,
+    goToClientView,
     money,
+    publicScheduleLink,
     realProfessionals,
     rescheduleAppointment,
   } = model;
@@ -160,6 +166,8 @@ export default function AgendaTodayPanel({ model }: AgendaTodayPanelProps) {
     .filter((item) => item.paid)
     .reduce((sum, item) => sum + Number(item.total || 0), 0);
   const scheduledTotal = visibleAppointments.reduce((sum, item) => sum + Number(item.total || 0), 0);
+  const scheduleShareText = `Agende seu horário online na ${business.name}: ${publicScheduleLink}`;
+  const scheduleWhatsappShareLink = `https://wa.me/?text=${encodeURIComponent(scheduleShareText)}`;
 
   function handleCardClick(appointmentId?: string) {
     if (!appointmentId) return;
@@ -257,6 +265,23 @@ export default function AgendaTodayPanel({ model }: AgendaTodayPanelProps) {
           <strong>{money(paidTotal)}</strong>
           <small>marcado como pago</small>
         </article>
+      </div>
+
+      <div className="agendaTodayQuickBar">
+        <div>
+          <span>Ação rápida</span>
+          <strong>Novo agendamento manual</strong>
+          <small>Abra a tela do cliente para lançar um horário com o fluxo oficial.</small>
+        </div>
+        <button type="button" onClick={goToClientView}>
+          Novo agendamento
+        </button>
+        <button type="button" onClick={() => copyText(publicScheduleLink)}>
+          Copiar link
+        </button>
+        <a href={scheduleWhatsappShareLink} target="_blank" rel="noreferrer">
+          Divulgar WhatsApp
+        </a>
       </div>
 
       <div className="agendaTodayToolbar">

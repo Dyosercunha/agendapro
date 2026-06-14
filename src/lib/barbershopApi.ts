@@ -5,7 +5,12 @@ import { getAdminAppointments } from "./appointmentsApi";
 export const assetBucketName = "agendapro-assets";
 
 export function getBarbershopBySlug(slug: string) {
-  return supabase.from("barbershops").select("*").eq("slug", slug).single();
+  return supabase
+    .from("barbershops")
+    .select("*")
+    .eq("slug", slug)
+    .is("archived_at", null)
+    .maybeSingle();
 }
 
 export async function getBarbershopIdBySlug(slug: string) {
@@ -13,6 +18,7 @@ export async function getBarbershopIdBySlug(slug: string) {
     .from("barbershops")
     .select("id")
     .eq("slug", slug)
+    .is("archived_at", null)
     .maybeSingle();
 
   if (error) throw error;

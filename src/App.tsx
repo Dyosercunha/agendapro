@@ -740,14 +740,16 @@ function slugFromPathname(pathname) {
   ];
 
   if (routePrefixes.includes(route)) {
-    return makeSlug(parts[1] || "");
+    const prefixedSlug = makeSlug(parts[1] || "");
+    return isReservedBarbershopSlug(prefixedSlug) ? "" : prefixedSlug;
   }
 
-  if (!route || reservedRoutes.includes(route)) {
+  if (!route || reservedRoutes.includes(route) || isReservedBarbershopSlug(route)) {
     return "";
   }
 
-  return makeSlug(parts[0] || "");
+  const bareSlug = makeSlug(parts[0] || "");
+  return isReservedBarbershopSlug(bareSlug) ? "" : bareSlug;
 }
 
 function currentSlugFromUrl() {

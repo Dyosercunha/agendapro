@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type { AdminTabId } from "../../lib/permissions";
 import type { Appointment, FeatureDefinition, FeatureFlag } from "../../types/app";
 import AgendaPanel from "./panels/AgendaPanel";
@@ -160,6 +160,7 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
   const [installPromptEvent, setInstallPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
+  const adminMenuRef = useRef<HTMLElement | null>(null);
 
   const currentAdminTab = visibleAdminTabs.find((tab) => tab.id === activeAdminTab);
 
@@ -182,6 +183,34 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
       window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt);
     };
   }, []);
+
+  useEffect(() => {
+    if (!adminMenuOpen || typeof window === "undefined") return undefined;
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setAdminMenuOpen(false);
+      }
+    }
+
+    function closeOnOutsideClick(event: PointerEvent) {
+      const target = event.target;
+
+      if (target instanceof Node && adminMenuRef.current?.contains(target)) {
+        return;
+      }
+
+      setAdminMenuOpen(false);
+    }
+
+    window.addEventListener("keydown", closeOnEscape);
+    window.addEventListener("pointerdown", closeOnOutsideClick);
+
+    return () => {
+      window.removeEventListener("keydown", closeOnEscape);
+      window.removeEventListener("pointerdown", closeOnOutsideClick);
+    };
+  }, [adminMenuOpen]);
 
   async function installPwaNow() {
     if (!installPromptEvent) return;
@@ -720,7 +749,7 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
           </section>
         )}
 
-        <section className={adminMenuOpen ? "adminTabs isOpen" : "adminTabs"}>
+        <section ref={adminMenuRef} className={adminMenuOpen ? "adminTabs isOpen" : "adminTabs"}>
           <button
             type="button"
             className="adminTabsToggle"

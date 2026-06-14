@@ -3355,7 +3355,7 @@ function CoreAgendaProApp() {
 
     if (error) {
       throw new Error(
-        `${error.message}. Execute o SQL 18 para criar o bucket de imagens e tente novamente.`
+        "Não foi possível enviar a imagem agora. Tente novamente ou fale com o suporte da plataforma."
       );
     }
 

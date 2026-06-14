@@ -993,6 +993,16 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
                 <a href={scheduleWhatsappShareLink} target="_blank" rel="noreferrer">
                   Divulgar no WhatsApp
                 </a>
+                {canUseAdminTab("services") && (
+                  <button type="button" onClick={() => setAdminTab("services")}>
+                    Cadastrar serviço
+                  </button>
+                )}
+                {canUseAdminTab("professionals") && (
+                  <button type="button" onClick={() => setAdminTab("professionals")}>
+                    Cadastrar profissional
+                  </button>
+                )}
               </div>
             </section>
 

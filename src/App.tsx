@@ -4441,6 +4441,7 @@ function CoreAgendaProApp() {
     hasChosenService,
     history,
     isDeveloperRole,
+    isPlatformDeveloperEmail,
     isFutureOnlyFeature,
     isServiceDeleted,
     isUuid,

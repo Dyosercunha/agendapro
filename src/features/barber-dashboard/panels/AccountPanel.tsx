@@ -38,6 +38,7 @@ export type AccountPanelModel = {
   currentPlan: PlanOption;
   formatDateOnly: (date?: string) => string;
   isDeveloperRole: boolean;
+  isPlatformDeveloperEmail: (value?: string) => boolean;
   isUuid: (value?: string) => boolean;
   normalizeRole: (role?: string) => AdminRole;
   passwordEditorOpen: Record<string, boolean>;
@@ -76,6 +77,7 @@ export default function AccountPanel({ model }: AccountPanelProps) {
     currentPlan,
     formatDateOnly,
     isDeveloperRole,
+    isPlatformDeveloperEmail,
     isUuid,
     normalizeRole,
     passwordForm = { next: "", confirm: "" },
@@ -99,13 +101,17 @@ export default function AccountPanel({ model }: AccountPanelProps) {
   const monthlyStatusText = monthlyStatusLabels[monthlyStatus] || monthlyStatusLabels.active;
   const activeAccessCount = accessAccounts.filter((account) => account.active).length;
   const activeOwnerAccessCount = accessAccounts.filter(
-    (account) => account.active !== false && normalizeRole(account.role) === "dono"
+    (account) =>
+      account.active !== false &&
+      normalizeRole(account.role) === "dono" &&
+      !isPlatformDeveloperEmail(account.email)
   ).length;
 
   function isOnlyActiveOwnerAccess(account: AccessAccount) {
     return (
       account.active !== false &&
       normalizeRole(account.role) === "dono" &&
+      !isPlatformDeveloperEmail(account.email) &&
       activeOwnerAccessCount <= 1
     );
   }

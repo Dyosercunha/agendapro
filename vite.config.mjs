@@ -8,7 +8,14 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["agenda-pro-logo.png", "favicon.png", "apple-touch-icon.png"],
+      includeAssets: [
+        "agenda-pro-logo.png",
+        "favicon.png",
+        "apple-touch-icon.png",
+        "icon-192.png",
+        "icon-512.png",
+        "icon-maskable-512.png",
+      ],
       manifest: false,
       workbox: {
         cleanupOutdatedCaches: true,

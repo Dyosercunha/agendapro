@@ -1,11 +1,11 @@
 {
-  "name": "CalendarPro",
-  "short_name": "CalendarPro",
-  "description": "Agendamento para barbearias",
+  "name": "AgendaPro",
+  "short_name": "AgendaPro",
+  "description": "Agendamento profissional para barbearias",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#000000",
+  "background_color": "#070A0D",
+  "theme_color": "#22C55E",
   "icons": [
     {
       "src": "/icon-192.png",
@@ -18,7 +18,7 @@
       "type": "image/png"
     },
     {
-      "src": "/icon-512.png",
+      "src": "/icon-maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

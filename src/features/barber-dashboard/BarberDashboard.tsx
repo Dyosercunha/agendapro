@@ -102,7 +102,7 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
 };
 
-const pwaBannerDismissKey = "agendapro:pwa-install-dismissed";
+const pwaBannerDismissKey = "agendapro:pwa-install-dismissed:v2";
 
 export default function BarberDashboard({ model }: BarberDashboardProps) {
   const {
@@ -159,6 +159,8 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
 
   const [installPromptEvent, setInstallPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
+  const [installHelpOpen, setInstallHelpOpen] = useState(false);
+  const [isIosInstallFlow, setIsIosInstallFlow] = useState(false);
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
   const adminMenuRef = useRef<HTMLElement | null>(null);
 
@@ -167,9 +169,26 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
 
+    const navigatorWithStandalone = window.navigator as Navigator & { standalone?: boolean };
+    const isStandalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      navigatorWithStandalone.standalone === true;
+
+    if (isStandalone) {
+      return undefined;
+    }
+
     if (window.localStorage.getItem(pwaBannerDismissKey) === "1") {
       return undefined;
     }
+
+    const userAgent = window.navigator.userAgent || "";
+    const isAppleMobile =
+      /iphone|ipad|ipod/i.test(userAgent) ||
+      (window.navigator.platform === "MacIntel" && window.navigator.maxTouchPoints > 1);
+
+    setIsIosInstallFlow(isAppleMobile);
+    setShowInstallBanner(true);
 
     const onBeforeInstallPrompt = (event: Event) => {
       event.preventDefault();
@@ -213,7 +232,10 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
   }, [adminMenuOpen]);
 
   async function installPwaNow() {
-    if (!installPromptEvent) return;
+    if (!installPromptEvent) {
+      setInstallHelpOpen((isOpen) => !isOpen);
+      return;
+    }
 
     await installPromptEvent.prompt();
     const choice = await installPromptEvent.userChoice;
@@ -221,6 +243,7 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
     if (choice.outcome === "accepted") {
       setShowInstallBanner(false);
       setInstallPromptEvent(null);
+      setInstallHelpOpen(false);
       return;
     }
 
@@ -234,6 +257,7 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
 
     setShowInstallBanner(false);
     setInstallPromptEvent(null);
+    setInstallHelpOpen(false);
   }
   const visibleSetupItems = setupItems.filter((item) => canUseAdminTab(item.tab));
   const firstPendingSetup = visibleSetupItems.find((item) => !item.done);
@@ -732,15 +756,36 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
           </div>
         </section>
 
-        {showInstallBanner && installPromptEvent && (
+        {showInstallBanner && (
           <section className="pwaInstallBanner" role="status" aria-live="polite">
             <div>
               <strong>Instale o AgendaPro no celular</strong>
-              <p>Acesse o painel com um toque e mantenha a agenda pronta mesmo offline.</p>
+              <p>
+                {installPromptEvent
+                  ? "Acesse o painel com um toque e mantenha a agenda pronta mesmo offline."
+                  : "Se o navegador não liberar instalação direta, use o atalho da tela inicial."}
+              </p>
+              {installHelpOpen && (
+                <ol className="pwaInstallSteps">
+                  {isIosInstallFlow ? (
+                    <>
+                      <li>Abra esta página no Safari.</li>
+                      <li>Toque em Compartilhar.</li>
+                      <li>Escolha Adicionar à Tela de Início.</li>
+                    </>
+                  ) : (
+                    <>
+                      <li>Abra esta página no Chrome.</li>
+                      <li>Toque no menu de três pontos.</li>
+                      <li>Escolha Instalar app ou Adicionar à tela inicial.</li>
+                    </>
+                  )}
+                </ol>
+              )}
             </div>
             <div className="pwaInstallActions">
               <button type="button" className="green" onClick={installPwaNow}>
-                Instalar
+                {installPromptEvent ? "Instalar" : "Como instalar"}
               </button>
               <button type="button" className="outline" onClick={dismissInstallBanner}>
                 Agora não

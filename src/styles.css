@@ -3606,6 +3606,19 @@ button:disabled {
   margin: 5px 0 0;
 }
 
+.pwaInstallSteps {
+  background: rgba(7, 10, 13, 0.48);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  color: var(--text-secondary);
+  display: grid;
+  font-size: 13px;
+  gap: 6px;
+  line-height: 1.35;
+  margin: 12px 0 0;
+  padding: 12px 12px 12px 30px;
+}
+
 .pwaInstallActions {
   display: flex;
   gap: 8px;

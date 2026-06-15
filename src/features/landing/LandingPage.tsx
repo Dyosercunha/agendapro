@@ -154,7 +154,7 @@ export default function LandingPage() {
             <button type="button" onClick={() => goTo("painel")}>
               Sou barbearia
             </button>
-            <a href="/agendamento/demo">Ver demonstração</a>
+            <a href="/agendamento/master">Ver demonstração</a>
           </div>
         </div>
 

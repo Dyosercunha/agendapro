@@ -4245,7 +4245,7 @@ function CoreAgendaProApp() {
             Abrir Painel Plataforma
           </a>
           <a className="outlineLink full" href="/">
-            Voltar para inicio
+            Voltar para início
           </a>
         </section>
       </main>

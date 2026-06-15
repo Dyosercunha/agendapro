@@ -2209,8 +2209,8 @@ function CoreAgendaProApp() {
       if (item.date !== dateText) return;
       if (!appointmentBlocksSlot(item)) return;
 
-      const appointmentEnd =
-        timeToMinutes(item.time) + Math.max(Number(item.duration || 0), schedule.slotInterval || interval);
+      const appointmentDuration = Math.max(Number(item.duration || 0), 0) || interval;
+      const appointmentEnd = timeToMinutes(item.time) + appointmentDuration;
 
       if (appointmentEnd >= dayStart && appointmentEnd + duration <= dayEnd) {
         candidates.add(appointmentEnd);
@@ -2482,6 +2482,8 @@ function CoreAgendaProApp() {
         target_date: selectedDate,
         target_time: selectedTime,
         target_professional: finalProfessional,
+        target_duration: totalDuration,
+        duration_input: totalDuration,
       });
 
       if (!availabilityResult.error && availabilityResult.data) {

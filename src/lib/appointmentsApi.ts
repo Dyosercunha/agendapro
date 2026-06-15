@@ -66,8 +66,22 @@ export function bookAppointmentLegacy(payload: Record<string, unknown>) {
   return callRpcWithRestFallback("book_appointment", payload);
 }
 
-export function checkPublicSlotAvailability(payload: Record<string, unknown>) {
-  return callRpcWithRestFallback("check_public_slot_availability", payload);
+export async function checkPublicSlotAvailability(payload: Record<string, unknown>) {
+  try {
+    const response = (await postJson("/api/public-slot-availability", payload)) as {
+      availability?: unknown;
+      ok?: boolean;
+    };
+
+    return { data: response.availability || response, error: null };
+  } catch (apiError) {
+    const { target_duration, duration_input, ...legacyPayload } = payload;
+    const result = await callRpcWithRestFallback("check_public_slot_availability", legacyPayload);
+
+    if (!result.error) return result;
+
+    return { data: null, error: apiError || result.error };
+  }
 }
 
 export function getPublicAppointment(payload: Record<string, unknown>) {

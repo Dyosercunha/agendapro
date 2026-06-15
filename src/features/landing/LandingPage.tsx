@@ -1,5 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 
+type PublicBarbershop = {
+  name: string;
+  slug: string;
+  status?: string;
+};
+
 const planCards = [
   {
     name: "Inicial",
@@ -84,6 +90,10 @@ function formatCount(value: number) {
 export default function LandingPage() {
   const [slug, setSlug] = useState("");
   const [slugError, setSlugError] = useState("");
+  const [slugLoading, setSlugLoading] = useState(false);
+  const [shopOptions, setShopOptions] = useState<PublicBarbershop[]>([]);
+  const [showShopOptions, setShowShopOptions] = useState(false);
+  const [selectedShop, setSelectedShop] = useState<PublicBarbershop | null>(null);
   const [metrics, setMetrics] = useState({
     appointments: 0,
     barbershops: 0,
@@ -119,16 +129,99 @@ export default function LandingPage() {
     };
   }, []);
 
-  function goTo(path: "agendamento" | "painel") {
+  useEffect(() => {
+    let active = true;
+    const typed = slug.trim();
+
+    if (typed.length < 2 || selectedShopStillMatches()) {
+      if (typed.length < 2) setShowShopOptions(false);
+      return () => {
+        active = false;
+      };
+    }
+
+    const timer = window.setTimeout(async () => {
+      const data = await loadAvailableShops(typed);
+      if (!active || !data) return;
+
+      if (data.unavailable) {
+        setSlugError(
+          `A barbearia "${data.unavailable.name}" está ${data.unavailable.label} e não está mais disponível no app.`
+        );
+        setShowShopOptions(true);
+        return;
+      }
+
+      if (!data.match && Array.isArray(data.shops) && data.shops.length) {
+        setShowShopOptions(true);
+      }
+    }, 280);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [slug, selectedShop]);
+
+  async function loadAvailableShops(query = "") {
+    try {
+      const response = await fetch(`/api/public-barbershops?query=${encodeURIComponent(query)}`);
+      if (!response.ok) return null;
+      const data = await response.json();
+      if (!data?.ok) return null;
+
+      setShopOptions(Array.isArray(data.shops) ? data.shops : []);
+      return data;
+    } catch {
+      return null;
+    }
+  }
+
+  function selectedShopStillMatches() {
+    if (!selectedShop) return false;
+
+    const typed = normalizeSlug(slug);
+    return typed === normalizeSlug(selectedShop.name) || typed === normalizeSlug(selectedShop.slug);
+  }
+
+  async function goTo(path: "agendamento" | "painel") {
     if (!cleanSlug) {
-      setSlugError("Digite o link da barbearia para continuar. Exemplo: master.");
+      setSlugError("Digite o nome da barbearia para continuar.");
+      setShowShopOptions(true);
+      loadAvailableShops("");
       slugInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
       slugInputRef.current?.focus();
       return;
     }
 
-    window.location.href =
-      path === "painel" ? `/painel/${cleanSlug}` : `/agendamento/${cleanSlug}`;
+    if (selectedShopStillMatches()) {
+      window.location.href =
+        path === "painel" ? `/painel/${selectedShop?.slug}` : `/agendamento/${selectedShop?.slug}`;
+      return;
+    }
+
+    setSlugLoading(true);
+    setSlugError("");
+
+    const data = await loadAvailableShops(slug);
+    setSlugLoading(false);
+
+    if (data?.match?.slug) {
+      window.location.href =
+        path === "painel" ? `/painel/${data.match.slug}` : `/agendamento/${data.match.slug}`;
+      return;
+    }
+
+    if (data?.unavailable) {
+      setSlugError(
+        `A barbearia "${data.unavailable.name}" está ${data.unavailable.label} e não está mais disponível no app.`
+      );
+      setShowShopOptions(true);
+      return;
+    }
+
+    setSlugError("Não encontrei essa barbearia ativa. Escolha uma das barbearias disponíveis abaixo.");
+    setShowShopOptions(true);
   }
 
   return (
@@ -233,30 +326,57 @@ export default function LandingPage() {
       <section className="landingSlugBox">
         <div>
           <span>Link da barbearia</span>
-          <h2>Acesse agenda ou painel pelo slug</h2>
-          <p>Digite o identificador cadastrado no Painel Plataforma. Exemplo: master.</p>
+          <h2>Acesse agenda ou painel pelo nome</h2>
+          <p>Digite o nome ou link cadastrado no Painel Plataforma. Exemplo: Nome da barbearia.</p>
         </div>
 
         <label>
-          Digite o slug da barbearia
+          Nome da barbearia
           <input
             ref={slugInputRef}
             value={slug}
             onChange={(event) => {
               setSlug(event.target.value);
               setSlugError("");
+              setSelectedShop(null);
+              setShowShopOptions(false);
             }}
-            placeholder="master"
+            onFocus={() => {
+              if (!shopOptions.length) loadAvailableShops("");
+            }}
+            placeholder="Nome da barbearia"
           />
           {slugError && <small className="landingError">{slugError}</small>}
+          {showShopOptions && shopOptions.length > 0 && (
+            <div className="landingShopSuggestions">
+              <strong>Barbearias ativas no AgendaPro</strong>
+              <div>
+                {shopOptions.map((shop) => (
+                  <button
+                    type="button"
+                    key={shop.slug}
+                    onClick={() => {
+                      setSlug(shop.name);
+                      setSelectedShop(shop);
+                      setSlugError("");
+                      setShowShopOptions(false);
+                    }}
+                  >
+                    <span>{shop.name}</span>
+                    <small>{shop.slug}</small>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </label>
 
         <div className="landingSlugActions">
-          <button type="button" onClick={() => goTo("agendamento")}>
-            Abrir agenda
+          <button type="button" onClick={() => goTo("agendamento")} disabled={slugLoading}>
+            {slugLoading ? "Verificando..." : "Abrir agenda"}
           </button>
-          <button type="button" onClick={() => goTo("painel")}>
-            Abrir painel
+          <button type="button" onClick={() => goTo("painel")} disabled={slugLoading}>
+            {slugLoading ? "Verificando..." : "Abrir painel"}
           </button>
         </div>
       </section>

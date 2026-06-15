@@ -2198,6 +2198,46 @@ function CoreAgendaProApp() {
     );
   }
 
+  function smartSlotCandidateMinutes(dateText, dayStart, dayEnd, interval, duration, appointmentSource = appointments) {
+    const candidates = new Set();
+
+    for (let current = dayStart; current + duration <= dayEnd; current += interval) {
+      candidates.add(current);
+    }
+
+    appointmentSource.forEach((item) => {
+      if (item.date !== dateText) return;
+      if (!appointmentBlocksSlot(item)) return;
+
+      const appointmentEnd =
+        timeToMinutes(item.time) + Math.max(Number(item.duration || 0), schedule.slotInterval || interval);
+
+      if (appointmentEnd >= dayStart && appointmentEnd + duration <= dayEnd) {
+        candidates.add(appointmentEnd);
+      }
+    });
+
+    schedule.breaks.forEach((item) => {
+      const breakEnd = timeToMinutes(item.end);
+
+      if (breakEnd >= dayStart && breakEnd + duration <= dayEnd) {
+        candidates.add(breakEnd);
+      }
+    });
+
+    schedule.blocks.forEach((item) => {
+      if (item.date !== dateText) return;
+
+      const blockEnd = timeToMinutes(item.end);
+
+      if (blockEnd >= dayStart && blockEnd + duration <= dayEnd) {
+        candidates.add(blockEnd);
+      }
+    });
+
+    return Array.from(candidates).sort((a, b) => a - b);
+  }
+
   function showNotice(message, title = "AgendaPro") {
     const rawMessage = repairText(String(message || ""));
     const cleanMessage =
@@ -2227,20 +2267,28 @@ function CoreAgendaProApp() {
     const end = timeToMinutes(workingDay.end);
     const nowMinutes = dateText === today ? currentTimeMinutes() : -1;
     const result = [];
+    const candidateMinutes = smartSlotCandidateMinutes(
+      dateText,
+      start,
+      end,
+      interval,
+      duration,
+      appointmentSource
+    );
 
-    for (let current = start; current + duration <= end; current += interval) {
+    candidateMinutes.forEach((current) => {
       const time = minutesToTime(current);
 
       if (dateText === today && current <= nowMinutes) {
         result.push({ time, status: "past", label: "Encerrado", available: false });
-        continue;
+        return;
       }
 
       const blockedBase = baseReason(dateText, time, duration);
 
       if (blockedBase) {
         result.push({ time, status: blockedBase.status, label: blockedBase.label, available: false });
-        continue;
+        return;
       }
 
       if (professional !== firstAvailableProfessionalName) {
@@ -2253,16 +2301,16 @@ function CoreAgendaProApp() {
             label: manualBlock.reason || "Bloqueado",
             available: false,
           });
-          continue;
+          return;
         }
 
         if (appointmentConflict(dateText, time, duration, appointmentSource, professional)) {
           result.push({ time, status: "busy", label: "Ocupado", available: false });
-          continue;
+          return;
         }
 
         result.push({ time, status: "available", label: "Disponível", available: true, professional });
-        continue;
+        return;
       }
 
       const availableProfessional = findAvailableProfessional(
@@ -2279,7 +2327,7 @@ function CoreAgendaProApp() {
         available: Boolean(availableProfessional),
         professional: availableProfessional,
       });
-    }
+    });
 
     const recommendedIndex = result.findIndex((slot) => slot.available);
 

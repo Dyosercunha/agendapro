@@ -28,6 +28,17 @@
   --touch-target-lg: 48px;
 }
 
+html,
+body,
+button,
+a,
+[role="button"],
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
 .platformAccessGrid {
   display: grid;
   gap: 16px;
@@ -1216,10 +1227,18 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 }
 
 button {
+  -webkit-appearance: none;
+  appearance: none;
   border: 0;
   cursor: pointer;
   font-family: inherit;
+  touch-action: manipulation;
   transition: 0.18s ease;
+}
+
+button:focus:not(:focus-visible),
+a:focus:not(:focus-visible) {
+  outline: none;
 }
 
 button:active {

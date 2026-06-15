@@ -622,6 +622,7 @@ export default function PlatformDashboard() {
     confirm: "",
     next: "",
   });
+  const [visiblePasswordFields, setVisiblePasswordFields] = useState<Record<string, boolean>>({});
   const [cloudAudit, setCloudAudit] = useState<CloudAudit>({ barbershops: [] });
   const [systemHealth, setSystemHealth] = useState<SystemHealth>({
     loading: false,
@@ -659,6 +660,21 @@ export default function PlatformDashboard() {
     onboardingCreated?.link_cliente || (onboardingSlug ? `${platformOrigin}/agendamento/${onboardingSlug}` : "");
   const onboardingPanelLink =
     onboardingCreated?.link_painel || (onboardingSlug ? `${platformOrigin}/painel/${onboardingSlug}` : "");
+
+  function passwordInputType(field: string) {
+    return visiblePasswordFields[field] ? "text" : "password";
+  }
+
+  function togglePasswordField(field: string) {
+    setVisiblePasswordFields((current) => ({
+      ...current,
+      [field]: !current[field],
+    }));
+  }
+
+  function passwordRevealLabel(field: string) {
+    return visiblePasswordFields[field] ? "Ocultar" : "Ver";
+  }
 
   useEffect(() => {
     let mounted = true;
@@ -1791,12 +1807,17 @@ export default function PlatformDashboard() {
               placeholder="appagenda.pro@gmail.com"
             />
             <label>Senha</label>
-            <input
-              type="password"
-              value={platformLogin.password}
-              onChange={(event) => setPlatformLogin({ ...platformLogin, password: event.target.value })}
-              placeholder="Digite sua senha"
-            />
+            <div className="passwordRevealField">
+              <input
+                type={passwordInputType("platform-login")}
+                value={platformLogin.password}
+                onChange={(event) => setPlatformLogin({ ...platformLogin, password: event.target.value })}
+                placeholder="Digite sua senha"
+              />
+              <button type="button" onClick={() => togglePasswordField("platform-login")}>
+                {passwordRevealLabel("platform-login")}
+              </button>
+            </div>
             <button
               type="button"
               className="platformPrimary platformLoginButton"
@@ -2056,26 +2077,36 @@ export default function PlatformDashboard() {
             <input value={session?.user?.email || ""} readOnly />
 
             <label>Nova senha</label>
-            <input
-              type="password"
-              autoComplete="new-password"
-              value={platformPasswordForm.next}
-              onChange={(event) =>
-                setPlatformPasswordForm({ ...platformPasswordForm, next: event.target.value })
-              }
-              placeholder="minimo 6 caracteres"
-            />
+            <div className="passwordRevealField">
+              <input
+                type={passwordInputType("platform-own-next")}
+                autoComplete="new-password"
+                value={platformPasswordForm.next}
+                onChange={(event) =>
+                  setPlatformPasswordForm({ ...platformPasswordForm, next: event.target.value })
+                }
+                placeholder="minimo 6 caracteres"
+              />
+              <button type="button" onClick={() => togglePasswordField("platform-own-next")}>
+                {passwordRevealLabel("platform-own-next")}
+              </button>
+            </div>
 
             <label>Confirmar nova senha</label>
-            <input
-              type="password"
-              autoComplete="new-password"
-              value={platformPasswordForm.confirm}
-              onChange={(event) =>
-                setPlatformPasswordForm({ ...platformPasswordForm, confirm: event.target.value })
-              }
-              placeholder="repita a nova senha"
-            />
+            <div className="passwordRevealField">
+              <input
+                type={passwordInputType("platform-own-confirm")}
+                autoComplete="new-password"
+                value={platformPasswordForm.confirm}
+                onChange={(event) =>
+                  setPlatformPasswordForm({ ...platformPasswordForm, confirm: event.target.value })
+                }
+                placeholder="repita a nova senha"
+              />
+              <button type="button" onClick={() => togglePasswordField("platform-own-confirm")}>
+                {passwordRevealLabel("platform-own-confirm")}
+              </button>
+            </div>
 
             <button
               type="button"
@@ -2113,30 +2144,40 @@ export default function PlatformDashboard() {
               />
 
               <label>Senha inicial</label>
-              <input
-                type="password"
-                autoComplete="new-password"
-                value={platformAccessForm.password}
-                onChange={(event) =>
-                  setPlatformAccessForm({ ...platformAccessForm, password: event.target.value })
-                }
-                placeholder="minimo 6 caracteres"
-                minLength={6}
-                required
-              />
+              <div className="passwordRevealField">
+                <input
+                  type={passwordInputType("platform-access-password")}
+                  autoComplete="new-password"
+                  value={platformAccessForm.password}
+                  onChange={(event) =>
+                    setPlatformAccessForm({ ...platformAccessForm, password: event.target.value })
+                  }
+                  placeholder="minimo 6 caracteres"
+                  minLength={6}
+                  required
+                />
+                <button type="button" onClick={() => togglePasswordField("platform-access-password")}>
+                  {passwordRevealLabel("platform-access-password")}
+                </button>
+              </div>
 
               <label>Confirmar senha</label>
-              <input
-                type="password"
-                autoComplete="new-password"
-                value={platformAccessForm.confirm}
-                onChange={(event) =>
-                  setPlatformAccessForm({ ...platformAccessForm, confirm: event.target.value })
-                }
-                placeholder="repita a senha"
-                minLength={6}
-                required
-              />
+              <div className="passwordRevealField">
+                <input
+                  type={passwordInputType("platform-access-confirm")}
+                  autoComplete="new-password"
+                  value={platformAccessForm.confirm}
+                  onChange={(event) =>
+                    setPlatformAccessForm({ ...platformAccessForm, confirm: event.target.value })
+                  }
+                  placeholder="repita a senha"
+                  minLength={6}
+                  required
+                />
+                <button type="button" onClick={() => togglePasswordField("platform-access-confirm")}>
+                  {passwordRevealLabel("platform-access-confirm")}
+                </button>
+              </div>
 
               <label className="platformCheckLine">
                 <input
@@ -2270,7 +2311,12 @@ export default function PlatformDashboard() {
               <label>E-mail do dono</label>
               <input value={newShop.owner_email} onChange={(event) => updateNewShop("owner_email", event.target.value)} type="email" placeholder="dono@gmail.com" />
               <label>Senha inicial do dono</label>
-              <input value={newShop.owner_password || ""} onChange={(event) => updateNewShop("owner_password", event.target.value)} type="password" autoComplete="new-password" minLength={6} placeholder="mínimo 6 caracteres" />
+              <div className="passwordRevealField">
+                <input value={newShop.owner_password || ""} onChange={(event) => updateNewShop("owner_password", event.target.value)} type={passwordInputType("new-shop-owner")} autoComplete="new-password" minLength={6} placeholder="mínimo 6 caracteres" />
+                <button type="button" onClick={() => togglePasswordField("new-shop-owner")}>
+                  {passwordRevealLabel("new-shop-owner")}
+                </button>
+              </div>
               <div className="platformTwoCols">
                 <span><label>Plano</label><select value={newShop.plan} onChange={(event) => updateNewShop("plan", event.target.value)}>{planOptions.map((plan) => <option key={plan.id} value={plan.id}>{plan.name}</option>)}</select></span>
                 <span><label>Status</label><select value={newShop.monthly_status} onChange={(event) => updateNewShop("monthly_status", event.target.value as SubscriptionStatus)}>{creationStatusOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></span>
@@ -2401,7 +2447,12 @@ export default function PlatformDashboard() {
             <label>E-mail do dono</label>
             <input value={newShop.owner_email} onChange={(event) => updateNewShop("owner_email", event.target.value)} type="email" placeholder="dono@email.com" required />
             <label>Senha inicial do dono</label>
-            <input value={newShop.owner_password || ""} onChange={(event) => updateNewShop("owner_password", event.target.value)} type="password" autoComplete="new-password" minLength={6} placeholder="mínimo 6 caracteres" required />
+            <div className="passwordRevealField">
+              <input value={newShop.owner_password || ""} onChange={(event) => updateNewShop("owner_password", event.target.value)} type={passwordInputType("legacy-new-shop-owner")} autoComplete="new-password" minLength={6} placeholder="mínimo 6 caracteres" required />
+              <button type="button" onClick={() => togglePasswordField("legacy-new-shop-owner")}>
+                {passwordRevealLabel("legacy-new-shop-owner")}
+              </button>
+            </div>
             <div className="platformTwoCols">
               <span><label>Plano</label><select value={newShop.plan} onChange={(event) => updateNewShop("plan", event.target.value)}>{planOptions.map((plan) => <option key={plan.id} value={plan.id}>{plan.name}</option>)}</select></span>
               <span><label>Status</label><select value={newShop.monthly_status} onChange={(event) => updateNewShop("monthly_status", event.target.value as SubscriptionStatus)}>{creationStatusOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></span>
@@ -2526,7 +2577,13 @@ export default function PlatformDashboard() {
               <label>Nome</label><input value={selectedShop.name || ""} onChange={(event) => updateSelected("name", event.target.value)} />
               <label>WhatsApp</label><input value={selectedShop.whatsapp || ""} onChange={(event) => updateSelected("whatsapp", event.target.value)} />
               <label>E-mail do dono</label><input value={selectedShop.owner_email || ""} onChange={(event) => updateSelected("owner_email", event.target.value)} type="email" />
-              <label>Nova senha do dono</label><input value={selectedShop.owner_password || ""} onChange={(event) => updateSelected("owner_password", event.target.value)} type="password" autoComplete="new-password" minLength={6} placeholder="preencha apenas se quiser alterar" />
+              <label>Nova senha do dono</label>
+              <div className="passwordRevealField">
+                <input value={selectedShop.owner_password || ""} onChange={(event) => updateSelected("owner_password", event.target.value)} type={passwordInputType("selected-owner-password")} autoComplete="new-password" minLength={6} placeholder="preencha apenas se quiser alterar" />
+                <button type="button" onClick={() => togglePasswordField("selected-owner-password")}>
+                  {passwordRevealLabel("selected-owner-password")}
+                </button>
+              </div>
               </div>
               <div className="platformEditorSection">
                 <h3>Assinatura</h3>

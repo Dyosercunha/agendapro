@@ -1172,6 +1172,7 @@ function CoreAgendaProApp() {
   useEffect(()=>{if(typeof window!=="undefined"){window.__agendaProAdminTab=adminTab;window.__agendaProViewMode=viewMode;window.__agendaProAdminLoggedIn=adminLoggedIn;}},[adminTab,viewMode,adminLoggedIn]);
   const [adminEmail, setAdminEmail] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [adminLoginError, setAdminLoginError] = useState("");
   const [adminContext, setAdminContext] = useState<UnknownRecord | null>(null);
   const [passwordForm, setPasswordForm] = useState<PasswordFormState>({ next: "", confirm: "" });
@@ -4395,12 +4396,17 @@ function CoreAgendaProApp() {
           />
 
           <label>Senha</label>
-          <input
-            type="password"
-            placeholder="Digite sua senha"
-            value={adminPassword}
-            onChange={(event) => setAdminPassword(event.target.value)}
-          />
+          <div className="passwordRevealField">
+            <input
+              type={showAdminPassword ? "text" : "password"}
+              placeholder="Digite sua senha"
+              value={adminPassword}
+              onChange={(event) => setAdminPassword(event.target.value)}
+            />
+            <button type="button" onClick={() => setShowAdminPassword((current) => !current)}>
+              {showAdminPassword ? "Ocultar" : "Ver"}
+            </button>
+          </div>
 
           {adminLoginError && <p className="loginError">{adminLoginError}</p>}
 

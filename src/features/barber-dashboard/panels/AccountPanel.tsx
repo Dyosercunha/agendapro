@@ -106,6 +106,22 @@ export default function AccountPanel({ model }: AccountPanelProps) {
       normalizeRole(account.role) === "dono" &&
       !isPlatformDeveloperEmail(account.email)
   ).length;
+  const [visiblePasswordFields, setVisiblePasswordFields] = React.useState<Record<string, boolean>>({});
+
+  function passwordInputType(field: string) {
+    return visiblePasswordFields[field] ? "text" : "password";
+  }
+
+  function togglePasswordField(field: string) {
+    setVisiblePasswordFields((current) => ({
+      ...current,
+      [field]: !current[field],
+    }));
+  }
+
+  function passwordRevealLabel(field: string) {
+    return visiblePasswordFields[field] ? "Ocultar" : "Ver";
+  }
 
   function isOnlyActiveOwnerAccess(account: AccessAccount) {
     return (
@@ -222,23 +238,33 @@ export default function AccountPanel({ model }: AccountPanelProps) {
           <div className="accountFieldGrid">
             <div>
               <label>Nova senha</label>
-              <input
-                type="password"
-                autoComplete="new-password"
-                value={passwordForm.next}
-                placeholder="mínimo 6 caracteres"
-                onChange={(event) => setPasswordForm({ ...passwordForm, next: event.target.value })}
-              />
+              <div className="passwordRevealField">
+                <input
+                  type={passwordInputType("account-own-next")}
+                  autoComplete="new-password"
+                  value={passwordForm.next}
+                  placeholder="mínimo 6 caracteres"
+                  onChange={(event) => setPasswordForm({ ...passwordForm, next: event.target.value })}
+                />
+                <button type="button" onClick={() => togglePasswordField("account-own-next")}>
+                  {passwordRevealLabel("account-own-next")}
+                </button>
+              </div>
             </div>
             <div>
               <label>Confirmar nova senha</label>
-              <input
-                type="password"
-                autoComplete="new-password"
-                value={passwordForm.confirm}
-                placeholder="repita a nova senha"
-                onChange={(event) => setPasswordForm({ ...passwordForm, confirm: event.target.value })}
-              />
+              <div className="passwordRevealField">
+                <input
+                  type={passwordInputType("account-own-confirm")}
+                  autoComplete="new-password"
+                  value={passwordForm.confirm}
+                  placeholder="repita a nova senha"
+                  onChange={(event) => setPasswordForm({ ...passwordForm, confirm: event.target.value })}
+                />
+                <button type="button" onClick={() => togglePasswordField("account-own-confirm")}>
+                  {passwordRevealLabel("account-own-confirm")}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -331,22 +357,32 @@ export default function AccountPanel({ model }: AccountPanelProps) {
                   {isPasswordOpen && (
                     <div className="accessPasswordBox">
                       <label>{passwordLabel}</label>
-                      <input
-                        type="password"
-                        value={account.password || ""}
-                        placeholder="mínimo 6 caracteres"
-                        onChange={(event) => updateAccessAccount(index, "password", event.target.value)}
-                      />
+                      <div className="passwordRevealField">
+                        <input
+                          type={passwordInputType(`${editorKey}-password`)}
+                          value={account.password || ""}
+                          placeholder="mínimo 6 caracteres"
+                          onChange={(event) => updateAccessAccount(index, "password", event.target.value)}
+                        />
+                        <button type="button" onClick={() => togglePasswordField(`${editorKey}-password`)}>
+                          {passwordRevealLabel(`${editorKey}-password`)}
+                        </button>
+                      </div>
 
                       <label>Confirmar senha</label>
-                      <input
-                        type="password"
-                        value={account.passwordConfirm || ""}
-                        placeholder="repita a senha"
-                        onChange={(event) =>
-                          updateAccessAccount(index, "passwordConfirm", event.target.value)
-                        }
-                      />
+                      <div className="passwordRevealField">
+                        <input
+                          type={passwordInputType(`${editorKey}-confirm`)}
+                          value={account.passwordConfirm || ""}
+                          placeholder="repita a senha"
+                          onChange={(event) =>
+                            updateAccessAccount(index, "passwordConfirm", event.target.value)
+                          }
+                        />
+                        <button type="button" onClick={() => togglePasswordField(`${editorKey}-confirm`)}>
+                          {passwordRevealLabel(`${editorKey}-confirm`)}
+                        </button>
+                      </div>
 
                       <p className="hint">
                         Esta senha será aplicada somente ao e-mail {account.email || "deste acesso"} ao

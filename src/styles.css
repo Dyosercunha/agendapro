@@ -5762,6 +5762,37 @@ button:disabled {
   box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1);
 }
 
+.passwordRevealField {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin: 0 0 13px;
+}
+
+.passwordRevealField input {
+  margin: 0 !important;
+  min-width: 0;
+}
+
+.passwordRevealField button {
+  align-self: stretch;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 950;
+  min-height: 52px;
+  padding: 0 14px;
+  width: auto;
+}
+
+.passwordRevealField button:hover {
+  border-color: rgba(34, 197, 94, 0.4);
+  color: var(--primary);
+}
+
 .platformLoginButton,
 .platformForm .platformPrimary,
 .platformFeatures .platformPrimary {

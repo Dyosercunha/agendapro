@@ -15,7 +15,7 @@ const supabaseKey =
   process.env.VITE_SUPABASE_ANON_KEY ||
   "";
 
-const availableStatuses = new Set(["active", "trial"]);
+const availableStatuses = new Set(["active", "pending", "trial"]);
 const unavailableStatusLabels = {
   archived: "arquivada",
   blocked: "bloqueada",

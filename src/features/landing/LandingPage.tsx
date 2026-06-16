@@ -482,7 +482,7 @@ export default function LandingPage() {
       <section className="landingResourceSection">
         <div className="landingSectionIntro">
           <h2>Recursos para vender, operar e crescer</h2>
-          <p>O AgendaPro junta página do cliente, painel da barbearia e controle da plataforma.</p>
+          <p>O AgendaPro junta página do cliente, painel da barbearia e gestão comercial em um fluxo simples.</p>
         </div>
 
         <div className="landingResourceGrid">

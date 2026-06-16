@@ -82,8 +82,8 @@ const resourceCards = [
     text: "A barbearia ganha um mini-site com logo, capa, endereço, WhatsApp, serviços e horários.",
   },
   {
-    title: "Painel Plataforma",
-    text: "Você cadastra barbearias, controla planos, vencimentos, status e melhorias por conta.",
+    title: "Controle comercial",
+    text: "Cadastre clientes, acompanhe planos, vencimentos, status e recursos liberados por conta.",
   },
 ];
 
@@ -142,6 +142,7 @@ export default function LandingPage() {
   });
   const slugInputRef = useRef<HTMLInputElement | null>(null);
   const cleanSlug = normalizeSlug(slug);
+  const isPlatformPanelKeyword = cleanSlug === "plataforma";
 
   useEffect(() => {
     let active = true;
@@ -173,6 +174,15 @@ export default function LandingPage() {
   useEffect(() => {
     let active = true;
     const typed = slug.trim();
+    const typedSlug = normalizeSlug(typed);
+
+    if (typedSlug === "plataforma") {
+      setShowShopOptions(false);
+      setSlugError("");
+      return () => {
+        active = false;
+      };
+    }
 
     if (typed.length < 2 || selectedShopStillMatches()) {
       if (typed.length < 2) setShowShopOptions(false);
@@ -226,6 +236,17 @@ export default function LandingPage() {
   }
 
   async function goTo(path: "agendamento" | "painel") {
+    if (path === "painel" && isPlatformPanelKeyword) {
+      window.location.href = "/plataforma?platform=1";
+      return;
+    }
+
+    if (path === "agendamento" && isPlatformPanelKeyword) {
+      setSlugError("Para acessar a plataforma, digite Plataforma e clique em Abrir painel.");
+      setShowShopOptions(false);
+      return;
+    }
+
     if (!cleanSlug) {
       setSlugError("Digite o nome da barbearia para continuar.");
       setShowShopOptions(true);
@@ -280,7 +301,6 @@ export default function LandingPage() {
             Sou barbearia
           </button>
           <a href="/agendamento/master">Demonstração</a>
-          <a href="/plataforma?platform=1">Painel Plataforma</a>
         </div>
       </nav>
 
@@ -369,7 +389,7 @@ export default function LandingPage() {
         <div>
           <span>Link da barbearia</span>
           <h2>Acesse agenda ou painel pelo nome</h2>
-          <p>Digite o nome ou link cadastrado no Painel Plataforma. Exemplo: Nome da barbearia.</p>
+          <p>Digite o nome ou link cadastrado da barbearia. Exemplo: Nome da barbearia.</p>
         </div>
 
         <label>

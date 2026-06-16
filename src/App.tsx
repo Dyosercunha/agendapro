@@ -1265,8 +1265,10 @@ function CoreAgendaProApp() {
   const history = cloudHistory || clientHistory[cleanWhatsapp];
   const currentPlan = planOptions.find((plan) => plan.id === business.plan) || planOptions[0];
   const appOrigin = typeof window !== "undefined" ? window.location.origin : "https://agenda.app";
+  const requestedRouteSlug = currentSlugFromUrl();
+  const loadedRouteSlug = loadedCloudSlug();
   const routeSlug = makeSlug(
-    loadedCloudSlug() || business.slug || cloudSlug || currentSlugFromUrl()
+    loadedRouteSlug || business.slug || cloudSlug || requestedRouteSlug
   );
   const publicScheduleLink = `${appOrigin}/agendamento/${routeSlug || "barbearia"}`;
   const adminPanelLink = `${appOrigin}/painel/${routeSlug || "barbearia"}`;
@@ -2043,7 +2045,6 @@ function CoreAgendaProApp() {
 
       setBarbershopId(businessData.id);
       setCloudSlug(businessData.slug);
-      setCloudLoadState("loaded");
 
       const [
         accountResult,
@@ -2094,6 +2095,8 @@ function CoreAgendaProApp() {
           businessData.slot_interval
         )
       );
+
+      setCloudLoadState("loaded");
 
       if (includeAdminData) {
         setAppointments(
@@ -4294,6 +4297,20 @@ function CoreAgendaProApp() {
           </div>
         )}
       </>
+    );
+  }
+
+  if (requestedRouteSlug && cloudLoadState === "loading") {
+    return withNotice(
+      <main className="app">
+        <section className="card loginCard cloudLoadingCard">
+          <div className="loginBadge">AgendaPro</div>
+          <h1>Carregando barbearia</h1>
+          <p className="hint">
+            Buscando os dados de {requestedRouteSlug} na nuvem para abrir a página correta.
+          </p>
+        </section>
+      </main>
     );
   }
 

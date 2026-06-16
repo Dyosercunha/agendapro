@@ -6,70 +6,111 @@ type PublicBarbershop = {
   status?: string;
 };
 
+const contactWhatsappUrl =
+  "https://wa.me/5551992627663?text=Ol%C3%A1%2C%20quero%20conhecer%20o%20AgendaPro%20para%20minha%20barbearia.";
+
 const planCards = [
   {
     name: "Inicial",
     price: "R$ 49/mês",
-    description: "Agenda online, serviços, profissionais, link do cliente e painel básico.",
-    features: ["Agenda online", "Serviços", "Profissionais", "Link do cliente", "Painel básico"],
+    description: "Para começar com agenda online, equipe, serviços e link público.",
+    features: [
+      "Agenda online",
+      "Cadastro de serviços",
+      "Cadastro de profissionais",
+      "Link público de agendamento",
+      "Painel básico da barbearia",
+    ],
   },
   {
     name: "Profissional",
     price: "R$ 89/mês",
-    description: "Tudo do Inicial, com aparência personalizada, PIX, clientes, promoções e carrossel.",
+    description: "Para barbearias que querem vender melhor e personalizar a experiência.",
     features: [
       "Tudo do Inicial",
       "Aparência personalizada",
-      "PIX",
-      "Confirmação WhatsApp",
-      "Clientes",
+      "PIX antecipado",
+      "Clientes e histórico",
       "Promoções inteligentes",
       "Carrossel de fotos",
+      "Confirmação por WhatsApp",
     ],
     featured: true,
   },
   {
     name: "Premium",
     price: "R$ 149/mês",
-    description: "Tudo do Profissional, com agenda visual, comissões, fidelidade e lista de espera.",
+    description: "Para operação completa com agenda avançada, relatórios e automações.",
     features: [
       "Tudo do Profissional",
-      "Agenda visual",
-      "Comissões por profissional",
-      "Fidelidade",
+      "Agenda visual premium",
       "Lista de espera",
-      "Instagram",
-      "Login Google cliente",
+      "Fidelidade",
+      "Comissões por profissional",
       "Relatórios",
+      "Login Google cliente",
     ],
+  },
+];
+
+const audienceCards = [
+  {
+    title: "Barbearias",
+    text: "Organize horários, equipe, serviços e pagamentos sem depender só de conversa no WhatsApp.",
+  },
+  {
+    title: "Salões",
+    text: "Crie uma vitrine simples para o cliente escolher serviço, profissional, data e horário.",
+  },
+  {
+    title: "Estética",
+    text: "Controle agenda, clientes e confirmações com uma experiência pensada para celular.",
   },
 ];
 
 const resourceCards = [
   {
     title: "Agenda inteligente",
-    text: "Horários respeitam duração dos serviços, pausas, bloqueios e agenda real da barbearia.",
+    text: "Horários respeitam duração dos serviços, pausas, bloqueios e funcionamento real.",
   },
   {
     title: "Painel da barbearia",
     text: "Serviços, profissionais, clientes, pagamentos, aparência e recursos liberados por plano.",
   },
   {
-    title: "Cliente sem atrito",
-    text: "O cliente agenda pelo link, recebe resumo claro e pode falar com a barbearia quando precisar.",
+    title: "Página do cliente",
+    text: "A barbearia ganha um mini-site com logo, capa, endereço, WhatsApp, serviços e horários.",
   },
   {
-    title: "Plataforma comercial",
+    title: "Painel Plataforma",
     text: "Você cadastra barbearias, controla planos, vencimentos, status e melhorias por conta.",
   },
 ];
 
+const previewCards = [
+  {
+    step: "01",
+    title: "Cliente escolhe o serviço",
+    text: "Cards claros com preço, duração, promoção e seleção simples.",
+  },
+  {
+    step: "02",
+    title: "Escolhe data e horário",
+    text: "A agenda mostra horários livres, ocupados, pausas e melhores encaixes.",
+  },
+  {
+    step: "03",
+    title: "Barbearia acompanha tudo",
+    text: "O painel mostra agendamentos, clientes, pagamentos e ações rápidas.",
+  },
+];
+
 const benefitCards = [
-  "Menos conversa repetida no WhatsApp",
+  "Menos mensagens repetidas no WhatsApp",
   "Mais controle sobre horários ocupados",
   "Identidade visual para cada barbearia",
   "Planos prontos para cobrar mensalidade",
-  "Dados separados por barbearia",
+  "Dados separados por estabelecimento",
   "Painel pensado para celular",
 ];
 
@@ -118,7 +159,7 @@ export default function LandingPage() {
           source: String(data.source || "fallback"),
         });
       } catch {
-        // mantém fallback visual
+        // Mantém a landing carregando mesmo se as métricas públicas não responderem.
       }
     }
 
@@ -238,6 +279,7 @@ export default function LandingPage() {
           <button type="button" onClick={() => goTo("painel")}>
             Sou barbearia
           </button>
+          <a href="/agendamento/master">Demonstração</a>
           <a href="/plataforma?platform=1">Painel Plataforma</a>
         </div>
       </nav>
@@ -248,21 +290,21 @@ export default function LandingPage() {
             <img src="/agenda-pro-logo.png" alt="AgendaPro" />
             <span>AgendaPro</span>
           </div>
-          <h1>Sua barbearia com agendamento profissional</h1>
+          <h1>Sistema de agendamento para barbearias</h1>
           <p className="landingLead">
-            Seus clientes agendam pelo celular. Você gerencia tudo em um painel.
+            Clientes agendam pelo celular. A barbearia gerencia tudo em um painel.
           </p>
           <p>
-            Crie uma página exclusiva para cada estabelecimento, venda planos por assinatura e
-            entregue uma experiência premium de agendamento.
+            O AgendaPro cria uma página exclusiva para cada estabelecimento, organiza agenda,
+            equipe, pagamentos, aparência e recursos por plano.
           </p>
 
           <div className="landingActions">
+            <a className="landingPrimaryCta" href={contactWhatsappUrl} target="_blank" rel="noreferrer">
+              Falar comigo no WhatsApp
+            </a>
             <button type="button" onClick={() => goTo("agendamento")}>
               Quero agendar
-            </button>
-            <button type="button" onClick={() => goTo("painel")}>
-              Sou barbearia
             </button>
             <a href="/agendamento/master">Ver demonstração</a>
           </div>
@@ -381,6 +423,42 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <section className="landingAudienceSection">
+        <div className="landingSectionIntro">
+          <h2>Feito para negócios com atendimento por horário</h2>
+          <p>
+            Uma solução simples para quem precisa organizar agenda, reduzir erros e vender uma
+            experiência mais profissional.
+          </p>
+        </div>
+
+        <div className="landingAudienceGrid">
+          {audienceCards.map((item) => (
+            <article key={item.title}>
+              <strong>{item.title}</strong>
+              <p>{item.text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="landingDemoSection">
+        <div className="landingSectionIntro">
+          <h2>Como a experiência aparece para o cliente</h2>
+          <p>O fluxo é direto: serviço, profissional, data, horário e confirmação.</p>
+        </div>
+
+        <div className="landingDemoGrid">
+          {previewCards.map((item) => (
+            <article key={item.step}>
+              <span>{item.step}</span>
+              <strong>{item.title}</strong>
+              <p>{item.text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
       <section className="landingResourceSection">
         <div className="landingSectionIntro">
           <h2>Recursos para vender, operar e crescer</h2>
@@ -432,6 +510,19 @@ export default function LandingPage() {
             </article>
           ))}
         </div>
+      </section>
+
+      <section className="landingContactSection">
+        <div>
+          <h2>Quer colocar sua barbearia no AgendaPro?</h2>
+          <p>
+            Chame no WhatsApp para cadastrar sua barbearia, montar os serviços, liberar o painel
+            e deixar o link pronto para divulgar.
+          </p>
+        </div>
+        <a href={contactWhatsappUrl} target="_blank" rel="noreferrer">
+          Falar comigo no WhatsApp
+        </a>
       </section>
 
       <footer className="landingFooter">

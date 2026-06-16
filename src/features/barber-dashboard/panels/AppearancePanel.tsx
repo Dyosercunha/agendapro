@@ -21,6 +21,7 @@ type CepAddressResponse = {
 export type AppearancePanelModel = {
   activeAdminTab: string;
   appearanceMediaAvailable: boolean;
+  backplateAvailable: boolean;
   business: Barbershop;
   cloudSaving: string;
   handleBackgroundUpload: (
@@ -125,6 +126,7 @@ export default function AppearancePanel({ model }: AppearancePanelProps) {
   const {
     activeAdminTab,
     appearanceMediaAvailable,
+    backplateAvailable,
     business,
     cloudSaving,
     handleBackgroundUpload,
@@ -385,7 +387,7 @@ export default function AppearancePanel({ model }: AppearancePanelProps) {
                 <span>Planos de fundo</span>
                 <h3>Capa do cliente e fundo do painel</h3>
               </div>
-              <strong>Leitura com overlay</strong>
+              <strong>{backplateAvailable ? "Liberado" : "Bloqueado em Melhorias"}</strong>
             </div>
 
             <div className="appearanceAssetGrid">
@@ -472,8 +474,23 @@ export default function AppearancePanel({ model }: AppearancePanelProps) {
               </div>
             </div>
 
-            <button type="button" className="green compactSaveButton" onClick={saveBackgroundsToCloud}>
-              {cloudSaving === "backgrounds" ? "Salvando fundos..." : "Salvar planos de fundo"}
+            {!backplateAvailable && (
+              <p className="hint">
+                Libere a melhoria Plano de fundo personalizado na aba Melhorias ou no Painel
+                Plataforma antes de salvar estes fundos na nuvem.
+              </p>
+            )}
+
+            <button
+              type="button"
+              className={backplateAvailable ? "green compactSaveButton" : "outline compactSaveButton"}
+              onClick={saveBackgroundsToCloud}
+            >
+              {cloudSaving === "backgrounds"
+                ? "Salvando fundos..."
+                : backplateAvailable
+                ? "Salvar planos de fundo"
+                : "Plano de fundo bloqueado"}
             </button>
           </section>
 

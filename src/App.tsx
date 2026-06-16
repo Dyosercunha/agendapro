@@ -435,8 +435,13 @@ function cloudErrorText(error) {
   }
 }
 
-function friendlyCloudErrorText(error, fallback = "Não foi possível concluir esta ação agora. Tente novamente.") {
+function friendlyCloudErrorText(
+  error,
+  fallback = "Não foi possível concluir esta ação agora. Tente novamente.",
+  options = {}
+) {
   const detail = cloudErrorText(error).toLowerCase();
+  const slotConflictContext = Boolean(options.slotConflict);
 
   if (
     detail.includes("permission denied") ||
@@ -465,10 +470,20 @@ function friendlyCloudErrorText(error, fallback = "Não foi possível concluir e
   }
 
   if (
-    detail.includes("duplicate") ||
-    detail.includes("ocupado") ||
-    detail.includes("indispon") ||
-    detail.includes("conflict")
+    detail.includes("recurso indisponivel") ||
+    detail.includes("recurso indisponível") ||
+    detail.includes("upgrade para liberar") ||
+    detail.includes("plano atual")
+  ) {
+    return "Essa melhoria ainda não está liberada para esta barbearia. Ative em Melhorias ou ajuste o plano no Painel Plataforma.";
+  }
+
+  if (
+    slotConflictContext &&
+    (detail.includes("duplicate") ||
+      detail.includes("ocupado") ||
+      detail.includes("indispon") ||
+      detail.includes("conflict"))
   ) {
     return "Esse horário acabou de ser reservado. Escolha outro horário.";
   }
@@ -1286,6 +1301,7 @@ function CoreAgendaProApp() {
   const pixAvailable = business.pixEnabled && pixFeatureEnabled;
   const waitlistAvailable = featureIsAvailable("waitlist");
   const visualAgendaAvailable = featureIsAvailable("visual_agenda");
+  const backplateAvailable = featureIsAvailable("backplate");
   const appearanceMediaAvailable =
     featurePlanAllowed("appearance_media") &&
     (Boolean(business.proAppearanceMediaEnabled) || featureIsAvailable("appearance_media"));
@@ -2558,7 +2574,8 @@ function CoreAgendaProApp() {
     } catch (error) {
       const friendlyMessage = friendlyCloudErrorText(
         error,
-        "Não foi possível confirmar este horário. Tente novamente em instantes."
+        "Não foi possível confirmar este horário. Tente novamente em instantes.",
+        { slotConflict: true }
       );
       console.error(error);
       setCloudStatus(friendlyMessage);
@@ -2780,7 +2797,8 @@ function CoreAgendaProApp() {
     if (error) {
       const friendlyMessage = friendlyCloudErrorText(
         error,
-        "Não foi possível confirmar este horário. Tente novamente em instantes."
+        "Não foi possível confirmar este horário. Tente novamente em instantes.",
+        { slotConflict: true }
       );
       console.error("Erro ao salvar online:", error);
       setCloudStatus(friendlyMessage);
@@ -3548,6 +3566,15 @@ function CoreAgendaProApp() {
 
       if (!targetSlug) {
         return missingLoadedBarbershopResult();
+      }
+
+      if (!backplateAvailable) {
+        return {
+          error: {
+            message:
+              "Plano de fundo personalizado bloqueado. Libere a melhoria Plano de fundo personalizado para esta barbearia antes de salvar.",
+          },
+        };
       }
 
       return saveBackgroundSettings({
@@ -4451,6 +4478,7 @@ function CoreAgendaProApp() {
     appearanceMediaAvailable,
     autoConfirmationFeatureEnabled,
     barberConfirmationMessage,
+    backplateAvailable,
     blockNextAvailableTime,
     business,
     cancelAppointment,

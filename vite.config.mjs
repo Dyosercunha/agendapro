@@ -2,6 +2,8 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
+const buildId = (process.env.VERCEL_GIT_COMMIT_SHA || Date.now().toString(36)).slice(0, 8);
+
 export default defineConfig({
   base: process.env.GITHUB_PAGES === "true" ? "/agendapro/" : "/",
   plugins: [
@@ -85,5 +87,12 @@ export default defineConfig({
   ],
   build: {
     chunkSizeWarningLimit: 700,
+    rollupOptions: {
+      output: {
+        entryFileNames: `assets/[name]-${buildId}-[hash].js`,
+        chunkFileNames: `assets/[name]-${buildId}-[hash].js`,
+        assetFileNames: `assets/[name]-${buildId}-[hash][extname]`,
+      },
+    },
   },
 });

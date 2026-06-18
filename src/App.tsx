@@ -466,7 +466,7 @@ function friendlyCloudErrorText(
     detail.includes("barbearia não encontrada") ||
     detail.includes("barbershop not found")
   ) {
-    return "Não encontrei esta barbearia ativa na nuvem. Abra pelo link oficial do painel ou confira o cadastro no Painel Plataforma.";
+    return "Não encontrei esta barbearia ativa. Confira o link oficial e tente novamente.";
   }
 
   if (
@@ -475,7 +475,7 @@ function friendlyCloudErrorText(
     detail.includes("upgrade para liberar") ||
     detail.includes("plano atual")
   ) {
-    return "Essa melhoria ainda não está liberada para esta barbearia. Ative em Melhorias ou ajuste o plano no Painel Plataforma.";
+    return "Essa melhoria ainda não está liberada para esta barbearia. Verifique o plano ou fale com o suporte do AgendaPro.";
   }
 
   if (
@@ -4331,14 +4331,11 @@ function CoreAgendaProApp() {
           </h1>
           <p className="hint">
             {cloudLoadState === "missing-slug"
-              ? "Abra pelo link oficial da barbearia: /agendamento/master para clientes ou /painel/master para o painel."
+              ? "Abra pelo link oficial da barbearia. Exemplo: /agendamento/nome-da-barbearia para clientes ou /painel/nome-da-barbearia para o painel."
               : hasConnectionError
               ? "Não foi possível carregar os dados online agora. Atualize a página em instantes."
-              : `Não encontrei a barbearia "${slug}" ativa na nuvem. Confira o slug no Painel Plataforma ou restaure a barbearia se ela foi arquivada.`}
+              : `Não encontrei a barbearia "${slug}" ativa no AgendaPro. Confira o nome informado ou volte para o início para escolher uma barbearia ativa.`}
           </p>
-          <a className="greenLink full" href="/plataforma?platform=1">
-            Abrir Painel Plataforma
-          </a>
           <a className="outlineLink full" href="/">
             Voltar para início
           </a>

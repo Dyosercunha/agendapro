@@ -75,10 +75,28 @@ export async function checkPublicSlotAvailability(payload: Record<string, unknow
 
     return { data: response.availability || response, error: null };
   } catch (apiError) {
-    const { target_duration, duration_input, ...legacyPayload } = payload;
-    const result = await callRpcWithRestFallback("check_public_slot_availability", legacyPayload);
+    const { target_duration, duration_input, duration, ...legacyPayload } = payload;
+    const cleanDuration = Math.max(
+      Number(target_duration || duration_input || duration || 30),
+      10
+    );
+    const durationPayload = {
+      ...legacyPayload,
+      target_duration: cleanDuration,
+    };
+    const result = await callRpcWithRestFallback(
+      "check_public_slot_availability",
+      durationPayload
+    );
 
     if (!result.error) return result;
+
+    const legacyResult = await callRpcWithRestFallback(
+      "check_public_slot_availability",
+      legacyPayload
+    );
+
+    if (!legacyResult.error) return legacyResult;
 
     return { data: null, error: apiError || result.error };
   }

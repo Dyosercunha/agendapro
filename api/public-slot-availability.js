@@ -63,10 +63,23 @@ function appointmentBlocksSlot(item) {
   );
 }
 
-function appointmentConflicts(item, startMinutes, endMinutes, professionalId = "") {
+function appointmentConflicts(
+  item,
+  startMinutes,
+  endMinutes,
+  professionalId = "",
+  activeProfessionalCount = 0
+) {
   if (!appointmentBlocksSlot(item)) return false;
 
   if (professionalId && item.professional_id && item.professional_id !== professionalId) {
+    return false;
+  }
+
+  // Agendamentos antigos podem ter sido gravados sem professional_id.
+  // Em barbearias com mais de um profissional, eles nao devem bloquear todos.
+  // Se houver apenas um profissional ativo, continuam bloqueando a agenda dele.
+  if (professionalId && !item.professional_id && activeProfessionalCount > 1) {
     return false;
   }
 
@@ -262,7 +275,11 @@ export default async function handler(request, response) {
       });
     }
 
-    if (appointments.some((item) => appointmentConflicts(item, startMinutes, endMinutes, professional.id))) {
+    if (
+      appointments.some((item) =>
+        appointmentConflicts(item, startMinutes, endMinutes, professional.id, professionals.length)
+      )
+    ) {
       return response.status(200).json({
         ok: true,
         availability: publicAvailability(false, "busy"),
@@ -272,7 +289,9 @@ export default async function handler(request, response) {
     professional = professionals.find(
       (item) =>
         !blocks.some((block) => blockConflicts(block, startMinutes, endMinutes, item.id)) &&
-        !appointments.some((appointment) => appointmentConflicts(appointment, startMinutes, endMinutes, item.id))
+        !appointments.some((appointment) =>
+          appointmentConflicts(appointment, startMinutes, endMinutes, item.id, professionals.length)
+        )
     );
 
     if (!professional) {

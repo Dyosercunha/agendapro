@@ -1700,6 +1700,7 @@ function CoreAgendaProApp() {
   useEffect(() => {
     const root = document.documentElement;
     root.style.setProperty("--primary", business.themeColor);
+    root.style.setProperty("--primary-2", business.themeColorSecondary);
     root.style.setProperty("--primary-hover", business.themeColor);
     root.style.setProperty("--primary-soft", hexToRgba(business.themeColor, 0.14));
     root.style.setProperty("--success", business.themeColorSecondary);

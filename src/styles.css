@@ -11286,3 +11286,449 @@ button:disabled {
     display: grid;
   }
 }
+
+/* Final mobile QA hardening: keep every operational panel contained on Android/iPhone. */
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus,
+a:focus {
+  outline: none;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18);
+  outline: 1px solid rgba(34, 197, 94, 0.5);
+}
+
+.adminApp,
+.app,
+.platformApp,
+.clientBookingApp,
+.card,
+.panelHero,
+.dashboardHeroCard,
+.agendaTodayPanelCard,
+.agendaTodayAppointment,
+.agendaTodayDetails,
+.paymentsPanelCard,
+.accountPanelCard,
+.appearancePanelCard,
+.platformHero,
+.platformCard,
+.platformShop,
+.platformFeatureCard,
+.platformStat,
+.clientMiniSiteHero,
+.addressCard,
+.serviceCard,
+.professionalCard,
+.payment,
+.pixArea {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.adminApp *,
+.platformApp *,
+.clientBookingApp *,
+.app * {
+  min-width: 0;
+}
+
+.adminApp img,
+.platformApp img,
+.clientBookingApp img,
+.app img {
+  max-width: 100%;
+}
+
+.adminApp input,
+.adminApp select,
+.adminApp textarea,
+.platformApp input,
+.platformApp select,
+.platformApp textarea,
+.clientBookingApp input,
+.clientBookingApp select,
+.clientBookingApp textarea,
+.app input,
+.app select,
+.app textarea {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.accountPanelCard input,
+.appearancePanelCard input,
+.paymentsPanelCard input,
+.platformForm input,
+.platformForm select,
+.platformLoginBox input {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.panelHero h1,
+.panelHero h2,
+.dashboardHeroCard strong,
+.dashboardHeroCard span,
+.dashboardHeroCard small,
+.agendaTodayClientName,
+.agendaTodayDetails h3,
+.agendaTodayDetails p,
+.agendaTodayHint,
+.paymentsPanelCard h2,
+.paymentsPanelCard h3,
+.paymentsPanelCard p,
+.accountPanelCard h2,
+.accountPanelCard h3,
+.accountPanelCard p,
+.appearancePanelCard h2,
+.appearancePanelCard h3,
+.appearancePanelCard p,
+.platformHero h1,
+.platformCard h2,
+.platformCard h3,
+.platformShop strong,
+.platformShop span,
+.platformShop small,
+.platformFeatureCard h4,
+.platformFeatureCard p,
+.clientMiniSiteContent h1,
+.addressCard strong,
+.addressCard span,
+.serviceCard strong,
+.serviceCard span,
+.professionalCard strong,
+.professionalCard span {
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.dashboardHeroCard,
+.paymentsPanelCard .paymentsFeatureCard,
+.paymentsPanelCard .promotionEditor,
+.accountPanelCard .adminItem,
+.accountPanelCard .accessItem,
+.appearancePanelCard .appearanceSectionBlock,
+.appearancePanelCard .appearanceAssetCard,
+.platformFeatureCard,
+.platformShop,
+.agendaTodayAppointment,
+.agendaTodayDetails {
+  contain: layout paint;
+}
+
+.dashboardHeroCard strong,
+.agendaTodayClientName,
+.agendaTodayDetails h3 {
+  letter-spacing: 0;
+}
+
+.agendaTodayAppointment {
+  align-items: stretch;
+}
+
+.agendaTodayTime,
+.agendaTodayCardMain,
+.agendaTodayActions,
+.agendaTodayDetails {
+  min-width: 0;
+}
+
+.agendaTodayClientName {
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  display: -webkit-box;
+  line-height: 1.03;
+  overflow: hidden;
+}
+
+.agendaTodayClientName.isLong {
+  -webkit-line-clamp: 3;
+  font-size: clamp(24px, 2.7vw, 34px);
+}
+
+.agendaTodayMeta,
+.agendaTodayTags {
+  flex-wrap: wrap;
+}
+
+.agendaTodayActions button,
+.agendaTodayActions a,
+.agendaTodayEmptyActions button,
+.agendaTodayEmptyActions a,
+.platformPrimary,
+.platformSecondary,
+.platformDanger,
+.platformDangerGhost {
+  white-space: normal;
+}
+
+.addressCard {
+  align-items: stretch;
+}
+
+.addressCard strong {
+  line-height: 1.18;
+  white-space: normal;
+}
+
+.clientMiniSiteHero {
+  overflow: hidden;
+}
+
+.clientMiniSiteContent {
+  min-width: 0;
+}
+
+@media (max-width: 1180px) {
+  .dashboardHeroCards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboardHeroCard.service {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 760px) {
+  .adminApp {
+    padding-inline: clamp(10px, 3vw, 16px);
+  }
+
+  .adminApp .hero {
+    min-height: auto;
+  }
+
+  .adminApp .hero,
+  .adminPanelHeader,
+  .panelHero,
+  .dashboardHeroCard,
+  .paymentsPanelCard,
+  .accountPanelCard,
+  .appearancePanelCard,
+  .agendaTodayPanelCard {
+    border-radius: 24px;
+  }
+
+  .dashboardHeroCards,
+  .paymentsPanelGrid,
+  .appearanceWorkspaceGrid,
+  .appearanceFieldGrid,
+  .appearanceFieldGrid.twoColumns,
+  .appearanceAssetGrid,
+  .accountPanelGrid,
+  .platformGrid,
+  .platformStats,
+  .platformStatsPro,
+  .platformHealthOverviewGrid,
+  .platformFeatureGrid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .dashboardHeroCard {
+    min-height: 156px;
+    padding: 24px;
+  }
+
+  .dashboardHeroCard strong {
+    font-size: clamp(34px, 11vw, 50px);
+    line-height: 0.98;
+  }
+
+  .dashboardHeroCard.service strong {
+    font-size: clamp(28px, 9vw, 42px);
+    max-width: 100%;
+  }
+
+  .agendaTodayAppointment {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+
+  .agendaTodayTime {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    min-height: 74px;
+  }
+
+  .agendaTodayCardHeader {
+    gap: 10px;
+  }
+
+  .agendaTodayClientName {
+    font-size: clamp(28px, 9.5vw, 40px);
+  }
+
+  .agendaTodayActions.compact,
+  .agendaTodayActions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .agendaTodayDetails {
+    position: static;
+  }
+
+  .panelHero {
+    gap: 14px;
+    padding: 22px;
+  }
+
+  .panelHero h1,
+  .panelHero h2 {
+    font-size: clamp(32px, 10vw, 44px);
+    line-height: 0.98;
+  }
+
+  .clientMiniSiteHero {
+    min-height: auto;
+    padding: 18px;
+  }
+
+  .clientMiniSiteTop,
+  .clientMiniSiteActions {
+    gap: 10px;
+  }
+
+  .addressCard {
+    grid-template-columns: 1fr;
+    padding: 18px;
+  }
+
+  .addressCard a {
+    min-height: 48px;
+    width: 100%;
+  }
+
+  .platformApp {
+    padding-inline: 12px;
+  }
+
+  .platformHero,
+  .platformCard,
+  .platformStat,
+  .platformShop {
+    border-radius: 24px;
+  }
+}
+
+@media (max-width: 430px) {
+  .adminApp {
+    padding-inline: 10px;
+  }
+
+  .adminApp .hero {
+    gap: 18px;
+    padding: 20px;
+  }
+
+  .adminApp .brand {
+    align-items: flex-start;
+  }
+
+  .adminApp .brand h1 {
+    font-size: clamp(31px, 10vw, 40px);
+    line-height: 1;
+  }
+
+  .adminApp .logo {
+    flex: 0 0 64px;
+    height: 64px;
+    width: 64px;
+  }
+
+  .dashboardHeroCard,
+  .agendaTodayAppointment,
+  .agendaTodayDetails,
+  .paymentsPanelCard,
+  .accountPanelCard,
+  .appearancePanelCard,
+  .platformCard,
+  .platformShop,
+  .clientMiniSiteHero,
+  .addressCard {
+    border-radius: 22px;
+  }
+
+  .dashboardHeroCard {
+    min-height: 140px;
+    padding: 20px;
+  }
+
+  .dashboardHeroCard strong {
+    font-size: clamp(31px, 10.5vw, 44px);
+  }
+
+  .dashboardHeroCard > span,
+  .dashboardHeroCard > small {
+    font-size: 15px;
+    line-height: 1.25;
+  }
+
+  .agendaTodayAppointment {
+    padding: 14px;
+  }
+
+  .agendaTodayTime strong {
+    font-size: clamp(32px, 10vw, 42px);
+  }
+
+  .agendaTodayActions.compact,
+  .agendaTodayActions,
+  .agendaTodayDetailGrid,
+  .platformHeroActions,
+  .platformQuickActions,
+  .platformDiagnosticActions,
+  .platformShopActions,
+  .platformWizardActions {
+    grid-template-columns: 1fr !important;
+  }
+
+  .paymentsPanelCard .adminItem,
+  .accountPanelCard .adminItem,
+  .appearancePanelCard .adminItem,
+  .platformFeatureCard,
+  .platformWizardServiceCard,
+  .platformWizardTeamCard,
+  .platformWizardDay {
+    padding: 16px;
+  }
+
+  .platformFeatureTop,
+  .platformFeatureActions,
+  .platformWizardItemTop,
+  .appearanceSectionHeader,
+  .panelHero {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .platformFeatureTop > *,
+  .platformFeatureActions > *,
+  .appearanceSectionHeader > *,
+  .panelHero > * {
+    width: 100%;
+  }
+
+  .clientMiniSiteContent h1 {
+    font-size: clamp(36px, 12vw, 48px);
+    line-height: 0.98;
+  }
+
+  .clientMiniSiteActions a,
+  .clientMiniSiteActions button {
+    min-height: 48px;
+  }
+}

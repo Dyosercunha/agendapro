@@ -24,6 +24,16 @@ function shouldSkipAdminRpcFallback(error: unknown) {
   );
 }
 
+function isMissingLocalAdminEndpoint(error: unknown) {
+  const message = apiErrorText(error).toLowerCase();
+
+  return (
+    message === "not found" ||
+    message.includes("404") ||
+    message.includes("cannot post /api/admin-appointments")
+  );
+}
+
 export async function getAdminAppointments(payload: Record<string, unknown>) {
   let token = "";
 
@@ -53,6 +63,10 @@ export async function getAdminAppointments(payload: Record<string, unknown>) {
     const result = await callAdminRpc("get_admin_appointments", payload);
 
     if (!result.error) return result;
+
+    if (isMissingLocalAdminEndpoint(backendError)) {
+      return result;
+    }
 
     return { data: null, error: backendError || result.error };
   }

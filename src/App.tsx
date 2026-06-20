@@ -1637,7 +1637,12 @@ function CoreAgendaProApp() {
       try {
         await refreshCloudAppointments();
       } catch (error) {
-        console.error("Não foi possível atualizar a agenda automaticamente:", error);
+        setCloudStatus(
+          `Atualização automática pausada: ${friendlyCloudErrorText(
+            error,
+            "use o painel normalmente ou atualize a página em instantes."
+          )}`
+        );
       } finally {
         refreshing = false;
       }

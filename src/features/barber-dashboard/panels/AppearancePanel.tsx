@@ -346,7 +346,7 @@ export default function AppearancePanel({ model }: AppearancePanelProps) {
                 />
               </div>
               <div>
-                <label>Modo visual</label>
+                <label>Tema da tela do cliente</label>
                 <div className="appearanceModeSwitch">
                   <button
                     type="button"
@@ -363,6 +363,9 @@ export default function AppearancePanel({ model }: AppearancePanelProps) {
                     Claro
                   </button>
                 </div>
+                <small className="fieldHint">
+                  Aplica na página pública de agendamento e na prévia ao vivo.
+                </small>
               </div>
             </div>
 

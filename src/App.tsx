@@ -270,10 +270,12 @@ const initialWaitlist: LocalWaitlistEntry[] = [];
 
 const clientHistory = {};
 
+const defaultAdminTab = "agendaToday";
+
 const adminTabs = [
   { id: "dashboard", label: "Painel" },
   { id: "agendaToday", label: "Agenda Hoje" },
-  { id: "agenda", label: "Agenda" },
+  { id: "agenda", label: "Horário de atendimento" },
   { id: "agendaPremium", label: "Agenda Premium" },
   { id: "customers", label: "Clientes" },
   { id: "services", label: "Serviços" },
@@ -805,12 +807,12 @@ function adminTabStorageKey(slug = currentSlugFromUrl()) {
 }
 
 function readInitialAdminTab() {
-  if (typeof window === "undefined") return "dashboard";
+  if (typeof window === "undefined") return defaultAdminTab;
 
   try {
-    return window.localStorage.getItem(adminTabStorageKey()) || "dashboard";
+    return window.localStorage.getItem(adminTabStorageKey()) || defaultAdminTab;
   } catch {
-    return "dashboard";
+    return defaultAdminTab;
   }
 }
 
@@ -1329,7 +1331,7 @@ function CoreAgendaProApp() {
   const canManageBusinessSettings = canManageBusinessSettingsByRole(currentAdminRole, isOwnerEmail);
   const canUseAdminTab = (tabId) => canAccessAdminTab(currentAdminRole, tabId, isOwnerEmail);
   const visibleAdminTabs = getVisibleAdminTabs(adminTabs, currentAdminRole, isOwnerEmail);
-  const activeAdminTab = canUseAdminTab(adminTab) ? adminTab : "dashboard";
+  const activeAdminTab = canUseAdminTab(adminTab) ? adminTab : defaultAdminTab;
 
   useEffect(() => {
     if (adminLoggedIn && adminTab !== activeAdminTab) {
@@ -1386,7 +1388,7 @@ function CoreAgendaProApp() {
     setAdminLoginError("");
     setBarberGateError("");
     if (resetTab) {
-      setAdminTab(readInitialAdminTab());
+      setAdminTab(defaultAdminTab);
     }
     setViewMode("admin");
     window.scrollTo(0, 0);
@@ -1421,7 +1423,7 @@ function CoreAgendaProApp() {
 
       if (isPanelRoute) {
         if (!adminLoggedIn) {
-          setAdminTab(readInitialAdminTab());
+          setAdminTab(defaultAdminTab);
         }
         await loadCloudData();
         setViewMode("admin");
@@ -1963,7 +1965,7 @@ function CoreAgendaProApp() {
       tab: "professionals",
     },
     {
-      label: "Agenda",
+      label: "Atendimento",
       description: "Funcionamento real",
       done: Object.values(schedule.workingHours).some((item) => item.enabled),
       tab: "agenda",
@@ -4450,8 +4452,13 @@ function CoreAgendaProApp() {
               value={adminPassword}
               onChange={(event) => setAdminPassword(event.target.value)}
             />
-            <button type="button" onClick={() => setShowAdminPassword((current) => !current)}>
-              {showAdminPassword ? "Ocultar" : "Ver"}
+            <button
+              type="button"
+              aria-label={showAdminPassword ? "Ocultar senha" : "Mostrar senha"}
+              title={showAdminPassword ? "Ocultar senha" : "Mostrar senha"}
+              onClick={() => setShowAdminPassword((current) => !current)}
+            >
+              👁
             </button>
           </div>
 

@@ -451,11 +451,11 @@ export default function AgendaPanel({ model }: AgendaPanelProps) {
     <>
         <section className={activeAdminTab === "agenda" && canManageBusinessSettings ? "card agendaPanelCard" : "hiddenPanel"}>
           <div className="sectionTitle">
-            <h2>Agenda real</h2>
+            <h2>Horário de atendimento</h2>
             <span>Funcionamento</span>
           </div>
           <p className="hint panelLead">
-            Configure horários, pausas e bloqueios para manter a disponibilidade real no cliente.
+            Configure funcionamento, pausas e bloqueios para manter a disponibilidade real no cliente.
           </p>
 
           <label>Intervalo entre horários disponíveis</label>
@@ -470,7 +470,7 @@ export default function AgendaPanel({ model }: AgendaPanelProps) {
           />
 
           <button type="button" className="green" onClick={saveScheduleToCloud}>
-            {cloudSaving === "schedule" ? "Salvando agenda..." : "Salvar agenda"}
+            {cloudSaving === "schedule" ? "Salvando horários..." : "Salvar horário de atendimento"}
           </button>
 
           <div className="weeklyGrid">

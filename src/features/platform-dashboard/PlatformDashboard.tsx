@@ -717,7 +717,7 @@ export default function PlatformDashboard() {
   }
 
   function passwordRevealLabel(field: string) {
-    return visiblePasswordFields[field] ? "Ocultar" : "Ver";
+    return "👁";
   }
 
   useEffect(() => {

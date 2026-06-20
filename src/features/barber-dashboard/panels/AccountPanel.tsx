@@ -120,7 +120,7 @@ export default function AccountPanel({ model }: AccountPanelProps) {
   }
 
   function passwordRevealLabel(field: string) {
-    return visiblePasswordFields[field] ? "Ocultar" : "Ver";
+    return "👁";
   }
 
   function isOnlyActiveOwnerAccess(account: AccessAccount) {
@@ -235,7 +235,7 @@ export default function AccountPanel({ model }: AccountPanelProps) {
             use a lista abaixo.
           </p>
 
-          <div className="accountFieldGrid">
+          <div className="accountPasswordStack">
             <div>
               <label>Nova senha</label>
               <div className="passwordRevealField">

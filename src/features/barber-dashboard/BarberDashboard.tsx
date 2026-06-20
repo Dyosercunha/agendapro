@@ -532,11 +532,11 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
       action: () => setAdminTab("professionals"),
     },
     {
-      label: "Configure horários",
-      description: "Funcionamento, pausas, folgas e bloqueios da agenda real.",
+      label: "Configure o horário de atendimento",
+      description: "Funcionamento, pausas, folgas e bloqueios da disponibilidade real.",
       done: hasWorkingHours,
       tab: "agenda",
-      buttonLabel: "Configurar horários",
+      buttonLabel: "Configurar atendimento",
       action: () => setAdminTab("agenda"),
     },
     {
@@ -589,8 +589,8 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
       actionLabel: activeProfessionalCount > 0 ? "Revisar" : "Cadastrar",
     },
     {
-      label: "Horários",
-      status: hasWorkingHours ? "Funcionamento ativo" : "Sem agenda real",
+      label: "Atendimento",
+      status: hasWorkingHours ? "Funcionamento ativo" : "Sem horário configurado",
       done: hasWorkingHours,
       action: () => setAdminTab("agenda"),
       actionLabel: "Ajustar",
@@ -612,7 +612,7 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
   ].filter((item) => {
     if (item.label === "Serviços") return canUseAdminTab("services");
     if (item.label === "Equipe") return canUseAdminTab("professionals");
-    if (item.label === "Horários") return canUseAdminTab("agenda");
+    if (item.label === "Atendimento") return canUseAdminTab("agenda");
     if (item.label === "Pagamento") return canUseAdminTab("payments");
     if (item.label === "Vitrine") return canUseAdminTab("appearance");
     return true;
@@ -1300,7 +1300,7 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
                   <small>Atendimentos e ações rápidas</small>
                 </button>
                 <button type="button" className="commandPrimary" onClick={() => setAdminTab("agenda")}>
-                  <strong>Agenda real</strong>
+                  <strong>Horário de atendimento</strong>
                   <small>Funcionamento e bloqueios</small>
                 </button>
                 <button type="button" onClick={() => setAdminTab("customers")}>

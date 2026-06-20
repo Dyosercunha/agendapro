@@ -266,6 +266,7 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
   const nextAppointment = upcomingAppointments[0] || todayAppointments[0];
   const activeServiceCount = services.filter((item) => item.active).length;
   const activeProfessionalCount = professionals.filter((item) => item.active && !item.fixed).length;
+  const hasWorkingHours = Object.values(schedule.workingHours).some((item) => item.enabled);
   const todayPaidAppointments = todayAppointments.filter((appointment) => appointment.paid);
   const todayPendingPaymentAppointments = todayAppointments.filter((appointment) => !appointment.paid);
   const todayPaidRevenue = todayPaidAppointments.reduce((sum, appointment) => sum + Number(appointment.total || 0), 0);
@@ -533,7 +534,7 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
     {
       label: "Configure horários",
       description: "Funcionamento, pausas, folgas e bloqueios da agenda real.",
-      done: Object.values(schedule.workingHours).some((item) => item.enabled),
+      done: hasWorkingHours,
       tab: "agenda",
       buttonLabel: "Configurar horários",
       action: () => setAdminTab("agenda"),
@@ -565,6 +566,60 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
     (completedOnboardingSteps / Math.max(visibleOnboardingSteps.length, 1)) * 100
   );
   const nextOnboardingStep = visibleOnboardingSteps.find((step) => !step.done);
+  const salesReadinessItems = [
+    {
+      label: "Link público",
+      status: publicScheduleLink ? "Pronto para divulgar" : "Aguardando link",
+      done: Boolean(publicScheduleLink),
+      action: () => copyText(publicScheduleLink),
+      actionLabel: "Copiar",
+    },
+    {
+      label: "Serviços",
+      status: `${activeServiceCount} ativo(s)`,
+      done: activeServiceCount > 0,
+      action: () => setAdminTab("services"),
+      actionLabel: activeServiceCount > 0 ? "Revisar" : "Cadastrar",
+    },
+    {
+      label: "Equipe",
+      status: `${activeProfessionalCount} profissional(is)`,
+      done: activeProfessionalCount > 0,
+      action: () => setAdminTab("professionals"),
+      actionLabel: activeProfessionalCount > 0 ? "Revisar" : "Cadastrar",
+    },
+    {
+      label: "Horários",
+      status: hasWorkingHours ? "Funcionamento ativo" : "Sem agenda real",
+      done: hasWorkingHours,
+      action: () => setAdminTab("agenda"),
+      actionLabel: "Ajustar",
+    },
+    {
+      label: "Pagamento",
+      status: pixAvailable ? (business.pixKey ? "PIX configurado" : "PIX pendente") : "Pagamento local",
+      done: !pixAvailable || Boolean(business.pixKey),
+      action: () => setAdminTab("payments"),
+      actionLabel: "Configurar",
+    },
+    {
+      label: "Vitrine",
+      status: hasCustomAppearance ? "Personalizada" : "Visual padrão",
+      done: hasCustomAppearance,
+      action: () => setAdminTab("appearance"),
+      actionLabel: hasCustomAppearance ? "Revisar" : "Personalizar",
+    },
+  ].filter((item) => {
+    if (item.label === "Serviços") return canUseAdminTab("services");
+    if (item.label === "Equipe") return canUseAdminTab("professionals");
+    if (item.label === "Horários") return canUseAdminTab("agenda");
+    if (item.label === "Pagamento") return canUseAdminTab("payments");
+    if (item.label === "Vitrine") return canUseAdminTab("appearance");
+    return true;
+  });
+  const salesReadyCount = salesReadinessItems.filter((item) => item.done).length;
+  const salesReadinessScore = Math.round((salesReadyCount / Math.max(salesReadinessItems.length, 1)) * 100);
+  const nextSalesReadinessItem = salesReadinessItems.find((item) => !item.done);
 
   const exportDate = new Date().toISOString().slice(0, 10);
 
@@ -998,6 +1053,55 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
                       ? `Próximo passo: ${nextOnboardingStep.label}`
                       : "Pronto para divulgar o link de agendamento"}
                   </strong>
+                </div>
+              </section>
+            )}
+
+            {canManageBusinessSettings && (
+              <section className="salesReadinessCard">
+                <div className="salesReadinessHeader">
+                  <div>
+                    <span>Prontidão comercial</span>
+                    <h2>{salesReadinessScore}% pronto para vender</h2>
+                    <p>
+                      Confira os pontos essenciais antes de divulgar o link da barbearia para clientes reais.
+                    </p>
+                  </div>
+                  <div className={salesReadinessScore >= 100 ? "salesScore ready" : "salesScore attention"}>
+                    <strong>{salesReadyCount}/{salesReadinessItems.length}</strong>
+                    <small>{salesReadinessScore >= 100 ? "Pronto" : "Ajustes"}</small>
+                  </div>
+                </div>
+
+                <div className="salesReadinessGrid">
+                  {salesReadinessItems.map((item) => (
+                    <button
+                      type="button"
+                      className={item.done ? "salesReadinessItem done" : "salesReadinessItem"}
+                      key={item.label}
+                      onClick={item.action}
+                    >
+                      <span>{item.done ? "OK" : "Pendente"}</span>
+                      <strong>{item.label}</strong>
+                      <small>{item.status}</small>
+                      <em>{item.actionLabel}</em>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="salesReadinessFooter">
+                  <div>
+                    <span>Próxima ação recomendada</span>
+                    <strong>{nextSalesReadinessItem?.label || "Faça um agendamento teste"}</strong>
+                  </div>
+                  <div className="salesReadinessActions">
+                    <button type="button" onClick={() => copyText(scheduleBioText)}>
+                      Copiar texto de divulgação
+                    </button>
+                    <button type="button" onClick={goToClientView}>
+                      Testar tela do cliente
+                    </button>
+                  </div>
                 </div>
               </section>
             )}

@@ -63,6 +63,7 @@ import {
 import { saveServices as saveServicesRequest, softDeleteService } from "./lib/servicesApi";
 import { applyClientBookingSeo, applyGlobalSeo } from "./lib/seo";
 import { hasAuthSession } from "./lib/apiCore";
+import { supabase } from "./lib/supabaseClient";
 import {
   allowedAccessEmailMessage,
   isAllowedAccessEmailDomain,
@@ -1631,6 +1632,8 @@ function CoreAgendaProApp() {
     }
 
     let refreshing = false;
+    let debounceTimer: number | undefined;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
 
     async function refreshPanelAppointments() {
       if (refreshing || document.hidden) return;
@@ -1650,6 +1653,13 @@ function CoreAgendaProApp() {
       }
     }
 
+    function queuePanelRefresh() {
+      window.clearTimeout(debounceTimer);
+      debounceTimer = window.setTimeout(refreshPanelAppointments, 350);
+    }
+
+    refreshPanelAppointments();
+
     const interval = window.setInterval(refreshPanelAppointments, 30000);
     const handleFocus = () => refreshPanelAppointments();
     const handleVisibility = () => {
@@ -1659,10 +1669,38 @@ function CoreAgendaProApp() {
     window.addEventListener("focus", handleFocus);
     document.addEventListener("visibilitychange", handleVisibility);
 
+    if (barbershopId) {
+      channel = supabase
+        .channel(`agenda-pro-appointments-${barbershopId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "appointments",
+            filter: `barbershop_id=eq.${barbershopId}`,
+          },
+          queuePanelRefresh
+        )
+        .subscribe((status) => {
+          if (status === "SUBSCRIBED") {
+            setCloudStatus("Agenda em tempo real conectada");
+          }
+
+          if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+            setCloudStatus("Tempo real indisponivel. Atualizando a agenda automaticamente.");
+          }
+        });
+    }
+
     return () => {
+      window.clearTimeout(debounceTimer);
       window.clearInterval(interval);
       window.removeEventListener("focus", handleFocus);
       document.removeEventListener("visibilitychange", handleVisibility);
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
     };
   }, [adminLoggedIn, viewMode, barbershopId, cloudSlug]);
 
@@ -3296,6 +3334,11 @@ function CoreAgendaProApp() {
       if (error) throw error;
 
       setCloudStatus("Agendamento atualizado online");
+      if (adminLoggedIn && viewMode === "admin") {
+        refreshCloudAppointments().catch((refreshError) => {
+          console.warn("Nao foi possivel recarregar agenda apos acao:", refreshError);
+        });
+      }
     } catch (error) {
       console.error(error);
       setCloudStatus(

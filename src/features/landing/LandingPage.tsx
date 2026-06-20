@@ -404,31 +404,38 @@ export default function LandingPage() {
               setShowShopOptions(false);
             }}
             onFocus={() => {
+              setShowShopOptions(true);
               if (!shopOptions.length) loadAvailableShops("");
             }}
             placeholder="Nome da barbearia"
           />
           {slugError && <small className="landingError">{slugError}</small>}
-          {showShopOptions && shopOptions.length > 0 && (
+          {showShopOptions && (
             <div className="landingShopSuggestions">
               <strong>Barbearias ativas no AgendaPro</strong>
-              <div>
-                {shopOptions.map((shop) => (
-                  <button
-                    type="button"
-                    key={shop.slug}
-                    onClick={() => {
-                      setSlug(shop.name);
-                      setSelectedShop(shop);
-                      setSlugError("");
-                      setShowShopOptions(false);
-                    }}
-                  >
-                    <span>{shop.name}</span>
-                    <small>{shop.slug}</small>
-                  </button>
-                ))}
-              </div>
+              {shopOptions.length > 0 ? (
+                <div>
+                  {shopOptions.map((shop) => (
+                    <button
+                      type="button"
+                      key={shop.slug}
+                      onClick={() => {
+                        setSlug(shop.name);
+                        setSelectedShop(shop);
+                        setSlugError("");
+                        setShowShopOptions(false);
+                      }}
+                    >
+                      <span>{shop.name}</span>
+                      <small>{shop.slug}</small>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="landingShopEmpty">
+                  Nenhuma barbearia ativa carregada ainda. Digite o nome cadastrado ou tente novamente em instantes.
+                </p>
+              )}
             </div>
           )}
         </label>

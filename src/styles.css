@@ -697,6 +697,16 @@ h3 {
   width: 28px;
 }
 
+.googleIcon {
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(17, 24, 39, 0.08);
+  flex: 0 0 28px;
+  height: 28px;
+  padding: 5px;
+  width: 28px;
+}
+
 .heroPanel {
   background: linear-gradient(180deg, var(--card), var(--surface));
   border: 1px solid var(--border-soft);
@@ -5965,7 +5975,6 @@ button:disabled {
   overflow-wrap: anywhere;
 }
 
-.platformTabs,
 .platformFilters {
   display: flex;
   flex-wrap: wrap;
@@ -5974,25 +5983,126 @@ button:disabled {
 }
 
 .platformTabs {
-  background: rgba(7, 10, 13, 0.58);
+  background: rgba(7, 10, 13, 0.78);
+  backdrop-filter: blur(18px);
   border: 1px solid var(--border-soft);
-  border-radius: 999px;
-  padding: 7px;
-  width: fit-content;
+  border-radius: 22px;
+  display: grid;
+  gap: 10px;
+  margin: 0 0 16px;
   max-width: 100%;
+  padding: 8px;
+  position: sticky;
+  top: calc(var(--safe-top) + 8px);
+  z-index: 19;
 }
 
-.platformTabs button,
+.platformTabsOpen {
+  border-color: rgba(34, 197, 94, 0.28);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.34);
+}
+
 .platformFilters button {
   color: var(--text-secondary);
 }
 
-.platformTabs button.active,
 .platformFilters button.active {
   background: var(--primary-soft);
   border-color: rgba(34, 197, 94, 0.48);
   color: var(--success);
   box-shadow: 0 0 22px rgba(34, 197, 94, 0.12);
+}
+
+.platformTabsToggle {
+  align-items: center;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(34, 197, 94, 0.16), transparent 34%),
+    linear-gradient(135deg, rgba(16, 20, 24, 0.96), rgba(12, 16, 20, 0.92));
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  color: var(--text);
+  display: flex;
+  gap: 12px;
+  min-height: 66px;
+  padding: 10px 14px;
+  text-align: left;
+  width: 100%;
+}
+
+.platformMenuLabel {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.platformMenuLabel small {
+  color: var(--primary);
+  display: block;
+  font-size: 11px;
+  font-weight: 950;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.platformMenuLabel strong {
+  color: var(--text);
+  display: block;
+  font-size: 20px;
+  line-height: 1.05;
+}
+
+.platformMenuLabel em {
+  color: var(--text-muted);
+  display: block;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 850;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.platformTabsMenu {
+  animation: menuDrop 0.16s ease both;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 2px;
+}
+
+.platformTabsMenu button {
+  align-items: flex-start;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  color: var(--text-muted);
+  display: grid;
+  gap: 5px;
+  min-height: 78px;
+  padding: 12px 14px;
+  text-align: left;
+  width: 100%;
+}
+
+.platformTabsMenu button strong {
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.1;
+}
+
+.platformTabsMenu button span {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.35;
+}
+
+.platformTabsMenu button.active {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+}
+
+.platformTabsMenu button.active strong {
+  color: var(--success);
 }
 
 .platformGrid {
@@ -6165,6 +6275,33 @@ button:disabled {
   font-weight: 750;
   line-height: 1.45;
   margin: 0;
+}
+
+.platformSetupChecklist {
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.15), transparent 44%),
+    rgba(7, 10, 13, 0.58);
+  border: 1px solid rgba(34, 197, 94, 0.22);
+  border-radius: 20px;
+  display: grid;
+  gap: 5px;
+  margin-bottom: 2px;
+  padding: 13px 14px;
+}
+
+.platformSetupChecklist strong {
+  color: var(--success);
+  display: block;
+  font-size: 13px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.platformSetupChecklist span {
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1.4;
 }
 
 .platformWizardLogoPreview,
@@ -6867,8 +7004,12 @@ button:disabled {
 
   .platformTabs {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     width: 100%;
+  }
+
+  .platformTabsMenu {
+    grid-template-columns: 1fr;
   }
 
   .platformWizardSteps {

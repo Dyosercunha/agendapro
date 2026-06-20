@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import {
   getAdminAuthHealth,
@@ -51,6 +51,24 @@ import "../../styles.css";
 const creationStatusOptions = statusOptions.filter((item) => item.value !== "archived");
 
 type PlatformTab = "barbershops" | "diagnostics" | "access";
+
+const platformTabItems: Array<{ description: string; id: PlatformTab; label: string }> = [
+  {
+    id: "barbershops",
+    label: "Barbearias",
+    description: "Cadastro, planos, vencimentos e recursos por barbearia",
+  },
+  {
+    id: "diagnostics",
+    label: "Diagnóstico",
+    description: "Supabase, Auth, WhatsApp, deploy e saúde técnica",
+  },
+  {
+    id: "access",
+    label: "Acessos",
+    description: "Senhas e e-mails desenvolvedores da plataforma",
+  },
+];
 
 type PlatformFilter = "all" | SubscriptionStatus | "pending" | string;
 
@@ -587,6 +605,29 @@ function shortCommit(value: unknown = "") {
   return value ? String(value).slice(0, 7) : "Não informado";
 }
 
+function GoogleIcon() {
+  return (
+    <svg className="googleIcon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path
+        fill="#4285F4"
+        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.84 14.1A6.6 6.6 0 0 1 5.5 12c0-.73.12-1.43.34-2.1V7.06H2.18A10.96 10.96 0 0 0 1 12c0 1.77.42 3.45 1.18 4.94l3.66-2.84z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 5.38c1.62 0 3.07.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06L5.84 9.9C6.71 7.31 9.14 5.38 12 5.38z"
+      />
+    </svg>
+  );
+}
+
 export default function PlatformDashboard() {
   const [loading, setLoading] = useState(true);
   const [checking, setChecking] = useState(true);
@@ -606,6 +647,8 @@ export default function PlatformDashboard() {
   const [slugTouched, setSlugTouched] = useState(false);
   const [filter, setFilter] = useState<PlatformFilter>("all");
   const [platformTab, setPlatformTab] = useState<PlatformTab>("barbershops");
+  const [platformMenuOpen, setPlatformMenuOpen] = useState(false);
+  const platformMenuRef = useRef<HTMLElement | null>(null);
   const [lastError, setLastError] = useState("");
   const [platformLogin, setPlatformLogin] = useState<PlatformLogin>({
     email: "appagenda.pro@gmail.com",
@@ -660,6 +703,7 @@ export default function PlatformDashboard() {
     onboardingCreated?.link_cliente || (onboardingSlug ? `${platformOrigin}/agendamento/${onboardingSlug}` : "");
   const onboardingPanelLink =
     onboardingCreated?.link_painel || (onboardingSlug ? `${platformOrigin}/painel/${onboardingSlug}` : "");
+  const currentPlatformTab = platformTabItems.find((tab) => tab.id === platformTab) || platformTabItems[0];
 
   function passwordInputType(field: string) {
     return visiblePasswordFields[field] ? "text" : "password";
@@ -723,6 +767,28 @@ export default function PlatformDashboard() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!platformMenuOpen || typeof window === "undefined") return undefined;
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setPlatformMenuOpen(false);
+    }
+
+    function closeOnOutsideClick(event: PointerEvent) {
+      const target = event.target;
+      if (target instanceof Node && platformMenuRef.current?.contains(target)) return;
+      setPlatformMenuOpen(false);
+    }
+
+    window.addEventListener("keydown", closeOnEscape);
+    window.addEventListener("pointerdown", closeOnOutsideClick);
+
+    return () => {
+      window.removeEventListener("keydown", closeOnEscape);
+      window.removeEventListener("pointerdown", closeOnOutsideClick);
+    };
+  }, [platformMenuOpen]);
+
   async function checkDeveloper(currentSession: Session | null = session) {
     try {
       const sessionEmail = normalizeAccessEmail(currentSession?.user?.email || "");
@@ -730,7 +796,7 @@ export default function PlatformDashboard() {
     if (!sessionEmail) {
       setIsDeveloper(false);
       setLoading(false);
-      setMessage("Faca login com o e-mail desenvolvedor para puxar e salvar os dados na nuvem.");
+      setMessage("Faça login com o e-mail desenvolvedor para puxar e salvar os dados na nuvem.");
       return;
     }
 
@@ -1122,7 +1188,18 @@ export default function PlatformDashboard() {
       const next = { ...current, [field]: value };
       if (field === "name" && !slugTouched) next.slug = makeSlug(String(value));
       if (field === "slug") next.slug = makeSlug(String(value));
-      if (field === "plan") next.plan_price = planPriceFor(String(value));
+      if (field === "plan") {
+        next.plan_price = planPriceFor(String(value));
+        next.features = platformFeatures.reduce<PlatformFeatureFlags>((result, feature) => {
+          const previous = current.features?.[feature.key] || { enabled: false, released: false };
+          const planAllows = planMeetsFeaturePlan(String(value || ""), feature.minPlan);
+          result[feature.key] = {
+            released: planAllows && Boolean(previous.released),
+            enabled: planAllows && Boolean(previous.released) && Boolean(previous.enabled),
+          };
+          return result;
+        }, {});
+      }
       return next;
     });
   }
@@ -1227,9 +1304,12 @@ export default function PlatformDashboard() {
       throw new Error("Este link é reservado para o AgendaPro. Use outro, como master-barbearia.");
     }
     if (!newShop.owner_email.trim()) throw new Error("Informe o e-mail do dono.");
+    if (!isAllowedAccessEmailDomain(newShop.owner_email)) throw new Error(allowedAccessEmailMessage);
     if (!onboardingCreated && ownerPassword.length < 6) {
       throw new Error("Informe uma senha inicial do dono com pelo menos 6 caracteres.");
     }
+    if (!newShop.next_billing_date) throw new Error("Informe a data de vencimento da assinatura.");
+    if (Number(newShop.plan_price || 0) <= 0) throw new Error("Informe o valor mensal do plano.");
 
     const payload = {
       action: onboardingCreated ? "update-basic" : "create",
@@ -1553,6 +1633,21 @@ export default function PlatformDashboard() {
       return;
     }
 
+    if (!isAllowedAccessEmailDomain(selectedShop.owner_email || "")) {
+      setMessage(allowedAccessEmailMessage);
+      return;
+    }
+
+    if (!selectedShop.next_billing_date) {
+      setMessage("Informe o vencimento da assinatura antes de salvar.");
+      return;
+    }
+
+    if (Number(selectedShop.plan_price || 0) <= 0) {
+      setMessage("Informe o valor mensal do plano antes de salvar.");
+      return;
+    }
+
     setSaving("shop");
 
     try {
@@ -1741,7 +1836,18 @@ export default function PlatformDashboard() {
     setSelectedShop((current) => {
       if (!current) return current;
       const next = { ...current, [field]: value };
-      if (field === "plan") next.plan_price = planPriceFor(String(value));
+      if (field === "plan") {
+        next.plan_price = planPriceFor(String(value));
+        next.features = platformFeatures.reduce<PlatformFeatureFlags>((result, feature) => {
+          const previous = current.features?.[feature.key] || { enabled: false, released: false };
+          const planAllows = planMeetsFeaturePlan(String(value || ""), feature.minPlan);
+          result[feature.key] = {
+            released: planAllows && Boolean(previous.released),
+            enabled: planAllows && Boolean(previous.released) && Boolean(previous.enabled),
+          };
+          return result;
+        }, {});
+      }
       return next;
     });
   }
@@ -1827,7 +1933,7 @@ export default function PlatformDashboard() {
               {saving === "platform-login" ? "Entrando..." : "Entrar com e-mail e senha"}
             </button>
             <button type="button" className="platformSecondary platformLoginButton" onClick={login}>
-              <span className="googleMark" aria-hidden="true">G</span>
+              <GoogleIcon />
               <span>Entrar com Gmail / Google</span>
             </button>
           </div>
@@ -1908,31 +2014,48 @@ export default function PlatformDashboard() {
         <StatCard label="Arquivadas" value={dashboard.stats?.archived || 0} hint="fora da lista principal" />
       </section>
 
-      <section className="platformTabs">
+      <section
+        ref={platformMenuRef}
+        className={platformMenuOpen ? "platformTabs platformTabsOpen" : "platformTabs"}
+      >
         <button
           type="button"
-          className={platformTab === "barbershops" ? "active" : ""}
-          onClick={() => setPlatformTab("barbershops")}
+          className="platformTabsToggle"
+          aria-expanded={platformMenuOpen}
+          onClick={() => setPlatformMenuOpen((isOpen) => !isOpen)}
         >
-          Barbearias
+          <span className="hamburgerIcon" aria-hidden="true">
+            <i />
+            <i />
+            <i />
+          </span>
+          <span className="platformMenuLabel">
+            <small>Menu da plataforma</small>
+            <strong>{currentPlatformTab.label}</strong>
+            <em>{currentPlatformTab.description}</em>
+          </span>
         </button>
-        <button
-          type="button"
-          className={platformTab === "diagnostics" ? "active" : ""}
-          onClick={() => setPlatformTab("diagnostics")}
-        >
-          Diagnóstico
-        </button>
-        <button
-          type="button"
-          className={platformTab === "access" ? "active" : ""}
-          onClick={() => {
-            setPlatformTab("access");
-            loadPlatformAccesses();
-          }}
-        >
-          Acessos
-        </button>
+
+        {platformMenuOpen && (
+          <div className="platformTabsMenu" role="menu" aria-label="Seções do Painel Plataforma">
+            {platformTabItems.map((tab) => (
+              <button
+                type="button"
+                key={tab.id}
+                className={platformTab === tab.id ? "active" : ""}
+                onClick={() => {
+                  setPlatformTab(tab.id);
+                  if (tab.id === "access") loadPlatformAccesses();
+                  setPlatformMenuOpen(false);
+                }}
+                role="menuitem"
+              >
+                <strong>{tab.label}</strong>
+                <span>{tab.description}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </section>
 
       {platformTab === "diagnostics" && (
@@ -2298,6 +2421,11 @@ export default function PlatformDashboard() {
                 <span>Etapa 1</span>
                 <h3>Dados básicos</h3>
                 <p>Crie a barbearia, o acesso do dono e a identidade inicial sem perder o progresso.</p>
+              </div>
+
+              <div className="platformSetupChecklist">
+                <strong>Checklist comercial</strong>
+                <span>Barbearia, e-mail do dono, senha inicial, plano, vencimento e valor mensal precisam estar definidos.</span>
               </div>
 
               <label>Nome da barbearia</label>

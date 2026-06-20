@@ -36,8 +36,12 @@ export function updateCurrentPassword(password: string) {
   return supabase.auth.updateUser({ password });
 }
 
-export function getMyAdminContext() {
-  return supabase.rpc("get_my_admin_context");
+export function getMyAdminContext(targetSlug?: string) {
+  const cleanSlug = String(targetSlug || "").trim().toLowerCase();
+
+  return cleanSlug
+    ? supabase.rpc("get_my_admin_context", { target_slug: cleanSlug })
+    : supabase.rpc("get_my_admin_context");
 }
 
 export function getAdminAuthHealth() {

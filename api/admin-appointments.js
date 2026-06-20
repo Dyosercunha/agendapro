@@ -66,7 +66,20 @@ async function assertBarbershopAdmin(adminClient, request, slug) {
     .eq("active", true)
     .maybeSingle();
 
-  if (platformError || adminError || (!platformAdmin && !barbershopAdmin && !metadataAllowsPlatform)) {
+  const { data: ownerAccount, error: ownerAccountError } = await adminClient
+    .from("barbershop_accounts")
+    .select("owner_email")
+    .eq("barbershop_id", shop.id)
+    .maybeSingle();
+
+  const ownerEmailAllowsAccess = cleanEmail(ownerAccount?.owner_email) === requesterEmail;
+
+  if (
+    platformError ||
+    adminError ||
+    ownerAccountError ||
+    (!platformAdmin && !barbershopAdmin && !ownerEmailAllowsAccess && !metadataAllowsPlatform)
+  ) {
     return { ok: false, status: 403, error: "Acesso restrito ao painel desta barbearia." };
   }
 

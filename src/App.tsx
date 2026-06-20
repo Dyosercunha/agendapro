@@ -1409,7 +1409,8 @@ function CoreAgendaProApp() {
       return;
     }
 
-    const { data: contextData, error: contextError } = await getMyAdminContext();
+    const currentRouteSlug = currentSlugFromUrl();
+    const { data: contextData, error: contextError } = await getMyAdminContext(currentRouteSlug);
     const context = Array.isArray(contextData) ? contextData[0] : contextData;
 
     if (!contextError && context?.access_type === "platform") {
@@ -1437,7 +1438,7 @@ function CoreAgendaProApp() {
     if (!contextError && context?.access_type === "barbershop" && context?.slug) {
       setAdminContext(context);
 
-      if (context.slug !== currentSlugFromUrl()) {
+      if (context.slug !== currentRouteSlug) {
         window.location.href = `${window.location.origin}/painel/${context.slug}`;
         return;
       }
@@ -2145,6 +2146,17 @@ function CoreAgendaProApp() {
       setCloudLoadState("loaded");
 
       if (includeAdminData) {
+        if (appointmentsResult.error) {
+          setAppointments([]);
+          setCloudStatus(
+            friendlyCloudErrorText(
+              appointmentsResult.error,
+              "Nao foi possivel carregar a agenda deste painel. Verifique se o e-mail do dono esta ativo nesta barbearia."
+            )
+          );
+          return;
+        }
+
         setAppointments(
           mapAppointmentsFromCloud(appointmentsResult.data || [], professionalsResult.data || [])
         );

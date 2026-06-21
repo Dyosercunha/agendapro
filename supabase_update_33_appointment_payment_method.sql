@@ -23,7 +23,7 @@ set search_path = public
 as $$
 declare
   target_id uuid;
-  current_role text;
+  actor_role text;
 begin
   target_id := private.barbershop_id_by_slug(target_slug);
 
@@ -31,9 +31,9 @@ begin
     raise exception 'Barbearia nao encontrada.';
   end if;
 
-  current_role := private.current_barbershop_role_by_id(target_id);
+  actor_role := private.current_barbershop_role_by_id(target_id);
 
-  if current_role not in ('platform', 'owner', 'manager') then
+  if actor_role not in ('platform', 'owner', 'manager') then
     raise exception 'Voce nao tem permissao para alterar agendamentos desta barbearia.';
   end if;
 

@@ -794,6 +794,32 @@ function currentSlugFromUrl() {
   return slugFromPathname(window.location.pathname);
 }
 
+function currentRoutePrefixFromUrl() {
+  if (typeof window === "undefined") return "agendamento";
+
+  const route = String(window.location.pathname.split("/").filter(Boolean)[0] || "").toLowerCase();
+  return ["painel", "agendamento", "barbearia"].includes(route) ? route : "agendamento";
+}
+
+async function activeReplacementSlugFor(unavailableSlug) {
+  const slug = makeSlug(unavailableSlug);
+  if (!slug || typeof fetch === "undefined") return "";
+
+  try {
+    const response = await fetch(`/api/public-barbershops?query=${encodeURIComponent(slug)}`);
+    if (!response.ok) return "";
+
+    const data = await response.json();
+    const unavailable = data?.unavailable?.slug === slug;
+    const suggestions = Array.isArray(data?.shops) ? data.shops : [];
+    const replacement = suggestions.length === 1 ? makeSlug(suggestions[0]?.slug) : "";
+
+    return unavailable && replacement && replacement !== slug ? replacement : "";
+  } catch {
+    return "";
+  }
+}
+
 function initialViewModeFromUrl() {
   if (typeof window === "undefined") return "client";
 
@@ -2083,6 +2109,13 @@ function CoreAgendaProApp() {
       const businessError = businessResult.error;
 
       if (businessError || !businessData) {
+        const replacementSlug = await activeReplacementSlugFor(slug);
+        if (replacementSlug && replacementSlug !== slug && typeof window !== "undefined") {
+          const routePrefix = currentRoutePrefixFromUrl();
+          window.location.replace(`${window.location.origin}/${routePrefix}/${replacementSlug}`);
+          return;
+        }
+
         setBarbershopId("");
         setCloudSlug(slug);
         setCloudLoadState("not-found");

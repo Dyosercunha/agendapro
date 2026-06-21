@@ -649,6 +649,8 @@ export default function PlatformDashboard() {
   const [platformTab, setPlatformTab] = useState<PlatformTab>("barbershops");
   const [platformMenuOpen, setPlatformMenuOpen] = useState(false);
   const platformMenuRef = useRef<HTMLElement | null>(null);
+  const onboardingCardRef = useRef<HTMLDivElement | null>(null);
+  const [focusedOnboardingAfterLogin, setFocusedOnboardingAfterLogin] = useState(false);
   const [lastError, setLastError] = useState("");
   const [platformLogin, setPlatformLogin] = useState<PlatformLogin>({
     email: "appagenda.pro@gmail.com",
@@ -788,6 +790,24 @@ export default function PlatformDashboard() {
       window.removeEventListener("pointerdown", closeOnOutsideClick);
     };
   }, [platformMenuOpen]);
+
+  useEffect(() => {
+    if (
+      !isDeveloper ||
+      checking ||
+      loading ||
+      focusedOnboardingAfterLogin ||
+      platformTab !== "barbershops"
+    ) {
+      return;
+    }
+
+    setFocusedOnboardingAfterLogin(true);
+
+    window.setTimeout(() => {
+      onboardingCardRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+    }, 120);
+  }, [checking, focusedOnboardingAfterLogin, isDeveloper, loading, platformTab]);
 
   async function checkDeveloper(currentSession: Session | null = session) {
     try {
@@ -939,8 +959,10 @@ export default function PlatformDashboard() {
     });
   }
 
-  async function loadDashboard() {
-    setLoading(true);
+  async function loadDashboard(options: { silent?: boolean } = {}) {
+    const silent = Boolean(options.silent);
+
+    if (!silent) setLoading(true);
     try {
     const { data, error } = await withTimeout(getPlatformDashboard(), "O painel da plataforma");
     if (error) {
@@ -956,7 +978,7 @@ export default function PlatformDashboard() {
       setDashboard({ stats: {}, barbershops: [] });
       await loadCloudAudit({ allowDashboardFallback: true }).catch(() => null);
     } finally {
-    setLoading(false);
+      if (!silent) setLoading(false);
     }
   }
 
@@ -1366,7 +1388,7 @@ export default function PlatformDashboard() {
 
     try {
       await ensureOnboardingShop();
-      await loadDashboard();
+      await loadDashboard({ silent: true });
       setOnboardingStep(2);
       setMessage("Dados básicos salvos. Agora cadastre os serviços.");
     } catch (error) {
@@ -1401,7 +1423,7 @@ export default function PlatformDashboard() {
         target_slug: shop.slug,
       });
 
-      await loadDashboard();
+      await loadDashboard({ silent: true });
       setOnboardingStep(3);
       setMessage("Serviços salvos. Agora cadastre a equipe ou pule se for solo.");
     } catch (error) {
@@ -1435,7 +1457,7 @@ export default function PlatformDashboard() {
         target_slug: shop.slug,
       });
 
-      await loadDashboard();
+      await loadDashboard({ silent: true });
       setOnboardingStep(4);
       setMessage(skipSolo ? "Equipe marcada como solo. Configure os horários." : "Equipe salva. Configure os horários.");
     } catch (error) {
@@ -1887,8 +1909,13 @@ export default function PlatformDashboard() {
   if (checking || loading) {
     return (
       <main className="platformApp">
-        <section className="platformHero platformLoginHero">
-          <div><span>Painel Plataforma</span><h1>AgendaPro</h1><p>Carregando acesso e dados da nuvem...</p></div>
+        <section className="platformHero platformLoginHero platformLoadingHero">
+          <img className="platformLoadingLogo" src="/agenda-pro-logo.png" alt="AgendaPro" />
+          <div>
+            <span>Painel Plataforma</span>
+            <h1>AgendaPro</h1>
+            <p>Carregando acesso e dados da nuvem...</p>
+          </div>
         </section>
       </main>
     );
@@ -2387,7 +2414,7 @@ export default function PlatformDashboard() {
       </section>
 
       <section className="platformGrid">
-        <div className="platformCard platformNewShopCard platformOnboardingCard">
+        <div ref={onboardingCardRef} className="platformCard platformNewShopCard platformOnboardingCard">
           <div className="platformTitle"><div><span>Cadastro</span><h2>Nova barbearia</h2></div></div>
           <div className="platformWizardSteps" aria-label="Etapas do cadastro">
             {onboardingSteps.map((step, index) => {

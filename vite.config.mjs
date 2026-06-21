@@ -54,17 +54,9 @@ export default defineConfig({
           },
           {
             urlPattern: ({ url }) => url.pathname.startsWith("/api/"),
-            handler: "NetworkFirst",
+            handler: "NetworkOnly",
             options: {
-              cacheName: "calendarpro-api",
-              networkTimeoutSeconds: 4,
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-              expiration: {
-                maxEntries: 80,
-                maxAgeSeconds: 60 * 60 * 24,
-              },
+              cacheName: "calendarpro-api-live",
             },
           },
           {

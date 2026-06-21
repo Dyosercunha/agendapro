@@ -6325,6 +6325,10 @@ button:disabled {
   grid-template-columns: minmax(0, 1fr);
 }
 
+.platformBarbershopsGrid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .platformCard {
   border-radius: 28px;
   padding: 18px;

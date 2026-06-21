@@ -2425,7 +2425,13 @@ export default function PlatformDashboard() {
       </section>
       )}
 
-      <section className={platformTab === "register" ? "platformGrid platformRegisterGrid" : "platformGrid"}>
+      <section
+        className={
+          platformTab === "register"
+            ? "platformGrid platformRegisterGrid"
+            : "platformGrid platformBarbershopsGrid"
+        }
+      >
         {platformTab === "register" && (
         <div ref={onboardingCardRef} className="platformCard platformNewShopCard platformOnboardingCard">
           <div className="platformTitle"><div><span>Cadastro</span><h2>Nova barbearia</h2></div></div>

@@ -9,6 +9,8 @@ type PublicBarbershop = {
 const contactWhatsappUrl =
   "https://wa.me/5551992627663?text=Ol%C3%A1%2C%20quero%20conhecer%20o%20AgendaPro%20para%20minha%20barbearia.";
 
+const demoBookingPath = "/agendamento/master-barbearia";
+
 const planCards = [
   {
     name: "Inicial",
@@ -82,8 +84,8 @@ const resourceCards = [
     text: "A barbearia ganha um mini-site com logo, capa, endereço, WhatsApp, serviços e horários.",
   },
   {
-    title: "Controle comercial",
-    text: "Cadastre clientes, acompanhe planos, vencimentos, status e recursos liberados por conta.",
+    title: "Gestão do negócio",
+    text: "Acompanhe clientes, pagamentos, serviços e evolução da agenda em uma rotina simples.",
   },
 ];
 
@@ -300,7 +302,7 @@ export default function LandingPage() {
           <button type="button" onClick={() => goTo("painel")}>
             Sou barbearia
           </button>
-          <a href="/agendamento/master">Demonstração</a>
+          <a href={demoBookingPath}>Demonstração</a>
         </div>
       </nav>
 
@@ -326,7 +328,7 @@ export default function LandingPage() {
             <button type="button" onClick={() => goTo("agendamento")}>
               Quero agendar
             </button>
-            <a href="/agendamento/master">Ver demonstração</a>
+            <a href={demoBookingPath}>Ver demonstração</a>
           </div>
         </div>
 

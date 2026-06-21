@@ -717,6 +717,56 @@ function textFrom(value: unknown, fallback = "") {
   return String(value);
 }
 
+function serviceTextFrom(value: unknown, fallback = "") {
+  if (value === undefined || value === null || value === "") return fallback;
+
+  if (Array.isArray(value)) {
+    const text = value
+      .map((item) => serviceTextFrom(item))
+      .filter(Boolean)
+      .join(" + ");
+
+    return text || fallback;
+  }
+
+  if (isPlainObject(value)) {
+    return (
+      serviceTextFrom(
+        value.service_text ||
+          value.serviceText ||
+          value.service_name ||
+          value.serviceName ||
+          value.name ||
+          value.title ||
+          value.services ||
+          value.items,
+        ""
+      ) || fallback
+    );
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+
+    if (!trimmed) return fallback;
+
+    if (
+      (trimmed.startsWith("[") && trimmed.endsWith("]")) ||
+      (trimmed.startsWith("{") && trimmed.endsWith("}"))
+    ) {
+      try {
+        return serviceTextFrom(JSON.parse(trimmed), fallback);
+      } catch {
+        return trimmed;
+      }
+    }
+
+    return trimmed;
+  }
+
+  return textFrom(value, fallback);
+}
+
 function mergeWithDefault(defaultValue, savedValue) {
   if (Array.isArray(defaultValue)) {
     return Array.isArray(savedValue) ? savedValue : defaultValue;
@@ -1093,7 +1143,16 @@ function mapWaitlistFromCloud(rows) {
     clientName: item.client_name,
     whatsapp: item.whatsapp,
     date: item.preferred_date,
-    services: item.service_text,
+    services: serviceTextFrom(
+      item.service_text ||
+        item.services ||
+        item.service_name ||
+        item.service_names ||
+        item.service ||
+        item.selected_services ||
+        item.service_items ||
+        item.services_json
+    ),
     status: item.status || "waiting",
     createdAt: item.created_at,
   }));
@@ -1114,7 +1173,16 @@ function mapAppointmentsFromCloud(appointmentRows, professionalRows) {
     date: item.appointment_date,
     time: shortTime(item.appointment_time),
     duration: Number(item.duration),
-    services: item.service_text,
+    services: serviceTextFrom(
+      item.service_text ||
+        item.services ||
+        item.service_name ||
+        item.service_names ||
+        item.service ||
+        item.selected_services ||
+        item.service_items ||
+        item.services_json
+    ),
     total: Number(item.total),
     payment: item.payment_method,
     paid: Boolean(item.paid),
@@ -2928,7 +2996,16 @@ function CoreAgendaProApp() {
       token: textFrom(item.public_token || item.publicToken, publicAppointmentToken),
       clientName: textFrom(item.client_name || item.clientName),
       whatsapp: textFrom(item.whatsapp),
-      services: textFrom(item.service_text || item.services),
+      services: serviceTextFrom(
+        item.service_text ||
+          item.services ||
+          item.service_name ||
+          item.service_names ||
+          item.service ||
+          item.selected_services ||
+          item.service_items ||
+          item.services_json
+      ),
       professional: textFrom(item.professional_name || item.professional, "Profissional disponível"),
       date: textFrom(item.appointment_date || item.date),
       time: shortTime(textFrom(item.appointment_time || item.time)),

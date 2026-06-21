@@ -163,10 +163,11 @@ export default function PaymentsPanel({ model }: PaymentsPanelProps) {
         </section>
 
         <section className="paymentsSectionBlock paymentsSummaryBlock">
-          <div className="paymentsSectionHeader">
+          <div className="paymentsSummaryHeader">
             <div>
               <span>Resumo</span>
               <h3>Disponibilidade</h3>
+              <p>Confira quais recursos estÃ£o liberados e ativos no checkout desta barbearia.</p>
             </div>
             <strong>Planos e melhorias</strong>
           </div>

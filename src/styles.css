@@ -10788,6 +10788,7 @@ button:disabled {
 
 .paymentsSummaryBlock {
   align-content: start;
+  gap: 14px;
 }
 
 .paymentsPromotionsBlock {
@@ -10834,6 +10835,52 @@ button:disabled {
   max-width: 44%;
   padding: 9px 12px;
   text-align: right;
+}
+
+.paymentsSummaryHeader {
+  align-items: flex-start;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-width: 0;
+}
+
+.paymentsSummaryHeader span {
+  color: var(--success);
+  display: block;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.01em;
+}
+
+.paymentsSummaryHeader h3 {
+  color: var(--text);
+  font-size: clamp(24px, 1.9vw, 32px);
+  line-height: 1.04;
+  margin: 5px 0 8px;
+  overflow-wrap: anywhere;
+}
+
+.paymentsSummaryHeader p {
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.paymentsSummaryHeader > strong {
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 950;
+  line-height: 1.15;
+  max-width: 150px;
+  padding: 9px 12px;
+  text-align: center;
+  white-space: normal;
 }
 
 .paymentsSectionText {
@@ -10946,7 +10993,8 @@ button:disabled {
     rgba(7, 10, 13, 0.56);
   border: 1px solid rgba(255, 255, 255, 0.075);
   border-radius: 22px;
-  padding: 15px;
+  min-width: 0;
+  padding: 14px;
 }
 
 .paymentsStatusGrid span {
@@ -10960,8 +11008,9 @@ button:disabled {
 .paymentsStatusGrid strong {
   color: var(--text);
   display: block;
-  font-size: clamp(22px, 2.1vw, 30px);
+  font-size: clamp(21px, 1.65vw, 28px);
   line-height: 1.05;
+  overflow-wrap: anywhere;
 }
 
 .emptyPromotionState {
@@ -11076,12 +11125,23 @@ button:disabled {
 @media (max-width: 720px) {
   .paymentsPanelHero,
   .paymentsSectionHeader,
+  .paymentsSummaryHeader,
   .promotionEditorHeader {
     align-items: flex-start;
     display: grid;
   }
 
   .paymentsSectionHeader > strong {
+    max-width: none;
+    text-align: left;
+    width: fit-content;
+  }
+
+  .paymentsSummaryHeader {
+    grid-template-columns: 1fr;
+  }
+
+  .paymentsSummaryHeader > strong {
     max-width: none;
     text-align: left;
     width: fit-content;

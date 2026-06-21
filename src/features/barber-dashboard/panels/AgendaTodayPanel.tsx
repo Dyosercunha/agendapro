@@ -208,10 +208,14 @@ export default function AgendaTodayPanel({ model }: AgendaTodayPanelProps) {
     const id = appointment.id || "";
     const status = getStatus(appointment);
     const canEdit = Boolean(id) && status !== "cancelled" && status !== "completed";
+    const canEditPayment = Boolean(id) && status !== "cancelled";
     const clientWhatsapp = appointment.whatsapp || "";
     const defaultPaymentMode = normalizedPaymentMode(appointment);
     const defaultPaymentLabel =
       defaultPaymentMode === "pix" ? "Confirmar PIX" : "Marcar pago";
+    const paymentActionLabel = appointment.paid
+      ? "Alterar forma de pagamento"
+      : "Confirmar recebimento";
 
     return (
       <div className={compact ? "agendaTodayActions compact" : "agendaTodayActions"}>
@@ -230,9 +234,20 @@ export default function AgendaTodayPanel({ model }: AgendaTodayPanelProps) {
             {defaultPaymentLabel}
           </button>
         )}
-        {canEdit && !appointment.paid && !compact && (
+        {canEditPayment && appointment.paid && compact && (
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              setSelectedAppointmentId(id);
+            }}
+          >
+            Alterar pagamento
+          </button>
+        )}
+        {canEditPayment && !compact && (
           <div className="agendaTodayPaymentActions">
-            <span>Confirmar recebimento</span>
+            <span>{paymentActionLabel}</span>
             <button type="button" onClick={() => confirmAppointmentPayment(id, "cash")}>
               Dinheiro
             </button>

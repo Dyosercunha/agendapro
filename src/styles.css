@@ -3224,6 +3224,17 @@ button:disabled {
   margin-top: 12px;
 }
 
+.pixManualNotice {
+  background: rgba(245, 158, 11, 0.11);
+  border: 1px solid rgba(245, 158, 11, 0.24);
+  border-radius: 16px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1.4;
+  padding: 10px 12px;
+}
+
 .fakeQr {
   width: 170px;
   height: 170px;
@@ -11432,6 +11443,30 @@ button:disabled {
 
 .agendaTodayActions.compact {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.agendaTodayPaymentActions {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--border-soft);
+  border-radius: 18px;
+  display: grid;
+  gap: 8px;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 9px;
+}
+
+.agendaTodayPaymentActions span {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 950;
+  grid-column: 1 / -1;
+  line-height: 1.2;
+}
+
+.agendaTodayPaymentActions button {
+  min-height: 38px !important;
+  padding: 9px 8px !important;
 }
 
 .agendaTodayActions button,

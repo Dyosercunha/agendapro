@@ -101,6 +101,36 @@ function sortAppointments(appointments: AgendaTodayAppointment[]) {
   );
 }
 
+function normalizedPaymentMode(appointment: AgendaTodayAppointment) {
+  const payment = String(appointment.payment || "").toLowerCase();
+
+  if (payment.includes("pix")) return "pix";
+  if (payment.includes("card") || payment.includes("cart")) return "card";
+  if (payment.includes("cash") || payment.includes("dinheiro")) return "cash";
+
+  return "cash";
+}
+
+function paymentMethodLabel(appointment: AgendaTodayAppointment) {
+  const payment = String(appointment.payment || "").toLowerCase();
+
+  if (payment.includes("pix")) return "PIX";
+  if (payment.includes("card") || payment.includes("cart")) return "Cartao";
+  if (payment.includes("cash") || payment.includes("dinheiro")) return "Dinheiro";
+
+  return "No local";
+}
+
+function paymentStatusLabel(appointment: AgendaTodayAppointment) {
+  if (appointment.paid) return `${paymentMethodLabel(appointment)} recebido`;
+
+  if (String(appointment.payment || "").toLowerCase().includes("pix")) {
+    return "PIX aguardando conferencia";
+  }
+
+  return "Pagamento pendente";
+}
+
 export default function AgendaTodayPanel({ model }: AgendaTodayPanelProps) {
   const {
     activeAdminTab,
@@ -179,6 +209,9 @@ export default function AgendaTodayPanel({ model }: AgendaTodayPanelProps) {
     const status = getStatus(appointment);
     const canEdit = Boolean(id) && status !== "cancelled" && status !== "completed";
     const clientWhatsapp = appointment.whatsapp || "";
+    const defaultPaymentMode = normalizedPaymentMode(appointment);
+    const defaultPaymentLabel =
+      defaultPaymentMode === "pix" ? "Confirmar PIX" : "Marcar pago";
 
     return (
       <div className={compact ? "agendaTodayActions compact" : "agendaTodayActions"}>
@@ -192,10 +225,24 @@ export default function AgendaTodayPanel({ model }: AgendaTodayPanelProps) {
             Finalizar
           </button>
         )}
-        {canEdit && !appointment.paid && (
-          <button type="button" onClick={() => confirmAppointmentPayment(id, "cash")}>
-            Marcar pago
+        {canEdit && !appointment.paid && compact && (
+          <button type="button" onClick={() => confirmAppointmentPayment(id, defaultPaymentMode)}>
+            {defaultPaymentLabel}
           </button>
+        )}
+        {canEdit && !appointment.paid && !compact && (
+          <div className="agendaTodayPaymentActions">
+            <span>Confirmar recebimento</span>
+            <button type="button" onClick={() => confirmAppointmentPayment(id, "cash")}>
+              Dinheiro
+            </button>
+            <button type="button" onClick={() => confirmAppointmentPayment(id, "pix")}>
+              PIX
+            </button>
+            <button type="button" onClick={() => confirmAppointmentPayment(id, "card")}>
+              Cartao
+            </button>
+          </div>
         )}
         {canEdit && (
           <button type="button" onClick={() => rescheduleAppointment(id)}>
@@ -413,7 +460,7 @@ export default function AgendaTodayPanel({ model }: AgendaTodayPanelProps) {
                   <div className="agendaTodayMeta">
                     <span>{appointment.professional || "Profissional"}</span>
                     <span>{money(appointment.total)}</span>
-                    <span>{appointment.paid ? "Pago" : "Pagamento pendente"}</span>
+                    <span>{paymentStatusLabel(appointment)}</span>
                   </div>
                 </div>
 
@@ -457,7 +504,7 @@ export default function AgendaTodayPanel({ model }: AgendaTodayPanelProps) {
                 </div>
                 <div>
                   <span>Pagamento</span>
-                  <strong>{selectedAppointment.paid ? "Pago" : "Pendente"}</strong>
+                  <strong>{paymentStatusLabel(selectedAppointment)}</strong>
                 </div>
               </div>
 

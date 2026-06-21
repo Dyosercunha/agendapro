@@ -2631,7 +2631,7 @@ function CoreAgendaProApp() {
         services: servicesText,
         total: finalTotal,
         payment: finalPayment,
-        paid: finalPayment === "pix",
+        paid: false,
         status: "confirmed",
         rescheduleRequested: false,
         note: appointmentNote.trim(),
@@ -2684,7 +2684,7 @@ function CoreAgendaProApp() {
       appointmentData.payment === "pix" ? "PIX antecipado" : "Pagamento no local";
     const paymentStatus =
       appointmentData.payment === "pix"
-        ? "PIX selecionado no app. Conferir comprovante."
+        ? "PIX selecionado no app. Pagamento pendente atÃ© conferÃªncia da barbearia."
         : "Pagamento pendente para o atendimento.";
     const managementLink = appointmentData.publicToken
       ? `${publicScheduleLink}?agendamento=${encodeURIComponent(appointmentData.publicToken)}`

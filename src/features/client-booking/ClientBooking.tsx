@@ -272,7 +272,7 @@ export default function ClientBooking({ model }: ClientBookingProps) {
       : "";
   const successPaymentLabel =
     payment === "pix" && pixAvailable
-      ? `PIX antecipado - ${money(selectedPaymentTotal || pixPrice)}`
+      ? `PIX antecipado - ${money(selectedPaymentTotal || pixPrice)} aguardando confirmaÃ§Ã£o`
       : `Pagar no local - ${money(selectedPaymentTotal || totalPrice)}`;
   const instagramAvailable =
     Boolean(business.instagramUrl) &&
@@ -650,6 +650,10 @@ export default function ClientBooking({ model }: ClientBookingProps) {
               <div className="fakeQr" />
               <p>
                 <strong>Chave PIX:</strong> {business.pixKey}
+              </p>
+              <p className="pixManualNotice">
+                Depois de pagar, envie o comprovante pelo WhatsApp da barbearia ou aguarde a
+                conferÃªncia manual no painel.
               </p>
               <button type="button" className="black" onClick={() => copyText(business.pixKey)}>
                 Copiar chave PIX

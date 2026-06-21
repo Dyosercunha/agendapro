@@ -50,13 +50,18 @@ import "../../styles.css";
 
 const creationStatusOptions = statusOptions.filter((item) => item.value !== "archived");
 
-type PlatformTab = "barbershops" | "diagnostics" | "access";
+type PlatformTab = "register" | "barbershops" | "diagnostics" | "access";
 
 const platformTabItems: Array<{ description: string; id: PlatformTab; label: string }> = [
   {
+    id: "register",
+    label: "Cadastro",
+    description: "Crie uma nova barbearia com dono, serviços, equipe e horários",
+  },
+  {
     id: "barbershops",
     label: "Barbearias",
-    description: "Cadastro, planos, vencimentos e recursos por barbearia",
+    description: "Lista, planos, vencimentos e recursos por barbearia",
   },
   {
     id: "diagnostics",
@@ -646,7 +651,7 @@ export default function PlatformDashboard() {
   const [saving, setSaving] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
   const [filter, setFilter] = useState<PlatformFilter>("all");
-  const [platformTab, setPlatformTab] = useState<PlatformTab>("barbershops");
+  const [platformTab, setPlatformTab] = useState<PlatformTab>("register");
   const [platformMenuOpen, setPlatformMenuOpen] = useState(false);
   const platformMenuRef = useRef<HTMLElement | null>(null);
   const onboardingCardRef = useRef<HTMLDivElement | null>(null);
@@ -797,7 +802,7 @@ export default function PlatformDashboard() {
       checking ||
       loading ||
       focusedOnboardingAfterLogin ||
-      platformTab !== "barbershops"
+      platformTab !== "register"
     ) {
       return;
     }
@@ -1997,6 +2002,8 @@ export default function PlatformDashboard() {
 
       {message ? <section className="platformCard platformNoticeCard">{message}</section> : null}
 
+      {platformTab !== "register" && (
+        <>
       <section className="platformCard platformHealthOverview">
         <div className="platformTitle">
           <div>
@@ -2040,6 +2047,9 @@ export default function PlatformDashboard() {
         <StatCard label="Canceladas" value={dashboard.stats?.cancelled || shops.filter((shop) => shop.monthly_status === "cancelled").length || 0} hint="contratos encerrados" />
         <StatCard label="Arquivadas" value={dashboard.stats?.archived || 0} hint="fora da lista principal" />
       </section>
+
+        </>
+      )}
 
       <section
         ref={platformMenuRef}
@@ -2400,9 +2410,10 @@ export default function PlatformDashboard() {
         </section>
       )}
 
-      {platformTab === "barbershops" && (
+      {(platformTab === "register" || platformTab === "barbershops") && (
       <>
 
+      {platformTab === "barbershops" && (
       <section className="platformFilters">
         <button type="button" className={filter === "all" ? "active" : ""} onClick={() => setFilter("all")}>Todas</button>
         <button type="button" className={filter === "active" ? "active" : ""} onClick={() => setFilter("active")}>Ativas</button>
@@ -2412,8 +2423,10 @@ export default function PlatformDashboard() {
         <button type="button" className={filter === "blocked" ? "active" : ""} onClick={() => setFilter("blocked")}>Bloqueadas</button>
         <button type="button" className={filter === "cancelled" ? "active" : ""} onClick={() => setFilter("cancelled")}>Canceladas</button>
       </section>
+      )}
 
-      <section className="platformGrid">
+      <section className={platformTab === "register" ? "platformGrid platformRegisterGrid" : "platformGrid"}>
+        {platformTab === "register" && (
         <div ref={onboardingCardRef} className="platformCard platformNewShopCard platformOnboardingCard">
           <div className="platformTitle"><div><span>Cadastro</span><h2>Nova barbearia</h2></div></div>
           <div className="platformWizardSteps" aria-label="Etapas do cadastro">
@@ -2631,7 +2644,9 @@ export default function PlatformDashboard() {
           </form>
           )}
         </div>
+        )}
 
+        {platformTab === "barbershops" && (
         <div className="platformCard">
           <div className="platformTitle"><div><span>Clientes</span><h2>Barbearias cadastradas</h2></div></div>
           <div className="platformShopList">
@@ -2705,8 +2720,10 @@ export default function PlatformDashboard() {
             </div>
           ) : null}
         </div>
+        )}
       </section>
 
+      {platformTab === "barbershops" && (
       <section className="platformCard" id="platformEditor">
         {!selectedShop ? <p className="platformMuted">Selecione uma barbearia para editar plano, status e funções.</p> : (
           <>
@@ -2830,6 +2847,7 @@ export default function PlatformDashboard() {
           </>
         )}
       </section>
+      )}
       </>
       )}
     </main>

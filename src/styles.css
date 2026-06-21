@@ -6321,6 +6321,10 @@ button:disabled {
   align-items: start;
 }
 
+.platformRegisterGrid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .platformCard {
   border-radius: 28px;
   padding: 18px;
@@ -6329,6 +6333,10 @@ button:disabled {
 .platformNewShopCard {
   position: sticky;
   top: 14px;
+}
+
+.platformRegisterGrid .platformNewShopCard {
+  position: static;
 }
 
 .platformTitle {

@@ -45,6 +45,7 @@ import {
   platformFeatures,
 } from "../../lib/features";
 import { permissionScenarioMatrix } from "../../lib/permissions";
+import { reservedRouteSegments } from "../../lib/routes";
 import type { FeatureFlag, FeatureKey, PlatformShop, PlanKey, SubscriptionStatus } from "../../types/app";
 import "../../styles.css";
 
@@ -284,17 +285,7 @@ function makeSlug(value = "") {
   return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48);
 }
 
-const reservedBarbershopSlugs = new Set([
-  "agenda-pro",
-  "agendapro",
-  "api",
-  "assets",
-  "barbearia",
-  "painel",
-  "painel-plataforma",
-  "plataforma",
-  "agendamento",
-]);
+const reservedBarbershopSlugs = reservedRouteSegments;
 
 function isReservedBarbershopSlug(value = "") {
   const slug = makeSlug(value);

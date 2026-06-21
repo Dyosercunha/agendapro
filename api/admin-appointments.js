@@ -90,7 +90,7 @@ async function listAppointments(adminClient, barbershopId) {
   const { data, error } = await adminClient
     .from("appointments")
     .select(
-      "id, client_name, whatsapp, professional_id, appointment_date, appointment_time, duration, total, payment_method, paid, status, reschedule_requested, public_token, customer_note, created_at, updated_at"
+      "id, client_name, whatsapp, professional_id, appointment_date, appointment_time, duration, service_text, total, payment_method, paid, status, reschedule_requested, public_token, customer_note, created_at, updated_at"
     )
     .eq("barbershop_id", barbershopId)
     .order("appointment_date", { ascending: true })
@@ -101,7 +101,7 @@ async function listAppointments(adminClient, barbershopId) {
   const fallback = await adminClient
     .from("appointments")
     .select(
-      "id, client_name, whatsapp, professional_id, appointment_date, appointment_time, duration, total, payment_method, paid, status, reschedule_requested, created_at, updated_at"
+      "id, client_name, whatsapp, professional_id, appointment_date, appointment_time, duration, service_text, total, payment_method, paid, status, reschedule_requested, created_at, updated_at"
     )
     .eq("barbershop_id", barbershopId)
     .order("appointment_date", { ascending: true })

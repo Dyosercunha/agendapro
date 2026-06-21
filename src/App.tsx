@@ -69,6 +69,7 @@ import {
   isAllowedAccessEmailDomain,
   normalizeAccessEmail,
 } from "./lib/emailAccess";
+import { appRoutePrefixes, platformRouteSegments, reservedRouteSegments } from "./lib/routes";
 import BarberDashboard from "./features/barber-dashboard/BarberDashboard";
 import ClientBooking from "./features/client-booking/ClientBooking";
 import type { WeekDay } from "./features/barber-dashboard/panels/AgendaPanel";
@@ -537,17 +538,7 @@ function makeSlug(value) {
     .slice(0, 48);
 }
 
-const reservedBarbershopSlugs = new Set([
-  "agenda-pro",
-  "agendapro",
-  "api",
-  "assets",
-  "barbearia",
-  "painel",
-  "painel-plataforma",
-  "plataforma",
-  "agendamento",
-]);
+const reservedBarbershopSlugs = reservedRouteSegments;
 
 function isReservedBarbershopSlug(value) {
   const slug = makeSlug(value || "");
@@ -816,11 +807,10 @@ function slugFromPathname(pathname) {
     .filter(Boolean);
 
   const route = String(parts[0] || "").toLowerCase();
-  const routePrefixes = ["painel", "agendamento", "barbearia"];
+  const routePrefixes = [...appRoutePrefixes];
   const reservedRoutes = [
-    ...routePrefixes,
-    "plataforma",
-    "painel-plataforma",
+    ...appRoutePrefixes,
+    ...platformRouteSegments,
     "api",
     "assets",
   ];
@@ -848,7 +838,7 @@ function currentRoutePrefixFromUrl() {
   if (typeof window === "undefined") return "agendamento";
 
   const route = String(window.location.pathname.split("/").filter(Boolean)[0] || "").toLowerCase();
-  return ["painel", "agendamento", "barbearia"].includes(route) ? route : "agendamento";
+  return (appRoutePrefixes as readonly string[]).includes(route) ? route : "agendamento";
 }
 
 async function activeReplacementSlugFor(unavailableSlug) {

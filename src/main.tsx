@@ -7,36 +7,25 @@ import { registerSW } from "virtual:pwa-register";
 import App from "./App";
 import LandingPage from "./features/landing/LandingPage";
 import PlatformDashboard from "./features/platform-dashboard/PlatformDashboard";
+import {
+  isLegacyBareSlugPath,
+  isPlatformRoutePath,
+  isRootRoutePath,
+  routePartsFromPathname,
+} from "./lib/routes";
 import { applyGlobalSeo, applyLandingSeo, applyPlatformSeo } from "./lib/seo";
 
 const container = document.getElementById("root");
-const path = window.location.pathname.toLowerCase().replace(/\/$/, "") || "/";
-const routeParts = path.split("/").filter(Boolean);
+const routeParts = routePartsFromPathname(window.location.pathname);
 const routeHead = routeParts[0] || "";
-const reservedRoutes = new Set([
-  "agendamento",
-  "agenda-pro",
-  "api",
-  "assets",
-  "barbearia",
-  "manifest.json",
-  "painel",
-  "painel-plataforma",
-  "plataforma",
-  "sw.js",
-]);
-const isLegacyBareSlugRoute = routeParts.length === 1 && routeHead && !reservedRoutes.has(routeHead);
+const isLegacyBareSlugRoute = isLegacyBareSlugPath(window.location.pathname);
 
 if (isLegacyBareSlugRoute) {
   window.location.replace(`/agendamento/${routeHead}${window.location.search}${window.location.hash}`);
 }
 
-const isRootRoute = !isLegacyBareSlugRoute && (path === "/" || path === "/agenda-pro");
-const isPlatformRoute =
-  !isLegacyBareSlugRoute &&
-  (window.location.search.includes("platform=1") ||
-    path.includes("/plataforma") ||
-    path.includes("/painel-plataforma"));
+const isRootRoute = !isLegacyBareSlugRoute && isRootRoutePath(window.location.pathname);
+const isPlatformRoute = !isLegacyBareSlugRoute && isPlatformRoutePath(window.location.pathname, window.location.search);
 
 if (isPlatformRoute) {
   applyPlatformSeo();

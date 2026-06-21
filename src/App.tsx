@@ -3146,6 +3146,8 @@ function CoreAgendaProApp() {
   function saveAccessAccountsToCloud() {
     return runCloudSave("access", "Acessos do painel salvos online", async () => {
       const protectedAccounts = ensureRequiredPanelAccessAccounts(accessAccounts, business.ownerEmail);
+      setAccessAccounts(protectedAccounts);
+
       const activeAccounts = protectedAccounts.filter((account) => account.active !== false);
       const hasActiveOwner = countActiveOwnerAccessAccounts(protectedAccounts) > 0;
       const invalidAccount = activeAccounts.find((account) => !String(account.email || "").includes("@"));

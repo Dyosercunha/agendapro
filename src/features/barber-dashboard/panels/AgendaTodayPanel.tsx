@@ -115,7 +115,7 @@ function paymentMethodLabel(appointment: AgendaTodayAppointment) {
   const payment = String(appointment.payment || "").toLowerCase();
 
   if (payment.includes("pix")) return "PIX";
-  if (payment.includes("card") || payment.includes("cart")) return "Cartao";
+  if (payment.includes("card") || payment.includes("cart")) return "Cartão";
   if (payment.includes("cash") || payment.includes("dinheiro")) return "Dinheiro";
 
   return "No local";
@@ -125,7 +125,7 @@ function paymentStatusLabel(appointment: AgendaTodayAppointment) {
   if (appointment.paid) return `${paymentMethodLabel(appointment)} recebido`;
 
   if (String(appointment.payment || "").toLowerCase().includes("pix")) {
-    return "PIX aguardando conferencia";
+    return "PIX aguardando conferência";
   }
 
   return "Pagamento pendente";
@@ -240,7 +240,7 @@ export default function AgendaTodayPanel({ model }: AgendaTodayPanelProps) {
               PIX
             </button>
             <button type="button" onClick={() => confirmAppointmentPayment(id, "card")}>
-              Cartao
+              Cartão
             </button>
           </div>
         )}

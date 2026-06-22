@@ -44,7 +44,7 @@ import {
   updateWaitlistStatus as updateWaitlistStatusRequest,
 } from "./lib/appointmentsApi";
 import { blocksClientScheduling, planOptions } from "./lib/commercial";
-import { normalizeBrazilWhatsapp } from "./lib/phone";
+import { normalizeBrazilWhatsapp, onlyDigits } from "./lib/phone";
 import {
   defaultFeatureFlags,
   featureMinimumPlanLabel,
@@ -522,7 +522,7 @@ function dateParts(dateText) {
 }
 
 function formatPhone(value) {
-  const numbers = value.replace(/\D/g, "").slice(0, 11);
+  const numbers = onlyDigits(value).slice(0, 11);
 
   if (numbers.length > 7) {
     return numbers.replace(/^(\d{2})(\d{5})(\d{0,4}).*/, "($1) $2-$3").replace(/-$/, "");
@@ -1355,7 +1355,7 @@ function CoreAgendaProApp() {
   });
 
   const today = getDateAfterDays(0);
-  const cleanWhatsapp = whatsapp.replace(/\D/g, "");
+  const cleanWhatsapp = onlyDigits(whatsapp);
   const history = cloudHistory || clientHistory[cleanWhatsapp];
   const currentPlan = planOptions.find((plan) => plan.id === business.plan) || planOptions[0];
   const appOrigin = typeof window !== "undefined" ? window.location.origin : "https://agenda.app";
@@ -2024,7 +2024,7 @@ function CoreAgendaProApp() {
     const profiles: Record<string, Client> = {};
 
     appointments.forEach((appointment) => {
-      const phone = String(appointment.whatsapp || "").replace(/\D/g, "");
+      const phone = onlyDigits(String(appointment.whatsapp || ""));
       if (!phone) return;
 
       if (!profiles[phone]) {

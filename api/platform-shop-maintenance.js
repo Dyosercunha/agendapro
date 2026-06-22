@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { normalizeBrazilPhone as normalizeBrazilWhatsapp } from "./whatsapp-core.js";
 
 const supabaseUrl =
   process.env.SUPABASE_URL ||
@@ -65,17 +66,6 @@ function planPrice(plan = "professional", explicitPrice) {
 function mapsUrlFor(address = "") {
   const clean = String(address || "").trim();
   return clean ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(clean)}` : "";
-}
-
-function normalizeBrazilWhatsapp(value = "") {
-  let digits = String(value || "").replace(/\D/g, "");
-
-  while (digits.startsWith("0")) digits = digits.slice(1);
-  if (digits.startsWith("550")) digits = `55${digits.slice(3)}`;
-  if (digits.startsWith("55") && (digits.length === 12 || digits.length === 13)) return digits;
-  if (digits.length === 10 || digits.length === 11) return `55${digits}`;
-
-  return digits;
 }
 
 async function assertPlatformAdmin(adminClient, request) {

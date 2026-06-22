@@ -1,60 +1,9 @@
-import { createClient } from "@supabase/supabase-js";
-
-const supabaseUrl =
-  process.env.SUPABASE_URL ||
-  process.env.VITE_SUPABASE_URL ||
-  "https://opcuaxkndslmejhuauyq.supabase.co";
-
-const serviceRoleKey =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ||
-  process.env.SUPABASE_SERVICE_ROLE ||
-  process.env.SUPABASE_SERVICE_KEY ||
-  process.env.SUPABASE_SECRET_KEY;
-
-function onlyDigits(value = "") {
-  return String(value || "").replace(/\D/g, "");
-}
-
-function normalizeBrazilPhone(value = "") {
-  let digits = onlyDigits(value);
-
-  while (digits.startsWith("0")) {
-    digits = digits.slice(1);
-  }
-
-  if (digits.startsWith("550")) {
-    digits = `55${digits.slice(3)}`;
-  }
-
-  if (digits.startsWith("55") && (digits.length === 12 || digits.length === 13)) {
-    return digits;
-  }
-
-  if (digits.length === 10 || digits.length === 11) {
-    return `55${digits}`;
-  }
-
-  return digits;
-}
-
-function errorResponse(response, status, error, extra = {}) {
-  return response.status(status).json({
-    ok: false,
-    error,
-    ...extra,
-  });
-}
-
-function getAdminClient() {
-  if (!serviceRoleKey) return null;
-
-  return createClient(supabaseUrl, serviceRoleKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  });
-}
+import {
+  getAdminClient,
+  normalizeBrazilPhone,
+  responseError as errorResponse,
+  serviceRoleKey,
+} from "./whatsapp-core.js";
 
 function whatsappProviderStatus() {
   const provider = String(process.env.WHATSAPP_PROVIDER || "meta").toLowerCase();

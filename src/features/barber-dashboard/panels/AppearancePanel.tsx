@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { onlyDigits } from "../../../lib/phone";
 import { buildBookingPath } from "../../../lib/routes";
 import type { Barbershop } from "../../../types/app";
 
@@ -44,10 +45,6 @@ export type AppearancePanelModel = {
 type AppearancePanelProps = {
   model: AppearancePanelModel;
 };
-
-function onlyDigits(value = "") {
-  return String(value || "").replace(/\D/g, "");
-}
 
 function buildMapsUrl(address = "") {
   const cleanAddress = String(address || "").trim();

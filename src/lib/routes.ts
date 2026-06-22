@@ -39,3 +39,27 @@ export function isPlatformRoutePath(pathname: string, search = "") {
 
   return search.includes("platform=1") || platformRouteSegments.some((segment) => path.includes(`/${segment}`));
 }
+
+function routeSlugSegment(value: unknown, fallback = "barbearia") {
+  const segment = String(value || "")
+    .trim()
+    .replace(/^\/+|\/+$/g, "")
+    .split("/")[0];
+
+  return encodeURIComponent(segment || fallback);
+}
+
+export function buildBookingPath(slug: unknown, fallback = "barbearia") {
+  return `/agendamento/${routeSlugSegment(slug, fallback)}`;
+}
+
+export function buildPanelPath(slug: unknown, fallback = "barbearia") {
+  return `/painel/${routeSlugSegment(slug, fallback)}`;
+}
+
+export function withAppOrigin(origin: string, path: string) {
+  const cleanOrigin = String(origin || "").replace(/\/$/, "");
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+
+  return `${cleanOrigin}${cleanPath}`;
+}

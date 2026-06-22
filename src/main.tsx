@@ -8,6 +8,7 @@ import App from "./App";
 import LandingPage from "./features/landing/LandingPage";
 import PlatformDashboard from "./features/platform-dashboard/PlatformDashboard";
 import {
+  buildBookingPath,
   isLegacyBareSlugPath,
   isPlatformRoutePath,
   isRootRoutePath,
@@ -21,7 +22,7 @@ const routeHead = routeParts[0] || "";
 const isLegacyBareSlugRoute = isLegacyBareSlugPath(window.location.pathname);
 
 if (isLegacyBareSlugRoute) {
-  window.location.replace(`/agendamento/${routeHead}${window.location.search}${window.location.hash}`);
+  window.location.replace(`${buildBookingPath(routeHead)}${window.location.search}${window.location.hash}`);
 }
 
 const isRootRoute = !isLegacyBareSlugRoute && isRootRoutePath(window.location.pathname);

@@ -69,7 +69,14 @@ import {
   isAllowedAccessEmailDomain,
   normalizeAccessEmail,
 } from "./lib/emailAccess";
-import { appRoutePrefixes, platformRouteSegments, reservedRouteSegments } from "./lib/routes";
+import {
+  appRoutePrefixes,
+  buildBookingPath,
+  buildPanelPath,
+  platformRouteSegments,
+  reservedRouteSegments,
+  withAppOrigin,
+} from "./lib/routes";
 import BarberDashboard from "./features/barber-dashboard/BarberDashboard";
 import ClientBooking from "./features/client-booking/ClientBooking";
 import type { WeekDay } from "./features/barber-dashboard/panels/AgendaPanel";
@@ -1357,8 +1364,8 @@ function CoreAgendaProApp() {
   const routeSlug = makeSlug(
     loadedRouteSlug || business.slug || cloudSlug || requestedRouteSlug
   );
-  const publicScheduleLink = `${appOrigin}/agendamento/${routeSlug || "barbearia"}`;
-  const adminPanelLink = `${appOrigin}/painel/${routeSlug || "barbearia"}`;
+  const publicScheduleLink = withAppOrigin(appOrigin, buildBookingPath(routeSlug));
+  const adminPanelLink = withAppOrigin(appOrigin, buildPanelPath(routeSlug));
   function featurePlanAllowed(featureKey) {
     const normalizedFeatureKey = normalizeFeatureKey(featureKey);
     const feature = platformFeatures.find((item) => item.key === normalizedFeatureKey);
@@ -1523,7 +1530,7 @@ function CoreAgendaProApp() {
       setAdminContext(context);
 
       if (context.slug !== currentRouteSlug) {
-        window.location.href = `${window.location.origin}/painel/${context.slug}`;
+        window.location.href = buildPanelPath(context.slug);
         return;
       }
 
@@ -1585,7 +1592,7 @@ function CoreAgendaProApp() {
     setViewMode("client");
 
     if (typeof window !== "undefined") {
-      window.history.pushState({}, "", slug ? `/agendamento/${slug}` : "/");
+      window.history.pushState({}, "", slug ? buildBookingPath(slug) : "/");
       window.scrollTo(0, 0);
     }
   }
@@ -3185,8 +3192,8 @@ function CoreAgendaProApp() {
           const parts = window.location.pathname.split("/").filter(Boolean);
           const panelIndex = parts.indexOf("painel");
           const scheduleIndex = parts.indexOf("agendamento");
-          if (panelIndex !== -1) window.history.replaceState(null, "", `/painel/${nextSlug}`);
-          if (scheduleIndex !== -1) window.history.replaceState(null, "", `/agendamento/${nextSlug}`);
+          if (panelIndex !== -1) window.history.replaceState(null, "", buildPanelPath(nextSlug));
+          if (scheduleIndex !== -1) window.history.replaceState(null, "", buildBookingPath(nextSlug));
         }
       }
 

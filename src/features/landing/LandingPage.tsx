@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { buildBookingPath, buildPanelPath } from "../../lib/routes";
 
 type PublicBarbershop = {
   name: string;
@@ -9,7 +10,7 @@ type PublicBarbershop = {
 const contactWhatsappUrl =
   "https://wa.me/5551992627663?text=Ol%C3%A1%2C%20quero%20conhecer%20o%20AgendaPro%20para%20minha%20barbearia.";
 
-const demoBookingPath = "/agendamento/master-barbearia";
+const demoBookingPath = buildBookingPath("master-barbearia");
 
 const planCards = [
   {
@@ -260,7 +261,7 @@ export default function LandingPage() {
 
     if (selectedShopStillMatches()) {
       window.location.href =
-        path === "painel" ? `/painel/${selectedShop?.slug}` : `/agendamento/${selectedShop?.slug}`;
+        path === "painel" ? buildPanelPath(selectedShop?.slug) : buildBookingPath(selectedShop?.slug);
       return;
     }
 
@@ -272,7 +273,7 @@ export default function LandingPage() {
 
     if (data?.match?.slug) {
       window.location.href =
-        path === "painel" ? `/painel/${data.match.slug}` : `/agendamento/${data.match.slug}`;
+        path === "painel" ? buildPanelPath(data.match.slug) : buildBookingPath(data.match.slug);
       return;
     }
 

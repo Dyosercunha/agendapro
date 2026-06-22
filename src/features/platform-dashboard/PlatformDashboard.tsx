@@ -45,7 +45,7 @@ import {
   platformFeatures,
 } from "../../lib/features";
 import { permissionScenarioMatrix } from "../../lib/permissions";
-import { reservedRouteSegments } from "../../lib/routes";
+import { buildBookingPath, buildPanelPath, reservedRouteSegments, withAppOrigin } from "../../lib/routes";
 import type { FeatureFlag, FeatureKey, PlatformShop, PlanKey, SubscriptionStatus } from "../../types/app";
 import "../../styles.css";
 
@@ -698,9 +698,9 @@ export default function PlatformDashboard() {
   const platformOrigin =
     typeof window !== "undefined" ? window.location.origin : "https://calendarproapp.vercel.app";
   const onboardingClientLink =
-    onboardingCreated?.link_cliente || (onboardingSlug ? `${platformOrigin}/agendamento/${onboardingSlug}` : "");
+    onboardingCreated?.link_cliente || (onboardingSlug ? withAppOrigin(platformOrigin, buildBookingPath(onboardingSlug)) : "");
   const onboardingPanelLink =
-    onboardingCreated?.link_painel || (onboardingSlug ? `${platformOrigin}/painel/${onboardingSlug}` : "");
+    onboardingCreated?.link_painel || (onboardingSlug ? withAppOrigin(platformOrigin, buildPanelPath(onboardingSlug)) : "");
   const currentPlatformTab = platformTabItems.find((tab) => tab.id === platformTab) || platformTabItems[0];
 
   function passwordInputType(field: string) {
@@ -1354,8 +1354,8 @@ export default function PlatformDashboard() {
 
     const shop = result.shop || onboardingCreated || {
       slug: targetSlug,
-      link_cliente: `${platformOrigin}/agendamento/${targetSlug}`,
-      link_painel: `${platformOrigin}/painel/${targetSlug}`,
+      link_cliente: withAppOrigin(platformOrigin, buildBookingPath(targetSlug)),
+      link_painel: withAppOrigin(platformOrigin, buildPanelPath(targetSlug)),
     };
 
     if (!onboardingCreated && ownerPassword) {
@@ -1370,8 +1370,8 @@ export default function PlatformDashboard() {
 
     setOnboardingCreated({
       barbershop_id: shop.barbershop_id,
-      link_cliente: shop.link_cliente || `${platformOrigin}/agendamento/${shop.slug}`,
-      link_painel: shop.link_painel || `${platformOrigin}/painel/${shop.slug}`,
+      link_cliente: shop.link_cliente || withAppOrigin(platformOrigin, buildBookingPath(shop.slug)),
+      link_painel: shop.link_painel || withAppOrigin(platformOrigin, buildPanelPath(shop.slug)),
       slug: String(shop.slug || targetSlug),
     });
 
@@ -1600,7 +1600,8 @@ export default function PlatformDashboard() {
       }
 
       const createdSlug = createdData?.slug || newShop.slug || makeSlug(newShop.name);
-      const createdPanelLink = createdData?.link_painel || `/painel/${createdSlug}`;
+      const createdClientLink = createdData?.link_cliente || withAppOrigin(platformOrigin, buildBookingPath(createdSlug));
+      const createdPanelLink = createdData?.link_painel || buildPanelPath(createdSlug);
 
       try {
         await syncOwnerAuthUser({
@@ -1621,7 +1622,7 @@ export default function PlatformDashboard() {
       }
 
       setMessage(
-        `Barbearia cadastrada. Login do dono criado. Cliente: ${createdData?.link_cliente || ""} Painel: ${createdPanelLink} Abrindo o painel da barbearia...`
+        `Barbearia cadastrada. Login do dono criado. Cliente: ${createdClientLink} Painel: ${createdPanelLink} Abrindo o painel da barbearia...`
       );
       setNewShop(emptyForm());
       setSlugTouched(false);
@@ -2667,8 +2668,8 @@ export default function PlatformDashboard() {
                 <div className="platformShopActions">
                   {statusBadge(shop.monthly_status, shop.status_label)}
                   <button type="button" onClick={() => setSelectedShop(JSON.parse(JSON.stringify(shop)))}>Editar</button>
-                  <a href={`/painel/${shop.slug}`} target="_blank" rel="noreferrer">Entrar no painel</a>
-                  <a href={`/agendamento/${shop.slug}`} target="_blank" rel="noreferrer">Link cliente</a>
+                  <a href={buildPanelPath(shop.slug)} target="_blank" rel="noreferrer">Entrar no painel</a>
+                  <a href={buildBookingPath(shop.slug)} target="_blank" rel="noreferrer">Link cliente</a>
                   <button type="button" className="platformDanger" disabled={saving === "hide-" + shop.slug} onClick={() => hideShopFromPlatform(shop)}>{saving === "hide-" + shop.slug ? "Removendo..." : "Remover da lista"}</button>
                 </div>
               </article>

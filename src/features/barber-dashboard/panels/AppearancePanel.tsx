@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { buildBookingPath } from "../../../lib/routes";
 import type { Barbershop } from "../../../types/app";
 
 export type BackgroundField = "adminBackgroundUrl" | "clientBackgroundUrl";
@@ -149,7 +150,7 @@ export default function AppearancePanel({ model }: AppearancePanelProps) {
   const currentMapsUrl = hasSpecificMapsUrl(business.mapsUrl)
     ? business.mapsUrl
     : buildMapsUrl(business.address);
-  const clientPreviewUrl = business.slug ? `/agendamento/${business.slug}` : "/";
+  const clientPreviewUrl = business.slug ? buildBookingPath(business.slug) : "/";
   const themeMode = business.themeMode === "light" ? "light" : "dark";
   const themeColor = business.themeColor || "#22c55e";
   const themeColorSecondary = business.themeColorSecondary || "#4ade80";

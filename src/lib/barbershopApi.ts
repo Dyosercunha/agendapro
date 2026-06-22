@@ -124,6 +124,14 @@ export function getClientHistory(payload: Record<string, unknown>) {
   return callRpcWithRestFallback("get_client_history", payload);
 }
 
+export function getClientProfileByEmail(payload: Record<string, unknown>) {
+  return callRpc("get_client_profile_by_email", payload);
+}
+
+export function linkClientGoogleProfile(payload: Record<string, unknown>) {
+  return callRpc("link_client_google_profile", payload);
+}
+
 export function getPublicAssetUrl(path: string) {
   return supabase.storage.from(assetBucketName).getPublicUrl(path);
 }

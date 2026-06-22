@@ -14,8 +14,10 @@ import {
   getBarbershopCloudBundle,
   getBarbershopIdBySlug,
   getClientHistory,
+  getClientProfileByEmail,
   getProfessionalsByBarbershop,
   getPublicAssetUrl,
+  linkClientGoogleProfile,
   saveAppearanceCenter,
   saveBackgroundSettings,
   saveBarbershopAccesses,
@@ -117,6 +119,15 @@ type LocalAppointment = Appointment & {
   time: string;
   token?: string;
   total?: number;
+};
+
+type ClientGoogleAuthState = {
+  avatarUrl: string;
+  email: string;
+  loading: boolean;
+  loggedIn: boolean;
+  message: string;
+  name: string;
 };
 
 type LocalWaitlistEntry = WaitlistEntry & {
@@ -1318,6 +1329,14 @@ function CoreAgendaProApp() {
   );
   const [whatsapp, setWhatsapp] = useState("");
   const [clientName, setClientName] = useState("");
+  const [clientGoogleAuth, setClientGoogleAuth] = useState<ClientGoogleAuthState>({
+    avatarUrl: "",
+    email: "",
+    loading: false,
+    loggedIn: false,
+    message: "",
+    name: "",
+  });
   const [selectedServices, setSelectedServices] = useState<number[]>([]);
   const [selectedPromotions, setSelectedPromotions] = useState<string[]>([]);
   const [professional, setProfessional] = useState(firstAvailableProfessionalName);
@@ -1394,6 +1413,7 @@ function CoreAgendaProApp() {
   const scheduleBlocked = blocksClientScheduling(business.monthlyStatus);
   const pixFeatureEnabled = featureIsAvailable("pix");
   const autoConfirmationFeatureEnabled = featureIsAvailable("auto_confirmation");
+  const clientGoogleLoginAvailable = featureIsAvailable("google_login");
   const pixAvailable = business.pixEnabled && pixFeatureEnabled;
   const waitlistAvailable = featureIsAvailable("waitlist");
   const visualAgendaAvailable = featureIsAvailable("visual_agenda");
@@ -1486,10 +1506,125 @@ function CoreAgendaProApp() {
     window.scrollTo(0, 0);
   }
 
+  function currentAuthRouteInfo() {
+    if (typeof window === "undefined") {
+      return { isPanelRoute: false, isPlatformRoute: false };
+    }
+
+    const pathname = window.location.pathname || "";
+    const parts = pathname.split("/").filter(Boolean);
+    const search = window.location.search || "";
+
+    return {
+      isPanelRoute: parts.includes("painel"),
+      isPlatformRoute:
+        search.includes("platform=1") ||
+        platformRouteSegments.some((segment) => parts.includes(segment)),
+    };
+  }
+
+  function googleClientNameFromSession(session) {
+    const metadata = session?.user?.user_metadata || {};
+    const email = String(session?.user?.email || "");
+    const fallback = email ? email.split("@")[0] : "Cliente";
+
+    return String(metadata.full_name || metadata.name || metadata.preferred_username || fallback);
+  }
+
+  async function loadClientGoogleProfile(email: string, displayName = "") {
+    const targetSlug = loadedCloudSlug() || currentSlugFromUrl() || routeSlug;
+
+    if (!targetSlug || !email) {
+      setClientGoogleAuth((current) => ({
+        ...current,
+        loading: false,
+        message: "Conta Google conectada. Informe seu WhatsApp para concluir o agendamento.",
+      }));
+      return;
+    }
+
+    try {
+      const { data, error } = await getClientProfileByEmail({
+        target_slug: targetSlug,
+        client_email_input: email,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      const profile = Array.isArray(data) ? data[0] : data;
+      const profileName = String(profile?.client_name || profile?.name || displayName || "");
+      const profileWhatsapp = String(profile?.whatsapp || "");
+
+      if (profileName) {
+        setClientName((current) => current.trim() || profileName);
+      }
+
+      if (profileWhatsapp) {
+        setWhatsapp(formatPhone(profileWhatsapp));
+      }
+
+      if (profile?.last_service_text || Number(profile?.visit_count || 0) > 0) {
+        setCloudHistory({
+          name: profileName || displayName || "Cliente",
+          lastServiceText: profile.last_service_text,
+          lastServices: [],
+          visitCount: Number(profile.visit_count || 0),
+          lastProfessional: profile.last_professional || firstAvailableProfessionalName,
+        });
+      }
+
+      setClientGoogleAuth((current) => ({
+        ...current,
+        loading: false,
+        message: profileWhatsapp
+          ? "Dados preenchidos pela sua conta Google."
+          : "Conta Google conectada. Informe seu WhatsApp uma vez para salvar o histórico.",
+      }));
+    } catch (error) {
+      console.warn("Nao foi possivel carregar o perfil Google do cliente:", error);
+      setClientGoogleAuth((current) => ({
+        ...current,
+        loading: false,
+        message: "Conta Google conectada. Informe seu WhatsApp para concluir o agendamento.",
+      }));
+    }
+  }
+
+  async function handleClientAuthSession(session) {
+    const email = normalizeAccessEmail(session?.user?.email || "");
+
+    if (!email) return;
+
+    const metadata = session?.user?.user_metadata || {};
+    const displayName = googleClientNameFromSession(session);
+    const avatarUrl = String(metadata.avatar_url || metadata.picture || "");
+
+    setClientGoogleAuth({
+      avatarUrl,
+      email,
+      loading: true,
+      loggedIn: true,
+      message: "Buscando seus dados...",
+      name: displayName,
+    });
+
+    setClientName((current) => current.trim() || displayName);
+    await loadClientGoogleProfile(email, displayName);
+  }
+
   async function handleAuthSession(session) {
     const email = normalizeAccessEmail(session?.user?.email || "");
 
     if (!email) return;
+
+    const { isPanelRoute, isPlatformRoute } = currentAuthRouteInfo();
+
+    if (!isPanelRoute && !isPlatformRoute) {
+      await handleClientAuthSession(session);
+      return;
+    }
 
     if (!isAllowedAccessEmailDomain(email)) {
       await logoutAuth();
@@ -1505,10 +1640,6 @@ function CoreAgendaProApp() {
     const context = Array.isArray(contextData) ? contextData[0] : contextData;
 
     if (!contextError && context?.access_type === "platform") {
-      const path = typeof window !== "undefined" ? window.location.pathname : "";
-      const parts = path.split("/").filter(Boolean);
-      const isPanelRoute = parts.includes("painel");
-
       setAdminContext(context);
       setAdminEmail(email);
       setAdminLoggedIn(true);
@@ -2549,13 +2680,13 @@ function CoreAgendaProApp() {
   function repeatLastService() {
     if (!history) return;
 
-    const repeatedServices =
-      history.lastServices ||
-      services
-        .map((service, index) =>
-          history.lastServiceText?.toLowerCase().includes(service.name.toLowerCase()) ? index : null
-        )
-        .filter((index) => index !== null);
+    const repeatedServices = history.lastServices?.length
+      ? history.lastServices
+      : services
+          .map((service, index) =>
+            history.lastServiceText?.toLowerCase().includes(service.name.toLowerCase()) ? index : null
+          )
+          .filter((index) => index !== null);
 
     if (!repeatedServices.length) return;
 
@@ -2706,6 +2837,29 @@ function CoreAgendaProApp() {
 
       if (!cloudBooking.id) {
         return;
+      }
+
+      if (clientGoogleAuth.loggedIn && clientGoogleAuth.email && cloudBooking.token) {
+        try {
+          const { error: linkError } = await linkClientGoogleProfile({
+            target_slug: loadedCloudSlug() || routeSlug,
+            public_token_input: cloudBooking.token,
+            client_email_input: clientGoogleAuth.email,
+            client_name_input: clientName,
+            whatsapp_input: whatsapp,
+          });
+
+          if (linkError) {
+            throw linkError;
+          }
+
+          setClientGoogleAuth((current) => ({
+            ...current,
+            message: "Conta Google vinculada ao seu histórico.",
+          }));
+        } catch (error) {
+          console.warn("Nao foi possivel vincular o Google ao agendamento:", error);
+        }
       }
 
       const savedAppointment = {
@@ -3869,10 +4023,7 @@ function CoreAgendaProApp() {
   function isFutureOnlyFeature(featureKey) {
     const normalizedFeatureKey = normalizeFeatureKey(featureKey);
 
-    return (
-      normalizedFeatureKey === "google_login" ||
-      normalizedFeatureKey === "instagram_booking"
-    );
+    return normalizedFeatureKey === "instagram_booking";
   }
 
   function setFeatureRelease(featureKey, released) {
@@ -3933,7 +4084,7 @@ function CoreAgendaProApp() {
     }
 
     if (normalizedFeatureKey === "google_login") {
-      return { label: "Login em preparação", tab: "", disabled: true };
+      return { label: "Ativo na tela do cliente", tab: "", disabled: true };
     }
 
     if (normalizedFeatureKey === "instagram_booking") {
@@ -4308,6 +4459,56 @@ function CoreAgendaProApp() {
     }
   }
 
+  async function loginClientWithGoogle() {
+    if (!clientGoogleLoginAvailable) {
+      showNotice("Login Google ainda não está liberado para esta barbearia.");
+      return;
+    }
+
+    setClientGoogleAuth((current) => ({
+      ...current,
+      loading: true,
+      message: "Abrindo login do Google...",
+    }));
+
+    try {
+      const redirectPath = routeSlug ? buildBookingPath(routeSlug) : window.location.pathname;
+      const redirectTo =
+        typeof window !== "undefined"
+          ? `${window.location.origin}${redirectPath}`
+          : publicScheduleLink;
+      const { error } = await loginWithGoogleRedirect(redirectTo);
+
+      if (error) {
+        throw error;
+      }
+    } catch (error) {
+      console.error("Falha no login Google do cliente:", error);
+      setClientGoogleAuth((current) => ({
+        ...current,
+        loading: false,
+        message: "Não foi possível abrir o login do Google agora.",
+      }));
+      showNotice("Não foi possível abrir o login do Google agora.");
+    }
+  }
+
+  async function logoutClientGoogle() {
+    try {
+      await logoutAuth();
+    } finally {
+      setClientGoogleAuth({
+        avatarUrl: "",
+        email: "",
+        loading: false,
+        loggedIn: false,
+        message: "",
+        name: "",
+      });
+      setCloudHistory(null);
+    }
+  }
+
   async function loginAdmin() {
     const normalizedEmail = normalizeAccessEmail(adminEmail);
 
@@ -4679,6 +4880,13 @@ function CoreAgendaProApp() {
     canManageBusinessSettings,
     canUseAdminTab,
     chosenServices,
+    clientGoogleAvailable: clientGoogleLoginAvailable,
+    clientGoogleAvatarUrl: clientGoogleAuth.avatarUrl,
+    clientGoogleEmail: clientGoogleAuth.email,
+    clientGoogleLoading: clientGoogleAuth.loading,
+    clientGoogleLoggedIn: clientGoogleAuth.loggedIn,
+    clientGoogleMessage: clientGoogleAuth.message,
+    clientGoogleName: clientGoogleAuth.name,
     clampPercentage,
     clientName,
     clientProfessionals,
@@ -4721,7 +4929,9 @@ function CoreAgendaProApp() {
     isServiceDeleted,
     isUuid,
     joinWaitlist,
+    loginClientWithGoogle,
     logoutAdmin,
+    logoutClientGoogle,
     loyaltyFeatureEnabled,
     money,
     normalizeRole,

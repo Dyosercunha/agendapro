@@ -75,6 +75,13 @@ type ClientBookingModel = {
   business: Barbershop;
   canContinue: boolean;
   chosenServices: Service[];
+  clientGoogleAvailable: boolean;
+  clientGoogleAvatarUrl: string;
+  clientGoogleEmail: string;
+  clientGoogleLoading: boolean;
+  clientGoogleLoggedIn: boolean;
+  clientGoogleMessage: string;
+  clientGoogleName: string;
   clientName: string;
   clientProfessionals: ClientProfessional[];
   cloudSaving: string;
@@ -92,6 +99,8 @@ type ClientBookingModel = {
   hasChosenService: boolean;
   history?: ClientHistory | null;
   joinWaitlist: () => void;
+  loginClientWithGoogle: () => void;
+  logoutClientGoogle: () => void;
   money: (value?: number) => string;
   openAdminArea: () => void;
   payment: PaymentMode;
@@ -161,6 +170,13 @@ export default function ClientBooking({ model }: ClientBookingProps) {
     business,
     canContinue,
     chosenServices,
+    clientGoogleAvailable,
+    clientGoogleAvatarUrl,
+    clientGoogleEmail,
+    clientGoogleLoading,
+    clientGoogleLoggedIn,
+    clientGoogleMessage,
+    clientGoogleName,
     clientName,
     clientProfessionals,
     cloudSaving,
@@ -178,6 +194,8 @@ export default function ClientBooking({ model }: ClientBookingProps) {
     hasChosenService,
     history,
     joinWaitlist,
+    loginClientWithGoogle,
+    logoutClientGoogle,
     money,
     openAdminArea,
     payment,
@@ -896,6 +914,49 @@ export default function ClientBooking({ model }: ClientBookingProps) {
 
       <section className="card">
         <h2>Seus dados</h2>
+
+        {clientGoogleAvailable && (
+          <div className={clientGoogleLoggedIn ? "clientGoogleBox connected" : "clientGoogleBox"}>
+            {clientGoogleLoggedIn ? (
+              <>
+                <div className="clientGoogleProfile">
+                  {clientGoogleAvatarUrl ? (
+                    <img src={clientGoogleAvatarUrl} alt="" />
+                  ) : (
+                    <span className="clientGoogleAvatar" aria-hidden="true">
+                      {(clientGoogleName || clientGoogleEmail || "G").slice(0, 1).toUpperCase()}
+                    </span>
+                  )}
+                  <div>
+                    <strong>{clientGoogleName || "Conta Google conectada"}</strong>
+                    <small>{clientGoogleEmail}</small>
+                  </div>
+                </div>
+                <button type="button" className="clientGoogleSecondary" onClick={logoutClientGoogle}>
+                  Sair da conta Google
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="clientGoogleButton"
+                  disabled={clientGoogleLoading}
+                  onClick={loginClientWithGoogle}
+                >
+                  <span className="googleMark" aria-hidden="true">
+                    G
+                  </span>
+                  <span>{clientGoogleLoading ? "Abrindo Google..." : "Entrar com Google"}</span>
+                </button>
+                <small>Use para preencher seus dados nas próximas visitas.</small>
+              </>
+            )}
+
+            {clientGoogleMessage && <p>{clientGoogleMessage}</p>}
+          </div>
+        )}
+
         <label>WhatsApp</label>
         <input
           inputMode="numeric"

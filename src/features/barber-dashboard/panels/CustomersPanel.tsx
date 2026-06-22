@@ -1,6 +1,6 @@
 import React from "react";
 import type { Appointment, Barbershop, Client } from "../../../types/app";
-import { whatsappUrl } from "../../../lib/phone";
+import { onlyDigits as cleanPhone, whatsappUrl } from "../../../lib/phone";
 
 export type CustomersPanelModel = {
   activeAdminTab: string;
@@ -26,10 +26,6 @@ const internalNoteSuggestions = [
   "Cliente sempre atrasa",
   "Tem alergia a produto X",
 ];
-
-function cleanPhone(value?: string) {
-  return String(value || "").replace(/\D/g, "");
-}
 
 function sortHistory(appointments: Appointment[]) {
   return [...appointments].sort((first, second) =>

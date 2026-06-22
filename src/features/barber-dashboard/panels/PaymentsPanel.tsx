@@ -167,7 +167,7 @@ export default function PaymentsPanel({ model }: PaymentsPanelProps) {
             <div>
               <span>Resumo</span>
               <h3>Disponibilidade</h3>
-              <p>Confira quais recursos estÃ£o liberados e ativos no checkout desta barbearia.</p>
+              <p>Confira quais recursos estão liberados e ativos no checkout desta barbearia.</p>
             </div>
             <strong>Planos e melhorias</strong>
           </div>

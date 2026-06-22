@@ -45,6 +45,7 @@ import {
   platformFeatures,
 } from "../../lib/features";
 import { permissionScenarioMatrix } from "../../lib/permissions";
+import { onlyDigits } from "../../lib/phone";
 import { buildBookingPath, buildPanelPath, reservedRouteSegments, withAppOrigin } from "../../lib/routes";
 import type { FeatureFlag, FeatureKey, PlatformShop, PlanKey, SubscriptionStatus } from "../../types/app";
 import "../../styles.css";
@@ -290,10 +291,6 @@ const reservedBarbershopSlugs = reservedRouteSegments;
 function isReservedBarbershopSlug(value = "") {
   const slug = makeSlug(value);
   return !slug || reservedBarbershopSlugs.has(slug);
-}
-
-function onlyDigits(value: unknown = "") {
-  return String(value).replace(/\D/g, "");
 }
 
 function errorText(error: unknown) {

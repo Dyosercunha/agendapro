@@ -481,7 +481,6 @@ export default function LandingPage() {
         <div className="landingDemoGrid">
           {previewCards.map((item) => (
             <article key={item.step}>
-              <span>{item.step}</span>
               <strong>{item.title}</strong>
               <p>{item.text}</p>
             </article>
@@ -496,9 +495,8 @@ export default function LandingPage() {
         </div>
 
         <div className="landingResourceGrid">
-          {resourceCards.map((item, index) => (
+          {resourceCards.map((item) => (
             <article key={item.title}>
-              <span>{String(index + 1).padStart(2, "0")}</span>
               <strong>{item.title}</strong>
               <p>{item.text}</p>
             </article>

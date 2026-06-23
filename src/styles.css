@@ -1798,8 +1798,12 @@ button:disabled {
 .landingPlanGrid {
   display: grid;
   gap: 14px;
-  grid-template-columns: 1.2fr repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   margin-top: 16px;
+}
+
+.landingPlanGrid .landingSectionIntro {
+  grid-column: 1 / -1;
 }
 
 .landingSectionIntro {
@@ -1810,17 +1814,23 @@ button:disabled {
   border: 1px solid var(--border-soft);
   border-radius: 28px;
   box-shadow: var(--shadow-card);
-  padding: 20px;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 0.95fr) minmax(280px, 1.05fr);
+  padding: 22px 24px;
 }
 
 .landingSectionIntro h2 {
   font-size: clamp(24px, 2.5vw, 32px);
   line-height: 1.08;
-  margin-bottom: 10px;
+  margin-bottom: 0;
 }
 
 .landingSectionIntro p {
+  align-self: end;
   color: var(--text-secondary);
+  font-size: 16px;
+  line-height: 1.5;
   margin: 0;
 }
 
@@ -2127,7 +2137,7 @@ button:disabled {
 .landingAudienceSection,
 .landingDemoSection {
   align-items: start;
-  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+  grid-template-columns: 1fr;
 }
 
 .landingResourceGrid,
@@ -2138,10 +2148,13 @@ button:disabled {
   gap: 14px;
 }
 
-.landingResourceGrid,
+.landingResourceGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .landingAudienceGrid,
 .landingDemoGrid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .landingResourceGrid article,
@@ -2162,19 +2175,14 @@ button:disabled {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  min-height: 150px;
+  min-height: 168px;
   overflow: hidden;
-  padding: 18px;
+  padding: 20px;
 }
 
 .landingResourceGrid span,
 .landingDemoGrid span {
-  color: var(--warning);
-  display: block;
-  font-size: 12px;
-  font-weight: 950;
-  letter-spacing: 0.08em;
-  margin-bottom: 12px;
+  display: none;
 }
 
 .landingResourceGrid strong,
@@ -2357,6 +2365,16 @@ button:disabled {
   .landingDemoSection,
   .landingBenefitSection {
     grid-template-columns: 1fr;
+  }
+
+  .landingSectionIntro {
+    grid-template-columns: 1fr;
+  }
+
+  .landingResourceGrid,
+  .landingAudienceGrid,
+  .landingDemoGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .landingContactSection {

@@ -335,12 +335,15 @@ export default function AgendaPanel({ model }: AgendaPanelProps) {
     setSelectedAgendaDate(dateKey);
   }
 
-  function renderAppointmentCard(appointment: AgendaAppointment) {
+  function renderAppointmentCard(appointment: AgendaAppointment, compact = false) {
     const status = getVisualStatus(appointment);
     const canEditAppointment = status !== "cancelled" && status !== "completed";
 
     return (
-      <article className={`visualAppointmentCard status-${status}`} key={appointment.id}>
+      <article
+        className={`visualAppointmentCard status-${status}${compact ? " is-compact" : ""}`}
+        key={appointment.id}
+      >
         <div className="visualAppointmentTop">
           <div>
             <strong>{appointment.time}</strong>
@@ -724,7 +727,7 @@ export default function AgendaPanel({ model }: AgendaPanelProps) {
 
                   {group.appointments.length === 0 && <p className="weekEmpty">Sem horários</p>}
 
-                  {group.appointments.map(renderAppointmentCard)}
+                  {group.appointments.map((appointment) => renderAppointmentCard(appointment, true))}
                 </div>
               ))}
             </div>

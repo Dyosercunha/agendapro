@@ -5446,8 +5446,8 @@ button:disabled {
 
 .visualWeekBoard {
   display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(7, minmax(210px, 1fr));
+  gap: 10px;
+  grid-template-columns: repeat(7, minmax(190px, 1fr));
   overflow-x: auto;
   padding-bottom: 4px;
   scroll-snap-type: x proximity;
@@ -5456,9 +5456,9 @@ button:disabled {
 .visualWeekDay {
   background: rgba(255, 255, 255, 0.035);
   border: 1px solid var(--border-soft);
-  border-radius: 22px;
-  min-height: 190px;
-  padding: 12px;
+  border-radius: 20px;
+  min-height: 170px;
+  padding: 11px;
   scroll-snap-align: start;
 }
 
@@ -5518,6 +5518,78 @@ button:disabled {
   border-radius: 22px;
   box-shadow: 0 16px 34px rgba(0, 0, 0, 0.22);
   padding: 16px;
+}
+
+.visualAppointmentCard.is-compact {
+  border-left-width: 3px;
+  border-radius: 18px;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.2);
+  margin-top: 8px;
+  padding: 12px;
+}
+
+.visualAppointmentCard.is-compact .visualAppointmentTop {
+  align-items: center;
+}
+
+.visualAppointmentCard.is-compact .visualAppointmentTop strong {
+  font-size: 20px;
+}
+
+.visualAppointmentCard.is-compact .visualAppointmentTop span:not(.appointmentStatusPill) {
+  display: none;
+}
+
+.visualAppointmentCard.is-compact .appointmentStatusPill {
+  font-size: 10px;
+  padding: 6px 8px;
+}
+
+.visualAppointmentCard.is-compact .visualAppointmentBody {
+  margin-top: 9px;
+}
+
+.visualAppointmentCard.is-compact .visualAppointmentBody > strong {
+  font-size: 15px;
+  line-height: 1.16;
+  overflow-wrap: anywhere;
+}
+
+.visualAppointmentCard.is-compact .visualAppointmentBody p {
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: var(--text-muted);
+  display: -webkit-box;
+  font-size: 12px;
+  line-height: 1.25;
+  margin-top: 4px;
+  overflow: hidden;
+}
+
+.visualAppointmentCard.is-compact .visualAppointmentMeta {
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.visualAppointmentCard.is-compact .visualAppointmentMeta span {
+  font-size: 10px;
+  padding: 5px 7px;
+}
+
+.visualAppointmentCard.is-compact .appointmentNoteEditor,
+.visualAppointmentCard.is-compact .appointmentActions,
+.visualAppointmentCard.is-compact .dragFuture,
+.visualAppointmentCard.is-compact .visualAppointmentNote {
+  display: none;
+}
+
+.visualAppointmentCard.is-compact .rescheduleNotice {
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 10px;
+  line-height: 1.15;
+  margin-top: 8px;
+  padding: 6px 8px;
 }
 
 .visualAppointmentTop {
@@ -12345,4 +12417,51 @@ textarea:focus-visible {
   .clientMiniSiteActions button {
     min-height: 48px;
   }
+}
+
+/* Agenda Premium: resumo semanal limpo e compacto */
+.visualWeekDay .visualAppointmentCard.is-compact {
+  min-width: 0;
+}
+
+.visualWeekDay .visualAppointmentCard.is-compact .visualAppointmentTop {
+  align-items: center;
+  flex-direction: row;
+}
+
+.visualWeekDay .visualAppointmentCard.is-compact .visualAppointmentTop strong {
+  font-size: 20px;
+  letter-spacing: 0;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.visualWeekDay .visualAppointmentCard.is-compact .appointmentStatusPill {
+  flex: 0 0 auto;
+  font-size: 10px;
+  max-width: 96px;
+  overflow: hidden;
+  padding: 6px 8px;
+  text-overflow: ellipsis;
+}
+
+.visualWeekDay .visualAppointmentCard.is-compact .visualAppointmentBody > strong,
+.visualWeekDay .visualAppointmentCard.is-compact .visualAppointmentBody p {
+  overflow-wrap: anywhere;
+}
+
+.visualWeekDay .visualAppointmentCard.is-compact .appointmentNoteEditor,
+.visualWeekDay .visualAppointmentCard.is-compact .appointmentActions,
+.visualWeekDay .visualAppointmentCard.is-compact .dragFuture,
+.visualWeekDay .visualAppointmentCard.is-compact .visualAppointmentNote {
+  display: none;
+}
+
+.visualWeekDay .visualAppointmentCard.is-compact .rescheduleNotice {
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 10px;
+  line-height: 1.15;
+  margin-top: 8px;
+  padding: 6px 8px;
 }

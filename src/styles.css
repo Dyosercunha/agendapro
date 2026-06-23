@@ -2152,9 +2152,12 @@ button:disabled {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
-.landingAudienceGrid,
-.landingDemoGrid {
+.landingAudienceGrid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.landingDemoGrid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .landingResourceGrid article,

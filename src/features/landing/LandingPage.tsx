@@ -92,19 +92,24 @@ const resourceCards = [
 
 const previewCards = [
   {
-    step: "01",
-    title: "Cliente escolhe o serviço",
-    text: "Cards claros com preço, duração, promoção e seleção simples.",
+    title: "Abra a Barber Shop",
+    text: "O cliente entra no link da barbearia pelo celular e encontra a vitrine de agendamento.",
   },
   {
-    step: "02",
-    title: "Escolhe data e horário",
-    text: "A agenda mostra horários livres, ocupados, pausas e melhores encaixes.",
+    title: "Escolha o serviço",
+    text: "Ele seleciona corte, barba ou combo vendo preço, duração e promoções disponíveis.",
   },
   {
-    step: "03",
-    title: "Barbearia acompanha tudo",
-    text: "O painel mostra agendamentos, clientes, pagamentos e ações rápidas.",
+    title: "Escolha profissional e horário",
+    text: "A agenda mostra os barbeiros, dias livres e horários disponíveis sem conflito.",
+  },
+  {
+    title: "Informe seus dados",
+    text: "Nome e WhatsApp ficam prontos para confirmar, remarcar e facilitar próximos agendamentos.",
+  },
+  {
+    title: "Confirme o agendamento",
+    text: "O cliente revisa o resumo, escolhe pagamento e a barbearia recebe o atendimento no painel.",
   },
 ];
 
@@ -340,23 +345,23 @@ export default function LandingPage() {
               <img src="/agenda-pro-logo.png" alt="AgendaPro" />
             </span>
             <div>
-              <small>Agenda no celular</small>
-              <strong>AgendaPro</strong>
+              <small>Demonstração</small>
+              <strong>Barber Shop</strong>
             </div>
           </div>
           <div className="mockCard">
-            <small>Próximo atendimento</small>
+            <small>Cliente escolhendo horário</small>
             <strong>Corte + barba</strong>
             <b>10:30</b>
           </div>
           <div className="mockMiniStats">
             <span>
-              <strong>12</strong>
-              <small>agendamentos</small>
+              <strong>3</strong>
+              <small>serviços</small>
             </span>
             <span>
-              <strong>R$ 420</strong>
-              <small>previsto</small>
+              <strong>50 min</strong>
+              <small>duração</small>
             </span>
           </div>
           <div className="mockSlots">
@@ -365,7 +370,7 @@ export default function LandingPage() {
             <span>14:00</span>
             <span>16:30</span>
           </div>
-          <div className="mockButton">Confirmar agendamento</div>
+          <div className="mockButton">Continuar agendamento</div>
         </div>
       </section>
 
@@ -474,8 +479,8 @@ export default function LandingPage() {
 
       <section className="landingDemoSection">
         <div className="landingSectionIntro">
-          <h2>Como a experiência aparece para o cliente</h2>
-          <p>O fluxo é direto: serviço, profissional, data, horário e confirmação.</p>
+          <h2>Demonstração Barber Shop</h2>
+          <p>Veja a sequência que o cliente segue para fazer um agendamento sem chamar no WhatsApp.</p>
         </div>
 
         <div className="landingDemoGrid">

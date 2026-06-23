@@ -1803,7 +1803,7 @@ button:disabled {
 }
 
 .landingSectionIntro {
-  align-self: stretch;
+  align-self: start;
   background:
     radial-gradient(circle at top left, rgba(34, 197, 94, 0.14), transparent 38%),
     linear-gradient(180deg, var(--card), var(--surface));
@@ -1814,8 +1814,8 @@ button:disabled {
 }
 
 .landingSectionIntro h2 {
-  font-size: clamp(24px, 3vw, 34px);
-  line-height: 1.05;
+  font-size: clamp(24px, 2.5vw, 32px);
+  line-height: 1.08;
   margin-bottom: 10px;
 }
 
@@ -2126,6 +2126,7 @@ button:disabled {
 .landingResourceSection,
 .landingAudienceSection,
 .landingDemoSection {
+  align-items: start;
   grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
 }
 
@@ -2158,6 +2159,11 @@ button:disabled {
 .landingResourceGrid article,
 .landingAudienceGrid article,
 .landingDemoGrid article {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-height: 150px;
+  overflow: hidden;
   padding: 18px;
 }
 
@@ -2191,22 +2197,19 @@ button:disabled {
 }
 
 .landingDemoGrid article {
-  min-height: 180px;
   position: relative;
 }
 
 .landingDemoGrid article::after {
-  background:
-    linear-gradient(135deg, rgba(34, 197, 94, 0.18), transparent 68%),
-    rgba(255, 255, 255, 0.035);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 18px;
-  bottom: 16px;
   content: "";
-  height: 54px;
+  background: linear-gradient(180deg, rgba(34, 197, 94, 0.38), rgba(34, 197, 94, 0));
+  border-radius: 999px;
+  bottom: 18px;
+  height: 3px;
   left: 18px;
+  opacity: 0.65;
   position: absolute;
-  right: 18px;
+  width: 42px;
 }
 
 .landingPlanCard {

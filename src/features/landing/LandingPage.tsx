@@ -92,17 +92,14 @@ const resourceCards = [
 
 const previewCards = [
   {
-    step: "01",
     title: "Cliente escolhe o serviço",
     text: "Cards claros com preço, duração, promoção e seleção simples.",
   },
   {
-    step: "02",
     title: "Escolhe data e horário",
     text: "A agenda mostra horários livres, ocupados, pausas e melhores encaixes.",
   },
   {
-    step: "03",
     title: "Barbearia acompanha tudo",
     text: "O painel mostra agendamentos, clientes, pagamentos e ações rápidas.",
   },
@@ -480,8 +477,7 @@ export default function LandingPage() {
 
         <div className="landingDemoGrid">
           {previewCards.map((item) => (
-            <article key={item.step}>
-              <span>{item.step}</span>
+            <article key={item.title}>
               <strong>{item.title}</strong>
               <p>{item.text}</p>
             </article>
@@ -496,9 +492,8 @@ export default function LandingPage() {
         </div>
 
         <div className="landingResourceGrid">
-          {resourceCards.map((item, index) => (
+          {resourceCards.map((item) => (
             <article key={item.title}>
-              <span>{String(index + 1).padStart(2, "0")}</span>
               <strong>{item.title}</strong>
               <p>{item.text}</p>
             </article>

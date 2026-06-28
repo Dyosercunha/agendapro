@@ -1798,39 +1798,29 @@ button:disabled {
 .landingPlanGrid {
   display: grid;
   gap: 14px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1.2fr repeat(3, minmax(0, 1fr));
   margin-top: 16px;
 }
 
-.landingPlanGrid .landingSectionIntro {
-  grid-column: 1 / -1;
-}
-
 .landingSectionIntro {
-  align-self: start;
+  align-self: stretch;
   background:
     radial-gradient(circle at top left, rgba(34, 197, 94, 0.14), transparent 38%),
     linear-gradient(180deg, var(--card), var(--surface));
   border: 1px solid var(--border-soft);
   border-radius: 28px;
   box-shadow: var(--shadow-card);
-  display: grid;
-  gap: 18px;
-  grid-template-columns: minmax(0, 0.95fr) minmax(280px, 1.05fr);
-  padding: 22px 24px;
+  padding: 20px;
 }
 
 .landingSectionIntro h2 {
-  font-size: clamp(24px, 2.5vw, 32px);
-  line-height: 1.08;
-  margin-bottom: 0;
+  font-size: clamp(24px, 3vw, 34px);
+  line-height: 1.05;
+  margin-bottom: 10px;
 }
 
 .landingSectionIntro p {
-  align-self: end;
   color: var(--text-secondary);
-  font-size: 16px;
-  line-height: 1.5;
   margin: 0;
 }
 
@@ -2136,8 +2126,7 @@ button:disabled {
 .landingResourceSection,
 .landingAudienceSection,
 .landingDemoSection {
-  align-items: start;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
 }
 
 .landingResourceGrid,
@@ -2148,16 +2137,10 @@ button:disabled {
   gap: 14px;
 }
 
-.landingResourceGrid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.landingAudienceGrid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
+.landingResourceGrid,
+.landingAudienceGrid,
 .landingDemoGrid {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .landingResourceGrid article,
@@ -2175,17 +2158,17 @@ button:disabled {
 .landingResourceGrid article,
 .landingAudienceGrid article,
 .landingDemoGrid article {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  min-height: 168px;
-  overflow: hidden;
-  padding: 20px;
+  padding: 18px;
 }
 
 .landingResourceGrid span,
 .landingDemoGrid span {
-  display: none;
+  color: var(--warning);
+  display: block;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  margin-bottom: 12px;
 }
 
 .landingResourceGrid strong,
@@ -2208,19 +2191,22 @@ button:disabled {
 }
 
 .landingDemoGrid article {
+  min-height: 180px;
   position: relative;
 }
 
 .landingDemoGrid article::after {
+  background:
+    linear-gradient(135deg, rgba(34, 197, 94, 0.18), transparent 68%),
+    rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 18px;
+  bottom: 16px;
   content: "";
-  background: linear-gradient(180deg, rgba(34, 197, 94, 0.38), rgba(34, 197, 94, 0));
-  border-radius: 999px;
-  bottom: 18px;
-  height: 3px;
+  height: 54px;
   left: 18px;
-  opacity: 0.65;
   position: absolute;
-  width: 42px;
+  right: 18px;
 }
 
 .landingPlanCard {
@@ -2368,16 +2354,6 @@ button:disabled {
   .landingDemoSection,
   .landingBenefitSection {
     grid-template-columns: 1fr;
-  }
-
-  .landingSectionIntro {
-    grid-template-columns: 1fr;
-  }
-
-  .landingResourceGrid,
-  .landingAudienceGrid,
-  .landingDemoGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .landingContactSection {
@@ -5470,8 +5446,8 @@ button:disabled {
 
 .visualWeekBoard {
   display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(7, minmax(190px, 1fr));
+  gap: 12px;
+  grid-template-columns: repeat(7, minmax(210px, 1fr));
   overflow-x: auto;
   padding-bottom: 4px;
   scroll-snap-type: x proximity;
@@ -5480,9 +5456,9 @@ button:disabled {
 .visualWeekDay {
   background: rgba(255, 255, 255, 0.035);
   border: 1px solid var(--border-soft);
-  border-radius: 20px;
-  min-height: 170px;
-  padding: 11px;
+  border-radius: 22px;
+  min-height: 190px;
+  padding: 12px;
   scroll-snap-align: start;
 }
 
@@ -5542,78 +5518,6 @@ button:disabled {
   border-radius: 22px;
   box-shadow: 0 16px 34px rgba(0, 0, 0, 0.22);
   padding: 16px;
-}
-
-.visualAppointmentCard.is-compact {
-  border-left-width: 3px;
-  border-radius: 18px;
-  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.2);
-  margin-top: 8px;
-  padding: 12px;
-}
-
-.visualAppointmentCard.is-compact .visualAppointmentTop {
-  align-items: center;
-}
-
-.visualAppointmentCard.is-compact .visualAppointmentTop strong {
-  font-size: 20px;
-}
-
-.visualAppointmentCard.is-compact .visualAppointmentTop span:not(.appointmentStatusPill) {
-  display: none;
-}
-
-.visualAppointmentCard.is-compact .appointmentStatusPill {
-  font-size: 10px;
-  padding: 6px 8px;
-}
-
-.visualAppointmentCard.is-compact .visualAppointmentBody {
-  margin-top: 9px;
-}
-
-.visualAppointmentCard.is-compact .visualAppointmentBody > strong {
-  font-size: 15px;
-  line-height: 1.16;
-  overflow-wrap: anywhere;
-}
-
-.visualAppointmentCard.is-compact .visualAppointmentBody p {
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  color: var(--text-muted);
-  display: -webkit-box;
-  font-size: 12px;
-  line-height: 1.25;
-  margin-top: 4px;
-  overflow: hidden;
-}
-
-.visualAppointmentCard.is-compact .visualAppointmentMeta {
-  gap: 5px;
-  margin-top: 8px;
-}
-
-.visualAppointmentCard.is-compact .visualAppointmentMeta span {
-  font-size: 10px;
-  padding: 5px 7px;
-}
-
-.visualAppointmentCard.is-compact .appointmentNoteEditor,
-.visualAppointmentCard.is-compact .appointmentActions,
-.visualAppointmentCard.is-compact .dragFuture,
-.visualAppointmentCard.is-compact .visualAppointmentNote {
-  display: none;
-}
-
-.visualAppointmentCard.is-compact .rescheduleNotice {
-  border-radius: 999px;
-  display: inline-flex;
-  font-size: 10px;
-  line-height: 1.15;
-  margin-top: 8px;
-  padding: 6px 8px;
 }
 
 .visualAppointmentTop {
@@ -12441,51 +12345,4 @@ textarea:focus-visible {
   .clientMiniSiteActions button {
     min-height: 48px;
   }
-}
-
-/* Agenda Premium: resumo semanal limpo e compacto */
-.visualWeekDay .visualAppointmentCard.is-compact {
-  min-width: 0;
-}
-
-.visualWeekDay .visualAppointmentCard.is-compact .visualAppointmentTop {
-  align-items: center;
-  flex-direction: row;
-}
-
-.visualWeekDay .visualAppointmentCard.is-compact .visualAppointmentTop strong {
-  font-size: 20px;
-  letter-spacing: 0;
-  line-height: 1;
-  white-space: nowrap;
-}
-
-.visualWeekDay .visualAppointmentCard.is-compact .appointmentStatusPill {
-  flex: 0 0 auto;
-  font-size: 10px;
-  max-width: 96px;
-  overflow: hidden;
-  padding: 6px 8px;
-  text-overflow: ellipsis;
-}
-
-.visualWeekDay .visualAppointmentCard.is-compact .visualAppointmentBody > strong,
-.visualWeekDay .visualAppointmentCard.is-compact .visualAppointmentBody p {
-  overflow-wrap: anywhere;
-}
-
-.visualWeekDay .visualAppointmentCard.is-compact .appointmentNoteEditor,
-.visualWeekDay .visualAppointmentCard.is-compact .appointmentActions,
-.visualWeekDay .visualAppointmentCard.is-compact .dragFuture,
-.visualWeekDay .visualAppointmentCard.is-compact .visualAppointmentNote {
-  display: none;
-}
-
-.visualWeekDay .visualAppointmentCard.is-compact .rescheduleNotice {
-  border-radius: 999px;
-  display: inline-flex;
-  font-size: 10px;
-  line-height: 1.15;
-  margin-top: 8px;
-  padding: 6px 8px;
 }

@@ -773,7 +773,13 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
 
     if (!adminLoggedIn) {
       return withNotice(
-        <main className="app">
+        <main
+          className={
+            business.themeMode === "light"
+              ? "app businessThemeLight adminThemeLight"
+              : "app"
+          }
+        >
           <section className="card loginCard">
             <div className="loginBadge">Acesso restrito</div>
             <h1>Faça login para acessar o painel</h1>
@@ -789,7 +795,13 @@ export default function BarberDashboard({ model }: BarberDashboardProps) {
     }
 
     return withNotice(
-      <main className="app adminApp">
+      <main
+        className={
+          business.themeMode === "light"
+            ? "app adminApp businessThemeLight adminThemeLight"
+            : "app adminApp"
+        }
+      >
         <section className="hero">
           <div className="brand">
             <div className={business.logoImage ? "logo logoWithImage" : "logo"}>

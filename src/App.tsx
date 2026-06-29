@@ -66,6 +66,7 @@ import { saveServices as saveServicesRequest, softDeleteService } from "./lib/se
 import { applyClientBookingSeo, applyGlobalSeo } from "./lib/seo";
 import { hasAuthSession } from "./lib/apiCore";
 import { supabase } from "./lib/supabaseClient";
+import { createBusinessThemeTokens, hexToRgba } from "./lib/theme";
 import {
   allowedAccessEmailMessage,
   isAllowedAccessEmailDomain,
@@ -179,6 +180,7 @@ const initialBusiness: BusinessState = {
   mapsUrl: "",
   themeColor: "#22c55e",
   themeColorSecondary: "#4ade80",
+  themeTextColor: "",
   clientBackgroundUrl: "",
   adminBackgroundUrl: "",
   clientBackgroundOpacity: 0.18,
@@ -684,15 +686,6 @@ function promotionDiscountAmount(promotion, subtotal) {
   return roundCurrency(Math.max(percentValue, 0) + Math.max(fixedValue, 0));
 }
 
-function hexToRgba(hex, opacity) {
-  const cleanHex = hex.replace("#", "");
-  const red = parseInt(cleanHex.substring(0, 2), 16);
-  const green = parseInt(cleanHex.substring(2, 4), 16);
-  const blue = parseInt(cleanHex.substring(4, 6), 16);
-
-  return `rgba(${red}, ${green}, ${blue}, ${opacity})`;
-}
-
 function safeImageUrl(value) {
   const url = String(value || "").trim();
   return url.startsWith("https://") || url.startsWith("http://") || url.startsWith("data:image/")
@@ -932,6 +925,7 @@ function mapBusinessFromCloud(row, account) {
     mapsUrl: normalizeMapsUrl(row.maps_url || "", row.address || ""),
     themeColor: row.theme_color || initialBusiness.themeColor,
     themeColorSecondary: row.theme_color_secondary || initialBusiness.themeColorSecondary,
+    themeTextColor: row.theme_text_color || "",
     clientBackgroundUrl: row.client_background_url || "",
     adminBackgroundUrl: row.admin_background_url || "",
     clientBackgroundOpacity: Number(row.client_background_opacity ?? initialBusiness.clientBackgroundOpacity),
@@ -1967,13 +1961,20 @@ function CoreAgendaProApp() {
 
   useEffect(() => {
     const root = document.documentElement;
-    root.style.setProperty("--primary", business.themeColor);
-    root.style.setProperty("--primary-2", business.themeColorSecondary);
-    root.style.setProperty("--primary-hover", business.themeColor);
-    root.style.setProperty("--primary-soft", hexToRgba(business.themeColor, 0.14));
-    root.style.setProperty("--success", business.themeColorSecondary);
-    root.style.setProperty("--shadow-glow", `0 0 32px ${hexToRgba(business.themeColor, 0.22)}`);
-  }, [business.themeColor, business.themeColorSecondary]);
+    const tokens = createBusinessThemeTokens({
+      mode: business.themeMode,
+      primary: business.themeColor,
+      secondary: business.themeColorSecondary,
+      text: business.themeTextColor,
+    });
+
+    Object.entries(tokens).forEach(([name, value]) => root.style.setProperty(name, value));
+  }, [
+    business.themeColor,
+    business.themeColorSecondary,
+    business.themeMode,
+    business.themeTextColor,
+  ]);
 
   useEffect(() => {
     if (viewMode === "client") {
@@ -3325,10 +3326,12 @@ function CoreAgendaProApp() {
         const appearanceCenterResult = await saveAppearanceCenter({
           target_slug: nextSlug,
           theme_mode_input: business.themeMode === "light" ? "light" : "dark",
+          theme_text_color_input: business.themeTextColor || null,
           welcome_message_input: business.welcomeMessage || "",
           rating_value_input: Number(business.ratingValue || 5),
           rating_text_input: business.ratingText || "",
         });
+        let finalAppearanceCenterResult = appearanceCenterResult;
         const optionalAppearanceError = appearanceCenterResult.error
           ? cloudErrorText(appearanceCenterResult.error).toLowerCase()
           : "";
@@ -3337,8 +3340,18 @@ function CoreAgendaProApp() {
           optionalAppearanceError.includes("could not find the function") ||
           optionalAppearanceError.includes("404");
 
-        if (appearanceCenterResult.error && !missingAppearanceRpc) {
-          return appearanceCenterResult;
+        if (appearanceCenterResult.error && missingAppearanceRpc) {
+          finalAppearanceCenterResult = await saveAppearanceCenter({
+            target_slug: nextSlug,
+            theme_mode_input: business.themeMode === "light" ? "light" : "dark",
+            welcome_message_input: business.welcomeMessage || "",
+            rating_value_input: Number(business.ratingValue || 5),
+            rating_text_input: business.ratingText || "",
+          });
+        }
+
+        if (finalAppearanceCenterResult.error) {
+          return finalAppearanceCenterResult;
         }
 
         setCloudSlug(nextSlug);
@@ -4719,7 +4732,13 @@ function CoreAgendaProApp() {
 
   if (viewMode === "barberGate") {
     return withNotice(
-      <main className="app">
+      <main
+        className={
+          business.themeMode === "light"
+            ? "app businessThemeLight adminThemeLight"
+            : "app"
+        }
+      >
         <section className="hero">
           <div className="brand">
             <div className={business.logoImage ? "logo logoWithImage" : "logo"}>
@@ -4773,7 +4792,13 @@ function CoreAgendaProApp() {
 
   if (viewMode === "adminLogin") {
     return withNotice(
-      <main className="app">
+      <main
+        className={
+          business.themeMode === "light"
+            ? "app businessThemeLight adminThemeLight"
+            : "app"
+        }
+      >
         <section className="hero">
           <div className="brand">
             <div className={business.logoImage ? "logo logoWithImage" : "logo"}>

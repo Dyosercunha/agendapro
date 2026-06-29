@@ -250,6 +250,8 @@ export default function ClientBooking({ model }: ClientBookingProps) {
     whatsapp,
     withNotice,
   } = model;
+  const clientThemeClass =
+    business.themeMode === "light" ? " businessThemeLight clientThemeLight" : "";
 
   const cleanAddress = repairText(business.address || "");
   const rawMapsUrl = String(business.mapsUrl || "").trim();
@@ -349,7 +351,7 @@ export default function ClientBooking({ model }: ClientBookingProps) {
 
   if (screen === "manage") {
     return withNotice(
-      <main className="app">
+      <main className={`app${clientThemeClass}`}>
         <section className="card success successPremium">
           <div className="badge">Agendamento</div>
           <h1>Gerenciar horário</h1>
@@ -425,7 +427,7 @@ export default function ClientBooking({ model }: ClientBookingProps) {
 
   if (screen === "success") {
     return withNotice(
-      <main className="app">
+      <main className={`app${clientThemeClass}`}>
         <section className="card success">
           <div className="badge">Agendado</div>
           <h1>{repairText(business.successTitle)}</h1>
@@ -560,7 +562,7 @@ export default function ClientBooking({ model }: ClientBookingProps) {
 
   if (screen === "confirm") {
     return withNotice(
-      <main className="app checkoutApp">
+      <main className={`app checkoutApp${clientThemeClass}`}>
         <section className="checkoutHeader">
           <p className="muted">Etapa final</p>
           <h1>Confirmar agendamento</h1>
@@ -722,7 +724,7 @@ export default function ClientBooking({ model }: ClientBookingProps) {
 
   if (scheduleBlocked) {
     return withNotice(
-      <main className="app">
+      <main className={`app${clientThemeClass}`}>
         <section className="appHeader">
           <div className="brand">
             <div className={business.logoImage ? "logo logoWithImage" : "logo"}>
@@ -769,11 +771,7 @@ export default function ClientBooking({ model }: ClientBookingProps) {
 
   return withNotice(
     <main
-      className={
-        business.themeMode === "light"
-          ? "app clientBookingApp clientThemeLight"
-          : "app clientBookingApp"
-      }
+      className={`app clientBookingApp${clientThemeClass}`}
     >
       <section className="clientMiniSiteHero" style={coverStyle}>
         <div className="clientMiniSiteTop">

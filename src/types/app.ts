@@ -124,6 +124,7 @@ export type Barbershop = {
   successTitle?: string;
   themeColor?: string;
   themeColorSecondary?: string;
+  themeTextColor?: string;
   themeMode?: "dark" | "light" | string;
   welcomeMessage?: string;
   whatsapp?: string;

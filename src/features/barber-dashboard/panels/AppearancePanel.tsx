@@ -1,6 +1,12 @@
 import React, { useState } from "react";
 import { onlyDigits } from "../../../lib/phone";
 import { buildBookingPath } from "../../../lib/routes";
+import {
+  automaticTextColor,
+  contrastRatio,
+  contrastTextColor,
+  mixHexColors,
+} from "../../../lib/theme";
 import type { Barbershop } from "../../../types/app";
 
 export type BackgroundField = "adminBackgroundUrl" | "clientBackgroundUrl";
@@ -151,6 +157,17 @@ export default function AppearancePanel({ model }: AppearancePanelProps) {
   const themeMode = business.themeMode === "light" ? "light" : "dark";
   const themeColor = business.themeColor || "#22c55e";
   const themeColorSecondary = business.themeColorSecondary || "#4ade80";
+  const themeTextColor = business.themeTextColor || automaticTextColor(themeMode);
+  const previewBaseColor = themeMode === "light" ? "#eef2f7" : "#070a0d";
+  const previewCardColor = themeMode === "light" ? "#f8fafc" : "#171b21";
+  const textContrastRatio = contrastRatio(themeTextColor, previewCardColor);
+  const previewThemeStyle = {
+    "--primary": themeColor,
+    "--secondary": themeColorSecondary,
+    "--text": themeTextColor,
+    "--text-secondary": mixHexColors(themeTextColor, previewBaseColor, 0.28),
+    "--text-muted": mixHexColors(themeTextColor, previewBaseColor, 0.46),
+  } as React.CSSProperties;
   const ratingValue = Number(business.ratingValue || 5).toLocaleString("pt-BR", {
     maximumFractionDigits: 1,
     minimumFractionDigits: 1,
@@ -165,6 +182,7 @@ export default function AppearancePanel({ model }: AppearancePanelProps) {
     : undefined;
   const previewButtonStyle = {
     background: `linear-gradient(135deg, ${themeColor}, ${themeColorSecondary})`,
+    color: contrastTextColor(themeColor),
   };
   const portfolioFields: Array<{
     field: PortfolioImageField;
@@ -310,7 +328,7 @@ export default function AppearancePanel({ model }: AppearancePanelProps) {
               )}
             </div>
 
-            <div className="appearanceFieldGrid twoColumns">
+            <div className="appearanceFieldGrid threeColumns">
               <div>
                 <label>Cor principal</label>
                 <input
@@ -329,6 +347,38 @@ export default function AppearancePanel({ model }: AppearancePanelProps) {
                   onChange={(event) => updateBusiness({ themeColorSecondary: event.target.value })}
                 />
               </div>
+              <div>
+                <label>Cor dos textos</label>
+                <div className="appearanceTextColorControl">
+                  <input
+                    className="colorInput"
+                    type="color"
+                    value={themeTextColor}
+                    onChange={(event) => updateBusiness({ themeTextColor: event.target.value })}
+                  />
+                  <button
+                    type="button"
+                    className={!business.themeTextColor ? "selected" : ""}
+                    onClick={() => updateBusiness({ themeTextColor: "" })}
+                  >
+                    Automática
+                  </button>
+                </div>
+                <small className="fieldHint">
+                  Aplica a títulos, textos, campos e informações do cliente e do painel.
+                </small>
+                <small
+                  className={
+                    textContrastRatio >= 4.5
+                      ? "themeContrastHint readable"
+                      : "themeContrastHint lowContrast"
+                  }
+                >
+                  {textContrastRatio >= 4.5
+                    ? "Boa leitura neste tema."
+                    : "Contraste baixo. Escolha uma cor mais legível."}
+                </small>
+              </div>
             </div>
 
             <div className="appearanceFieldGrid twoColumns">
@@ -344,7 +394,7 @@ export default function AppearancePanel({ model }: AppearancePanelProps) {
                 />
               </div>
               <div>
-                <label>Tema da tela do cliente</label>
+                <label>Tema do app da barbearia</label>
                 <div className="appearanceModeSwitch">
                   <button
                     type="button"
@@ -362,7 +412,7 @@ export default function AppearancePanel({ model }: AppearancePanelProps) {
                   </button>
                 </div>
                 <small className="fieldHint">
-                  Aplica na página pública de agendamento e na prévia ao vivo.
+                  Aplica na página do cliente, no painel da barbearia e na prévia ao vivo.
                 </small>
               </div>
             </div>
@@ -698,7 +748,10 @@ export default function AppearancePanel({ model }: AppearancePanelProps) {
           </div>
 
           <div className="appearanceLivePreview">
-            <div className={`appearancePhoneFrame ${themeMode === "light" ? "light" : ""}`}>
+            <div
+              className={`appearancePhoneFrame ${themeMode === "light" ? "light" : ""}`}
+              style={previewThemeStyle}
+            >
               <div className="appearancePhoneCover" style={previewBackgroundStyle}>
                 <div className={business.logoImage ? "logo logoWithImage appearancePhoneLogo" : "logo appearancePhoneLogo"}>
                   {business.logoImage ? <img src={business.logoImage} alt="Logo" /> : business.logo}

@@ -10,7 +10,7 @@ type PublicBarbershop = {
 const contactWhatsappUrl =
   "https://wa.me/5551992627663?text=Ol%C3%A1%2C%20quero%20conhecer%20o%20AgendaPro%20para%20minha%20barbearia.";
 
-const demoBookingPath = buildBookingPath("master-barbearia");
+const demoBookingPath = buildBookingPath("barbershop");
 
 const planCards = [
   {
@@ -300,7 +300,6 @@ export default function LandingPage() {
           <button type="button" onClick={() => goTo("painel")}>
             Sou barbearia
           </button>
-          <a href={demoBookingPath}>Demonstração</a>
         </div>
       </nav>
 
